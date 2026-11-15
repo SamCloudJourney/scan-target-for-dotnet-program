@@ -332,5 +332,17 @@
     "owner": "dotnet",
     "regular_files": 13,
     "archive_sha256": "fa46520a3029d901035d3dd9930aaabae896d3eda55326370aad56403a01bead"
+  },
+  {
+    "name": "wpf",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "2dcaee7951ffd752dc11306e972297b35294a932",
+    "path": "workflow-snapshots/dotnet--wpf--main--workflow",
+    "files": 29,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 29,
+    "archive_sha256": "bcc1802677341bc99aa4ea1c8e54ad4e1d24cfbfa8424edfa4e18c6e59645117"
   }
 ]
