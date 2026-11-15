@@ -188,5 +188,17 @@
     "owner": "dotnet",
     "regular_files": 157,
     "archive_sha256": "36bf584dbad78602afa146cf59d13eac408de7195725e3738464b7ef311784c6"
+  },
+  {
+    "name": "maui",
+    "kind": "release",
+    "ref": "10.0.130",
+    "commit": "54d76458e08bb033e32b9bd98a4da9e9b11167d6",
+    "path": "supplemental-targets/dotnet--maui--10.0.130--release",
+    "files": 26851,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 26851,
+    "archive_sha256": "1996115fa0c69d4e4181044476d0321d5e59480b7f6532fce18f3a28b0986094"
   }
 ]
