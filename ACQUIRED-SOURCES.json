@@ -284,5 +284,17 @@
     "owner": "dotnet",
     "regular_files": 11,
     "archive_sha256": "028ce2b7f400b52ad0fa0036067f0ad809f8bdba998597d1bbd8f739fa008c4a"
+  },
+  {
+    "name": "extensions",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "e29d20ad005adff73002d968ebd279129c7463f9",
+    "path": "workflow-snapshots/dotnet--extensions--main--workflow",
+    "files": 73,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 73,
+    "archive_sha256": "7516cdbdec967c103239ddc98dcb532cf894cd9640af1c77b2f78391463a64bf"
   }
 ]
