@@ -1,5 +1,35 @@
 [
   {
+    "owner": "dotnet",
+    "name": "dotnet",
+    "kind": "release",
+    "ref": "v11.0.100",
+    "commit": "297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f",
+    "path": "scan-target-v11.0.100",
+    "regular_files": 183720,
+    "archive_sha256": "21e082ec84a5d16c78bf926cb43a7ecd8e010cd52ac38790d300db5bfb1af814"
+  },
+  {
+    "owner": "dotnet",
+    "name": "dotnet",
+    "kind": "release",
+    "ref": "v10.0.404",
+    "commit": "2ab2854867733112c84ac12c4273d7970ac3afdf",
+    "path": "sources/dotnet-vmr-v10.0.404",
+    "regular_files": 81564,
+    "archive_sha256": "ce727bcb8fd58333089fb84211a94a9a6bbb2a2bab7262b3ca816bd0b640c335"
+  },
+  {
+    "owner": "dotnet",
+    "name": "dotnet",
+    "kind": "release",
+    "ref": "v10.0.115",
+    "commit": "8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
+    "path": "release-sources/dotnet-vmr-v10.0.115",
+    "regular_files": 182986,
+    "archive_sha256": "94943b646a01fb3057e72785e9e4a33c4b9b44fe73310032e13171d6079d34e8"
+  },
+  {
     "name": "yarp",
     "kind": "release",
     "ref": "v2.3.0",
@@ -347,12 +377,12 @@
   },
   {
     "owner": "dotnet",
-    "name": "dotnet",
+    "name": "aspnetcore",
     "kind": "release",
-    "ref": "v10.0.115",
-    "commit": "8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
-    "path": "release-sources/dotnet-vmr-v10.0.115",
-    "regular_files": 182986,
-    "archive_sha256": "94943b646a01fb3057e72785e9e4a33c4b9b44fe73310032e13171d6079d34e8"
+    "ref": "Microsoft.AspNetCore.Http 2.3.14",
+    "commit": "094d253c4d4a94ef6bc60869a45f0cccccde8cf3",
+    "path": "release-sources/aspnetcore-2.3.14",
+    "regular_files": 9398,
+    "archive_sha256": "61d810e19ccd7262dd986ff1c2066ab190f998fef7918c03cd3f3f825edfa726"
   }
 ]

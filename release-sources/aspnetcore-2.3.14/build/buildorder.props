@@ -1,0 +1,12 @@
+<Project>
+  <ItemDefinitionGroup>
+    <RepositoryBuildOrder>
+      <Order></Order>
+      <RootPath></RootPath>
+    </RepositoryBuildOrder>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <RepositoryBuildOrder Include="EntityFrameworkCore" Order="8" />
+  </ItemGroup>
+</Project>
