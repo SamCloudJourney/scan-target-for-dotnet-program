@@ -296,5 +296,17 @@
     "owner": "dotnet",
     "regular_files": 73,
     "archive_sha256": "7516cdbdec967c103239ddc98dcb532cf894cd9640af1c77b2f78391463a64bf"
+  },
+  {
+    "name": "roslyn",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "13e3b232c98a7c550ff391eed999ddf9df66df16",
+    "path": "workflow-snapshots/dotnet--roslyn--main--workflow",
+    "files": 76,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 76,
+    "archive_sha256": "232b6f1fb8c2d760655521db3bd193310576e17174235bb1c8dd30f3c69f5392"
   }
 ]
