@@ -1,0 +1,822 @@
+# This is a reusable workflow to run tests for a given test project.
+# It is designed to be called from other workflows, such as the integration or template tests workflows.
+# The workflow includes steps for setting up the environment, building the test project, running the tests, and uploading the results.
+name: Run Tests
+
+on:
+  workflow_call:
+    inputs:
+      testShortName:
+        required: true
+        type: string
+      testProjectPath:
+        # relative the repo root
+        required: false
+        type: string
+      # MTP diagnostic arguments (hangdump, crashdump, timeouts).
+      # Single source of truth is eng/Testing.targets; the runsheet pipeline forwards per-project values.
+      mtpBaseArgs:
+        required: false
+        type: string
+        default: "--ignore-exit-code 8 --crashdump --hangdump --hangdump-type none --hangdump-timeout 10m --timeout 20m"
+      extraTestArgs:
+        required: false
+        type: string
+      versionOverrideArg:
+        required: false
+        type: string
+      # JSON object of test properties (e.g. {"requiresNugets": true})
+      properties:
+        required: false
+        type: string
+        default: '{}'
+      os:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+      # When true, known test-runner outcomes do not fail the job. Unknown or
+      # infrastructure/configuration failures remain blocking.
+      ignoreTestFailures:
+        required: false
+        type: boolean
+        default: false
+      # Specialized workflows can legitimately produce zero tests for a project/OS
+      # combination after applying their trait filter.
+      allowZeroTests:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+
+  test:
+    if: ${{ github.repository == 'microsoft/aspire' }}
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 60
+    name: ${{ inputs.testShortName }} (${{ inputs.os }})
+    env:
+      DOTNET_ROOT: ${{ github.workspace }}/.dotnet
+      # Disable MSBuild terminal logger via env var instead of -tl:false on the command line.
+      # In MTP native runner mode, -tl:false is forwarded to the test host which doesn't recognize it.
+      MSBUILDTERMINALLOGGER: "false"
+      # Resolve once so the fallback isn't duplicated across all four test-runner steps.
+      # The '|| default' is needed because GitHub Actions passes empty strings for
+      # unset workflow_call inputs, bypassing the input-level default: values.
+      EFFECTIVE_MTP_BASE_ARGS: ${{ inputs.mtpBaseArgs || '--ignore-exit-code 8 --crashdump --hangdump --hangdump-type none --hangdump-timeout 10m --timeout 20m' }}
+    steps:
+      - name: Validate arguments
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrEmpty("${{ inputs.testShortName }}")) {
+            Write-Error "Error: testShortName is required."
+            exit 1
+          }
+
+      # Adding .dotnet to GITHUB_PATH as this ensures that the tests running
+      # from the repo always use restored dotnet. For tests run from outside
+      # the repo we install system dotnet earlier in the build
+
+      - name: Setup vars (Linux/macOS)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
+          echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
+          echo ${{ github.workspace }}/.dotnet >> $GITHUB_PATH
+
+      - name: Setup vars (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
+          echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+          Write-Output "NUGET_PACKAGES=${{ github.workspace }}/.nuget/packages" >> $env:GITHUB_ENV
+          echo "TEST_RUN_PATH=${{ github.workspace }}\run-tests" >> $env:GITHUB_ENV
+          echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Diagnostics only: samples CPU, memory, commit charge, page file, and disk pressure
+      # into the uploaded logs so slow or hung Windows jobs can be correlated with machine
+      # load. https://github.com/microsoft/aspire/issues/21570
+      - name: Start resource monitor (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: ./eng/scripts/ci-resource-monitor.ps1 -Mode Start -OutputDirectory "${{ github.workspace }}/artifacts/log/test-logs/resource-monitor"
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        # Used for running tests outside the repo
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        with:
+          dotnet-version: 10.x
+          # Install the pinned SDK as well, including its exact prerelease version.
+          global-json-file: global.json
+        env:
+          DOTNET_INSTALL_DIR: ${{ env.DOTNET_ROOT }}
+
+      - name: Setup Deno
+        if: inputs.testShortName == 'Hosting.JavaScript'
+        uses: ./.github/actions/setup-deno
+
+      - name: Set up Java
+        if: ${{ fromJson(inputs.properties).requiresJava == true }}
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Trust HTTPS development certificate (Linux)
+        if: runner.os == 'Linux'
+        # Allow the task to succeed on partial trust.
+        # Remove this workaround once https://github.com/dotnet/aspnetcore/pull/65392 has shipped
+        run: |
+          EXIT_CODE=0
+          ${{ env.DOTNET_SCRIPT }} dev-certs https --trust || EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 4 ]; then
+            echo "dev-certs https --trust failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+        env:
+          WSL_INTEROP: ""
+
+      - name: Verify Docker is running
+        # nested docker containers not supported on windows
+        if: runner.os == 'Linux'
+        run: docker info
+
+      - name: Pin container runtime to Docker (Windows)
+        # Windows images ship WSL, which puts wslc.exe on PATH. Without a configured runtime, DCP
+        # runs `wslc info` and `wslc network list` on every AppHost start. On these hosted runners
+        # that correlates with workers freezing and being reported as "lost communication".
+        # Docker is the only runtime used on these runners. See https://github.com/microsoft/aspire/issues/21570
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"ASPIRE_CONTAINER_RUNTIME=docker" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append'
+
+      - name: Download prebuilt CLI E2E Docker image
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true && runner.os == 'Linux' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-e2e-dotnet-image
+          path: ${{ github.workspace }}/cli-e2e-image
+
+      - name: Download prebuilt CLI E2E polyglot Docker image
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true && runner.os == 'Linux' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-e2e-polyglot-image
+          path: ${{ github.workspace }}/cli-e2e-image
+
+      - name: Download prebuilt CLI E2E Java Docker image
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true && runner.os == 'Linux' && contains(inputs.testShortName, 'Java') }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-e2e-polyglot-java-image
+          path: ${{ github.workspace }}/cli-e2e-image
+
+      # Go CLI E2E classes are named Go*, so '-Go' matches the class suffix of the split job name
+      # (Cli.EndToEnd-GoStarterTemplateTests) without matching names that merely contain "go" (MongoDB, Config).
+      - name: Download prebuilt CLI E2E Go Docker image
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true && runner.os == 'Linux' && contains(inputs.testShortName, '-Go') }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-e2e-polyglot-go-image
+          path: ${{ github.workspace }}/cli-e2e-image
+
+      - name: Load prebuilt CLI E2E Docker images
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true && runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          eng/scripts/load-cli-e2e-images.sh \
+            --image-dir "${{ github.workspace }}/cli-e2e-image" \
+            --require-dotnet true \
+            --require-polyglot true \
+            --require-java "${{ contains(inputs.testShortName, 'Java') }}" \
+            --require-go "${{ contains(inputs.testShortName, '-Go') }}"
+
+      - name: Download built nugets
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: built-nugets
+          path: ${{ github.workspace }}/artifacts/packages
+
+      - name: Copy nugets to the correct location
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        shell: pwsh
+        run: |
+          $packageRoot = "${{ github.workspace }}/artifacts/packages"
+          $nestedDebugPath = Join-Path $packageRoot "built-nugets/Debug"
+          $directDebugPath = Join-Path $packageRoot "Debug"
+
+          if (Test-Path $nestedDebugPath) {
+            Move-Item -Path $nestedDebugPath -Destination $packageRoot
+          }
+          elseif (-not (Test-Path $directDebugPath)) {
+            Get-ChildItem -Path $packageRoot -Recurse | Select-Object -ExpandProperty FullName
+            Write-Error "Unable to find downloaded NuGet packages at '$nestedDebugPath' or '$directDebugPath'."
+          }
+
+      - name: Compute RID for arch-specific packages
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        id: compute_rid
+        shell: pwsh
+        run: |
+          $runnerOs = "${{ runner.os }}"
+          $runnerArch = "${{ runner.arch }}"
+          $rid = switch ("$runnerOs-$runnerArch") {
+            'Linux-X64'     { 'linux-x64' }
+            'Linux-ARM64'   { 'linux-arm64' }
+            'Windows-X64'   { 'win-x64' }
+            'Windows-ARM64' { 'win-arm64' }
+            'macOS-ARM64'   { 'osx-arm64' }
+            'macOS-X64'     { 'osx-x64' }
+            Default { Write-Error "Unknown runner OS/arch '$runnerOs-$runnerArch' for RID mapping"; exit 1 }
+          }
+          Write-Host "Using RID=$rid"
+          "RID=$rid"    | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "rid=$rid"    | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Download arch-specific nugets
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: built-nugets-for-${{ steps.compute_rid.outputs.rid }}
+          path: ${{ github.workspace }}/arch-specific
+
+      - name: Merge arch-specific nugets into package feed
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        shell: pwsh
+        run: |
+          $dest = "${{ github.workspace }}/artifacts/packages/Debug/Shipping"
+          if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+          $source = "${{ github.workspace }}/arch-specific"
+          if (-not (Test-Path $source)) {
+            Write-Error "Source folder '$source' does not exist."; exit 1
+          }
+          $nupkgs = Get-ChildItem -Path $source -Filter *.nupkg -ErrorAction SilentlyContinue
+          if (-not $nupkgs -or $nupkgs.Count -eq 0) {
+            Write-Error "No arch-specific nugets found in '$source'"; exit 1
+          } else {
+            foreach ($pkg in $nupkgs) {
+              Copy-Item -Path $pkg.FullName -Destination $dest -Force
+            }
+            Write-Host "Merged $($nupkgs.Count) arch-specific nugets for RID=$env:RID into $dest"
+          }
+
+      - name: Download CLI native archives
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-native-archives-${{ steps.compute_rid.outputs.rid }}
+          path: ${{ github.workspace }}/cli-archives
+
+      - name: Copy NuGet packages into CLI archives directory
+        if: ${{ fromJson(inputs.properties).requiresCliArchive == true && fromJson(inputs.properties).requiresNugets == true }}
+        shell: pwsh
+        run: |
+          $source = "${{ github.workspace }}/artifacts/packages/Debug/Shipping"
+          $dest = "${{ github.workspace }}/cli-archives"
+          if (Test-Path $source) {
+            $nupkgs = Get-ChildItem -Path $source -Filter *.nupkg -ErrorAction SilentlyContinue
+            if ($nupkgs -and $nupkgs.Count -gt 0) {
+              foreach ($pkg in $nupkgs) {
+                Copy-Item -Path $pkg.FullName -Destination $dest -Force
+              }
+              Write-Host "Copied $($nupkgs.Count) NuGet packages into cli-archives for LocalArchive mode"
+            } else {
+              Write-Host "No NuGet packages found in '$source' to copy"
+            }
+          } else {
+            Write-Host "NuGet package source '$source' does not exist — skipping copy"
+          }
+
+      - name: Install sdk for nuget based testing
+        if: ${{ fromJson(inputs.properties).requiresTestSdk == true }}
+        run: >
+          ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
+          /p:SkipPackageCheckForTemplatesTesting=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/InstallSdkForTesting.binlog
+
+      - name: Install Azure Functions Core Tools
+        if: runner.os == 'Linux' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The npm package floats a nested CDN payload from its postinstall script, so a bad publish
+          # can break CI even when the package version range has not changed. Download the same
+          # pinned release shape used by extension E2E instead.
+          core_tools_version='4.12.1'
+          core_tools_directory="$RUNNER_TEMP/azure-functions-core-tools"
+          core_tools_archive="$RUNNER_TEMP/Azure.Functions.Cli.linux-x64.${core_tools_version}.zip"
+          curl --fail --location --retry 3 --retry-all-errors \
+            --output "$core_tools_archive" \
+            "https://github.com/Azure/azure-functions-core-tools/releases/download/${core_tools_version}/Azure.Functions.Cli.linux-x64.${core_tools_version}.zip"
+          echo 'faf8fb8d50b5293df338bec70594b12f45730e9fe251805298859b2238cf627e  '"$core_tools_archive" | sha256sum --check -
+          mkdir -p "$core_tools_directory"
+          unzip -q "$core_tools_archive" -d "$core_tools_directory"
+          chmod +x "$core_tools_directory/func"
+          echo "$core_tools_directory" >> "$GITHUB_PATH"
+          export PATH="$core_tools_directory:$PATH"
+          func --version
+
+      - name: Compute test project path
+        id: compute_project_path
+        shell: pwsh
+        run: |
+          $testShortName = "${{ inputs.testShortName }}"
+          $overrideTestProjectPath = "${{ inputs.testProjectPath }}"
+          $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
+          $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
+
+          if (-not [string]::IsNullOrEmpty($overrideTestProjectPath)) {
+              $projectPath = "${{ github.workspace }}/$overrideTestProjectPath"
+          } elseif (Test-Path -Path $projectPath1) {
+              $projectPath = $projectPath1
+          } elseif (Test-Path -Path $projectPath2) {
+              $projectPath = $projectPath2
+          } else {
+              Write-Error "No matching project path found."
+              exit 1
+          }
+
+          $filenameWithoutExtension = (Get-Item $projectPath).BaseName
+          echo "TEST_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
+          echo "TEST_ASSEMBLY_NAME=$filenameWithoutExtension" >> $env:GITHUB_ENV
+
+      - name: Configure CLI test NuGet service index
+        shell: pwsh
+        run: |
+          if ($env:TEST_ASSEMBLY_NAME -eq 'Aspire.Cli.Tests') {
+            "ASPIRE_CLI_NUGET_SERVICE_INDEX=https://packagefeedproxy.microsoft.io/nuget/v3/index.json" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+
+      - name: Build test project
+        if: ${{ fromJson(inputs.properties).requiresNugets != true }}
+        run: >
+          ${{ env.BUILD_SCRIPT }}
+          -restore
+          -ci
+          -build
+          -projects ${{ env.TEST_PROJECT_PATH }}
+          ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Build and archive test project
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        run: >
+          ${{ env.BUILD_SCRIPT }} -restore -ci -build -projects ${{ env.TEST_PROJECT_PATH }}
+          /p:PrepareForHelix=true
+          /p:ArchiveTests=true
+          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildAndArchive.binlog
+          ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          ${{ inputs.versionOverrideArg }}
+
+      # Workaround for bug in Azure Functions Worker SDK. See https://github.com/Azure/azure-functions-dotnet-worker/issues/2969.
+      - name: Rebuild for Azure Functions project
+        if: inputs.testShortName == 'Playground'
+        env:
+          UseSharedCompilation: ${{ runner.os == 'Windows' && 'false' || '' }}
+        run: |
+          ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.Functions/AzureFunctionsEndToEnd.Functions.csproj /p:SkipUnstableEmulators=true
+
+      - name: Unpack tests
+        if: ${{ fromJson(inputs.properties).requiresNugets == true }}
+        shell: pwsh
+        run: |
+          # Find all zip files in the given path
+          $path = "${{ github.workspace }}/artifacts/helix"
+          $zipFiles = Get-ChildItem -Path $path -Filter *.zip -Recurse
+
+          # Check the number of zip files found
+          if ($zipFiles.Count -eq 0) {
+              Write-Error "No zip files found in path : $path"
+              exit 1
+          } elseif ($zipFiles.Count -gt 1) {
+              $zipFilesList = $zipFiles.FullName -join ", "
+              Write-Error "Multiple zip files found in path: $path : $zipFilesList"
+              exit 1
+          } else {
+              Write-Output "One zip file found: $($zipFiles[0].FullName)"
+          }
+
+          $zipFilePath = $zipFiles[0].FullName
+          $destinationPath = "$env:TEST_RUN_PATH"
+
+          if (-not (Test-Path $destinationPath)) {
+              New-Item -ItemType Directory -Path $destinationPath -Force
+          }
+
+          if ($IsWindows) {
+              Add-Type -AssemblyName System.IO.Compression.FileSystem
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $destinationPath)
+          } else {
+              $unzipCommand = "unzip -o $zipFilePath -d $destinationPath"
+              Invoke-Expression $unzipCommand
+          }
+
+          Write-Output "Unzipped $zipFilePath to $destinationPath"
+
+      - name: Unlock macOS keychain for certificate tests
+        if: runner.os == 'macOS'
+        uses: ./.github/actions/unlock-macos-keychain
+
+      # Shut down the Roslyn compiler server before running tests. On resource-constrained
+      # runners (e.g. 2-core windows-latest), VBCSCompiler stays resident and consumes
+      # ~150% CPU / 700MB RAM, starving the runner agent and causing "lost communication"
+      # crashes. This is fast and idempotent (no-op if no server is running).
+      # See https://github.com/microsoft/aspire/issues/15832
+      - name: Shutdown build server
+        if: runner.os == 'Windows'
+        run: ${{ env.DOTNET_SCRIPT }} build-server shutdown
+
+      - name: Run nuget dependent tests (Linux/macOS)
+        if: ${{ fromJson(inputs.properties).requiresNugets == true && runner.os != 'Windows' }}
+        working-directory: ${{ github.workspace }}/run-tests/
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          PLAYWRIGHT_INSTALLED: ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && 'false' || 'true' }}
+          TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
+          TestsRunningOutsideOfRepo: true
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # CLI E2E Dockerfiles consume this as a build arg to avoid overloaded default Ubuntu package servers.
+          # azure.archive.ubuntu.com does not serve HTTPS; HTTP is intentional and matches the GitHub-hosted Ubuntu runner fallback mirror.
+          ASPIRE_E2E_UBUNTU_APT_MIRROR: ${{ runner.os == 'Linux' && (runner.arch == 'ARM64' && 'https://azure.ports.ubuntu.com/ubuntu-ports/' || 'http://azure.archive.ubuntu.com/ubuntu/') || '' }}
+          # PR metadata for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.head.sha || '' }}
+          ASPIRE_E2E_CLI_ARCHIVE_DIR: ${{ fromJson(inputs.properties).requiresCliArchive == true && format('{0}/cli-archives', github.workspace) || '' }}
+          GH_TOKEN: ${{ (fromJson(inputs.properties).requiresGitHubToken == true || fromJson(inputs.properties).requiresCliArchive == true) && github.token || '' }}
+        run: |
+          # Start heartbeat monitor in background (60s interval to reduce log noise)
+          ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs 60 &
+          HEARTBEAT_PID=$!
+
+          # Run tests. Capture the real MTP exit code without letting "set -e" abort the step:
+          # "|| TEST_EXIT_CODE=$?" both records the code and keeps the compound command successful.
+          TEST_EXIT_CODE=0
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll \
+            ${{ env.EFFECTIVE_MTP_BASE_ARGS }} \
+            --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
+            --results-directory ${{ github.workspace }}/testresults \
+            --filter-not-trait "category=failing" \
+            ${{ inputs.extraTestArgs }} || TEST_EXIT_CODE=$?
+
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          echo "$TEST_EXIT_CODE" > "${{ github.workspace }}/test-exit-code.txt"
+
+          # Stop heartbeat monitor
+          kill $HEARTBEAT_PID 2>/dev/null || true
+          wait $HEARTBEAT_PID 2>/dev/null || true
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here; the authoritative pass/fail decision is made later by "Verify test results exist".
+          if [ "${{ inputs.ignoreTestFailures }}" = "true" ]; then
+            if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+              echo "::warning::Tests reported a non-success exit code ($TEST_EXIT_CODE); deferring to the 'Verify test results exist' gate."
+            fi
+            exit 0
+          fi
+
+          exit $TEST_EXIT_CODE
+
+      - name: Run nuget dependent tests (Windows)
+        if: ${{ fromJson(inputs.properties).requiresNugets == true && runner.os == 'Windows' }}
+        working-directory: ${{ github.workspace }}/run-tests/
+        shell: pwsh
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          PLAYWRIGHT_INSTALLED: ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && 'false' || 'true' }}
+          TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
+          TestsRunningOutsideOfRepo: true
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # Prevent VBCSCompiler from starting during tests. See #15832
+          UseSharedCompilation: false
+          # PR metadata for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.head.sha || '' }}
+          ASPIRE_E2E_CLI_ARCHIVE_DIR: ${{ fromJson(inputs.properties).requiresCliArchive == true && format('{0}/cli-archives', github.workspace) || '' }}
+          GH_TOKEN: ${{ (fromJson(inputs.properties).requiresGitHubToken == true || fromJson(inputs.properties).requiresCliArchive == true) && github.token || '' }}
+        run: |
+          # Start heartbeat monitor in background (output goes to console directly)
+          # Use 60s interval on Windows to reduce overhead on constrained 2-core runners
+          $heartbeatProcess = Start-Process -FilePath "dotnet" `
+            -ArgumentList "${{ github.workspace }}\tools\scripts\Heartbeat.cs 60" `
+            -NoNewWindow -PassThru
+
+          try {
+            # Ensure UTF-8 encoding for all output on Windows
+            [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+            # Run tests
+            dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll `
+              ${{ env.EFFECTIVE_MTP_BASE_ARGS }} `
+              --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" `
+              --results-directory ${{ github.workspace }}/testresults `
+              --filter-not-trait "category=failing" `
+              ${{ inputs.extraTestArgs }}
+            $testExitCode = $LASTEXITCODE
+          }
+          finally {
+            # Stop heartbeat monitor
+            if ($heartbeatProcess -and !$heartbeatProcess.HasExited) {
+              $heartbeatProcess | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          Set-Content -Path "${{ github.workspace }}/test-exit-code.txt" -Value $testExitCode
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here. The Linux/macOS step neutralizes the exit code inline; this pwsh step captures
+          # $testExitCode instead, so it must explicitly exit 0. Otherwise the non-zero $LASTEXITCODE
+          # survives to the end of the script and GitHub's pwsh wrapper — which appends
+          # "if ((Test-Path variable:\LASTEXITCODE)) { exit $LASTEXITCODE }" — propagates it and fails the
+          # job. The authoritative pass/fail decision is made later by "Verify test results exist".
+          if ('${{ inputs.ignoreTestFailures }}' -eq 'true') {
+            if ($testExitCode -ne 0) {
+              Write-Host "::warning::Tests reported a non-success exit code ($testExitCode); deferring to the 'Verify test results exist' gate."
+            }
+            exit 0
+          }
+
+          exit $testExitCode
+
+      - name: Run tests (Linux/macOS)
+        if: ${{ fromJson(inputs.properties).requiresNugets != true && runner.os != 'Windows' }}
+        id: run-tests-unix
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
+          # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
+          # So, we manually set NUGET_PACKAGES
+          NUGET_PACKAGES: ${{ github.workspace }}/.packages
+          PLAYWRIGHT_INSTALLED: ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && 'false' || 'true' }}
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # CLI E2E Dockerfiles consume this as a build arg to avoid overloaded default Ubuntu package servers.
+          # azure.archive.ubuntu.com does not serve HTTPS; HTTP is intentional and matches the GitHub-hosted Ubuntu runner fallback mirror.
+          ASPIRE_E2E_UBUNTU_APT_MIRROR: ${{ runner.os == 'Linux' && (runner.arch == 'ARM64' && 'https://azure.ports.ubuntu.com/ubuntu-ports/' || 'http://azure.archive.ubuntu.com/ubuntu/') || '' }}
+          # PR metadata for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.head.sha || '' }}
+          ASPIRE_E2E_CLI_ARCHIVE_DIR: ${{ fromJson(inputs.properties).requiresCliArchive == true && format('{0}/cli-archives', github.workspace) || '' }}
+          GH_TOKEN: ${{ (fromJson(inputs.properties).requiresGitHubToken == true || fromJson(inputs.properties).requiresCliArchive == true) && github.token || '' }}
+        run: |
+          # Start heartbeat monitor in background (60s interval to reduce log noise)
+          ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs 60 &
+          HEARTBEAT_PID=$!
+
+          # Run tests. Capture the real MTP exit code without letting "set -e" abort the step:
+          # "|| TEST_EXIT_CODE=$?" both records the code and keeps the compound command successful.
+          TEST_EXIT_CODE=0
+          ${{ env.DOTNET_SCRIPT }} test --project ${{ env.TEST_PROJECT_PATH }} \
+            /p:ContinuousIntegrationBuild=true \
+            /p:TrxFileNamePrefix="${{ inputs.testShortName }}" \
+            -bl:${{ github.workspace }}/testresults/test.binlog \
+            --no-launch-profile \
+            --no-restore \
+            --no-build \
+            -- \
+            ${{ env.EFFECTIVE_MTP_BASE_ARGS }} \
+            --report-trx \
+            --results-directory ${{ github.workspace }}/testresults \
+            ${{ inputs.extraTestArgs }} || TEST_EXIT_CODE=$?
+
+          # `--ignore-exit-code 8` only remaps the test module's exit code. Normalize the
+          # aggregated `dotnet test` result with the same helper exercised by Infrastructure.Tests.
+          NORMALIZED_TEST_EXIT_CODE=0
+          bash .github/workflows/normalize-mtp-exit-code.sh "$TEST_EXIT_CODE" || NORMALIZED_TEST_EXIT_CODE=$?
+          TEST_EXIT_CODE=$NORMALIZED_TEST_EXIT_CODE
+
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          echo "$TEST_EXIT_CODE" > "${{ github.workspace }}/test-exit-code.txt"
+
+          # Stop heartbeat monitor
+          kill $HEARTBEAT_PID 2>/dev/null || true
+          wait $HEARTBEAT_PID 2>/dev/null || true
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here; the authoritative pass/fail decision is made later by "Verify test results exist".
+          if [ "${{ inputs.ignoreTestFailures }}" = "true" ]; then
+            if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+              echo "::warning::Tests reported a non-success exit code ($TEST_EXIT_CODE); deferring to the 'Verify test results exist' gate."
+            fi
+            exit 0
+          fi
+
+          exit $TEST_EXIT_CODE
+
+      - name: Run tests (Windows)
+        if: ${{ fromJson(inputs.properties).requiresNugets != true && runner.os == 'Windows' }}
+        id: run-tests-windows
+        shell: pwsh
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          PLAYWRIGHT_INSTALLED: ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && 'false' || 'true' }}
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+          # Prevent the Roslyn compiler server (VBCSCompiler) from starting during tests.
+          # On 2-core runners, VBCSCompiler consumes ~150% CPU / 700MB RAM and starves the
+          # runner agent, causing "lost communication" crashes. Projects are already pre-built,
+          # so any rebuild triggered by DCP's "dotnet run" should be minimal.
+          # See https://github.com/microsoft/aspire/issues/15832
+          UseSharedCompilation: false
+          # PR metadata for CLI E2E tests that download artifacts from a PR
+          GITHUB_PR_NUMBER: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ fromJson(inputs.properties).requiresCliArchive == true && github.event.pull_request.head.sha || '' }}
+          ASPIRE_E2E_CLI_ARCHIVE_DIR: ${{ fromJson(inputs.properties).requiresCliArchive == true && format('{0}/cli-archives', github.workspace) || '' }}
+          GH_TOKEN: ${{ (fromJson(inputs.properties).requiresGitHubToken == true || fromJson(inputs.properties).requiresCliArchive == true) && github.token || '' }}
+        run: |
+          # Start heartbeat monitor in background (output goes to console directly)
+          # Use 60s interval on Windows to reduce overhead on constrained 2-core runners
+          $heartbeatProcess = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" `
+            -ArgumentList "${{ github.workspace }}\tools\scripts\Heartbeat.cs 60" `
+            -NoNewWindow -PassThru
+
+          try {
+            # Ensure UTF-8 encoding for all output on Windows
+            [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+            # Run tests
+            & ${{ env.DOTNET_SCRIPT }} test --project ${{ env.TEST_PROJECT_PATH }} `
+              /p:ContinuousIntegrationBuild=true `
+              /p:TrxFileNamePrefix="${{ inputs.testShortName }}" `
+              -bl:${{ github.workspace }}/testresults/test.binlog `
+              --no-launch-profile `
+              --no-restore `
+              --no-build `
+              -- `
+              ${{ env.EFFECTIVE_MTP_BASE_ARGS }} `
+              --report-trx `
+              --results-directory ${{ github.workspace }}/testresults `
+              ${{ inputs.extraTestArgs }}
+            $testExitCode = $LASTEXITCODE
+
+            # `--ignore-exit-code 8` only remaps the test module's exit code. Normalize the
+            # aggregated `dotnet test` result with the same helper exercised by Infrastructure.Tests.
+            & .github/workflows/normalize-mtp-exit-code.ps1 -ExitCode $testExitCode
+            $testExitCode = $LASTEXITCODE
+          }
+          finally {
+            # Stop heartbeat monitor
+            if ($heartbeatProcess -and !$heartbeatProcess.HasExited) {
+              $heartbeatProcess | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          Set-Content -Path "${{ github.workspace }}/test-exit-code.txt" -Value $testExitCode
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here. The Linux/macOS step neutralizes the exit code inline; this pwsh step captures
+          # $testExitCode instead, so it must explicitly exit 0. Otherwise the non-zero $LASTEXITCODE
+          # survives to the end of the script and GitHub's pwsh wrapper — which appends
+          # "if ((Test-Path variable:\LASTEXITCODE)) { exit $LASTEXITCODE }" — propagates it and fails the
+          # job. The authoritative pass/fail decision is made later by "Verify test results exist".
+          if ('${{ inputs.ignoreTestFailures }}' -eq 'true') {
+            if ($testExitCode -ne 0) {
+              Write-Host "::warning::Tests reported a non-success exit code ($testExitCode); deferring to the 'Verify test results exist' gate."
+            }
+            exit 0
+          }
+
+          exit $testExitCode
+
+      - name: Mark ignored test results
+        if: ${{ always() && inputs.ignoreTestFailures }}
+        shell: pwsh
+        env:
+          TEST_SHORT_NAME: ${{ inputs.testShortName }}
+        run: |
+          $testResultsDir = "${{ github.workspace }}/testresults"
+          New-Item -Path $testResultsDir -ItemType Directory -Force | Out-Null
+          Set-Content -Path "$testResultsDir/ignore-test-failures.marker" -Value $env:TEST_SHORT_NAME
+
+      - name: Verify test results exist
+        if: ${{ inputs.ignoreTestFailures }}
+        shell: pwsh
+        env:
+          ALLOW_ZERO_TESTS: ${{ inputs.allowZeroTests }}
+        run: |
+          $arguments = @{
+            TestResultsPath = "${{ github.workspace }}/testresults"
+            ExitCodePath = "${{ github.workspace }}/test-exit-code.txt"
+          }
+          if ([System.Convert]::ToBoolean($env:ALLOW_ZERO_TESTS)) {
+            $arguments.AllowZeroTests = $true
+          }
+          ./eng/scripts/verify-nonblocking-test-results.ps1 @arguments
+
+      - name: Check for hang dump files
+        if: always()
+        shell: pwsh
+        run: |
+          $testResultsDir = "${{ github.workspace }}/testresults"
+          if (-not (Test-Path $testResultsDir)) {
+            Write-Host "No test results directory found, skipping dump file check"
+            return
+          }
+
+          # Only check for hang dump files — these indicate a test timed out.
+          # Crash dumps (e.g. *_crash.dmp) can be produced during process cleanup
+          # even when all tests passed, so we don't fail on those.
+          $hangDumpFiles = Get-ChildItem -Path $testResultsDir -Filter *hangdump* -Recurse -ErrorAction SilentlyContinue
+          if ($hangDumpFiles.Count -gt 0) {
+            # A caller that explicitly ignores test outcomes also treats a test timeout as non-gating.
+            # The dump remains visible in the logs and uploaded artifacts. All other callers fail here.
+            if ('${{ inputs.ignoreTestFailures }}' -eq 'true') {
+              Write-Host "::warning::Hang dump file(s) detected — a test timed out (ignored because ignoreTestFailures is true):"
+              foreach ($df in $hangDumpFiles) { Write-Host "  - $($df.FullName)" }
+            } else {
+              Write-Host "::error::Hang dump file(s) detected — the test runner timed out:"
+              foreach ($df in $hangDumpFiles) { Write-Host "  - $($df.FullName)" }
+              exit 1
+            }
+          } else {
+            Write-Host "✓ No hang dump files detected"
+          }
+
+      - name: Dump docker info
+        if: ${{ always() && runner.os == 'Linux' }}
+        run: |
+          docker container ls --all
+          docker container ls --all --format json
+          docker volume ls
+          docker network ls
+
+      - name: Stop resource monitor (Windows)
+        if: ${{ always() && runner.os == 'Windows' }}
+        continue-on-error: true
+        shell: pwsh
+        run: ./eng/scripts/ci-resource-monitor.ps1 -Mode Stop -OutputDirectory "${{ github.workspace }}/artifacts/log/test-logs/resource-monitor"
+
+      - name: Upload logs, and test results
+        id: upload-logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-${{ inputs.testShortName }}-${{ inputs.os }}
+          path: |
+            **/*.binlog
+            testresults/**
+            artifacts/bin/Aspire.Templates.Tests/Debug/net10.0/logs/**
+            artifacts/log/test-logs/**
+
+      - name: Copy CLI E2E recordings for upload
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p cli-e2e-recordings
+          find testresults -name "*.cast" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
+          # Only copy TRX files when .cast recordings exist, so non-recording test jobs
+          # don't produce cli-e2e-recordings artifacts containing only TRX data.
+          if ls cli-e2e-recordings/*.cast 1>/dev/null 2>&1; then
+            find testresults -name "*.trx" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
+            echo "Found recordings and test results:"
+            ls -la cli-e2e-recordings/
+          fi
+
+      - name: Upload CLI E2E recordings
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cli-e2e-recordings-${{ inputs.testShortName }}
+          path: |
+            cli-e2e-recordings/*.cast
+            cli-e2e-recordings/*.trx
+          if-no-files-found: ignore
+
+      - name: Generate test results summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}/testresults") {
+            $summaryArgs = @(
+              "run",
+              "--project",
+              "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj",
+              "--",
+              "${{ github.workspace }}/testresults"
+            )
+
+            $artifactUrl = "${{ steps.upload-logs.outputs.artifact-url }}"
+            if (-not [string]::IsNullOrWhiteSpace($artifactUrl)) {
+              $summaryArgs += @("-u", $artifactUrl)
+            }
+
+            & ${{ env.DOTNET_SCRIPT }} @summaryArgs
+          }

@@ -248,5 +248,17 @@
     "owner": "NuGet",
     "regular_files": 15,
     "archive_sha256": "91fc1bb82a7f4d03caf400a0487cc1056b03277ac5aa0d82e3dc618253247ffa"
+  },
+  {
+    "name": "aspire",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "81af9cf86b8b03848dae03a126ed02059b59156b",
+    "path": "workflow-snapshots/microsoft--aspire--main--workflow",
+    "files": 223,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "microsoft",
+    "regular_files": 223,
+    "archive_sha256": "80c8f140d1632cda7f920f23efc75c0307bb23e50d9bde56de67c28de347ce0f"
   }
 ]

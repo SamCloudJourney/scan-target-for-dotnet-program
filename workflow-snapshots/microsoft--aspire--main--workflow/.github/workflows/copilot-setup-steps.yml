@@ -1,0 +1,58 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy validation, and
+# allow manual testing through the repository's "Actions" tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    if: ${{ github.repository == 'microsoft/aspire' }}
+    runs-on: ${{ github.repository_owner == 'microsoft' && '8-core-ubuntu-latest' || 'ubuntu-latest' }}
+
+    permissions:
+      contents: read
+
+    # You can define any steps you want, and they will run before the agent starts.
+    # If you do not check out your code, Copilot will do this for you.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Install gh aw to enable GitHub Copilot Agent integration
+      - name: Install gh-aw extension
+        uses: github/gh-aw-actions/setup-cli@f3b81cdb3070066a47faa9bdf440f4f1dc78b1f0 # v0.89.17
+        with:
+          version: v0.89.17
+
+      - name: Restore solution
+        # a full build is too slow; also do not fail on errors, continue so that
+        # copilot can attempt to recover
+        run: ./build.sh -restore || true
+
+      # Install verify tool for snapshot testing
+      - name: Install verify tool
+        run: ./dotnet.sh tool install --global Verify.Tool --version 0.6.0 || true
+
+      - name: Setup PATH
+        run: |
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+          echo "$PWD/.dotnet/" >> $GITHUB_PATH
+
+      # For MCP servers like nuget's
+      - name: Install .NET 10.x
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            10.x
+          dotnet-quality: preview
+
+      # Diagnostics in the log
+      - name: dotnet --info
+        run: dotnet --info

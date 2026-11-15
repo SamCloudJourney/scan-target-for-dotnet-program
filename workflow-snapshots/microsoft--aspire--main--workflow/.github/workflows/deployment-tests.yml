@@ -1,0 +1,665 @@
+# End-to-end deployment tests that deploy Aspire applications to real Azure infrastructure
+#
+# Triggers:
+# - workflow_dispatch: Manual trigger with scenario selection
+# - schedule: Nightly at 03:00 UTC
+# - /deployment-test command on PRs (via deployment-test-command.yml)
+#
+# Security:
+# - Uses OIDC (Workload Identity Federation) for Azure authentication
+# - No stored Azure secrets
+# - Only users with repository write access can trigger via PR command
+#
+name: Deployment E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to test (for testing PR builds)'
+        required: false
+        type: string
+        default: ''
+      test_filter:
+        description: 'Substring of test shortname(s) to run (e.g. AcaStarterDeploymentTests). Empty = all.'
+        required: false
+        type: string
+        default: ''
+
+  schedule:
+    # Run nightly at 03:00 UTC
+    - cron: '0 3 * * *'
+
+# Limit concurrent runs to avoid Azure quota issues
+concurrency:
+  group: deployment-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Post "starting" comment to PR when triggered via /deployment-test command
+  notify-start:
+    name: Notify PR
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'microsoft/aspire' && inputs.pr_number != '' }}
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post starting comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Invalid pull request number: $PR_NUMBER"
+            exit 1
+          fi
+
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body \
+            "🚀 **Deployment tests starting** on PR #${PR_NUMBER}...
+
+          This will deploy to real Azure infrastructure. Results will be posted here when complete.
+
+          [View workflow run](${RUN_URL})"
+
+  # Enumerate test classes to build the matrix
+  enumerate:
+    name: Enumerate Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'microsoft/aspire' }}
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.filter.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/enumerate-tests
+        id: enumerate
+        with:
+          buildArgs: '/p:OnlyDeploymentTests=true'
+
+      - name: Filter matrix (workflow_dispatch test_filter)
+        id: filter
+        env:
+          TEST_FILTER: ${{ inputs.test_filter || '' }}
+          ALL_TESTS: ${{ steps.enumerate.outputs.all_tests }}
+        run: |
+          # When a test_filter is supplied via workflow_dispatch, narrow the matrix to the
+          # entries whose shortname contains that substring (case-insensitive). This keeps each
+          # entry's extraTestArgs intact so the class is still scoped correctly. Empty filter
+          # (the schedule/nightly path) passes the full matrix through unchanged.
+          if [ -n "$TEST_FILTER" ]; then
+            matrix=$(echo "$ALL_TESTS" | jq -c --arg f "$TEST_FILTER" \
+              '{include: [.include[] | select((.shortname // "") | ascii_downcase | contains($f | ascii_downcase))]}')
+            count=$(echo "$matrix" | jq '.include | length')
+            echo "Filtered matrix to $count entr(y/ies) matching '$TEST_FILTER':"
+            echo "$matrix" | jq -r '.include[].shortname'
+            if [ "$count" -eq 0 ]; then
+              echo "::error::test_filter '$TEST_FILTER' matched no deployment test classes."
+              exit 1
+            fi
+          else
+            matrix="$ALL_TESTS"
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+      - name: Display test matrix
+        run: |
+          echo "Deployment test matrix:"
+          echo '${{ steps.filter.outputs.matrix }}' | jq .
+
+  # Build solution and CLI once, share via artifacts
+  build:
+    name: Build
+    runs-on: 8-core-ubuntu-latest
+    if: ${{ github.repository == 'microsoft/aspire' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore solution
+        run: ./restore.sh
+
+      - name: Build solution and packages
+        run: |
+          # Build the full solution and pack all NuGet packages. These feed the local
+          # hive the generated AppHosts restore from (Aspire.Hosting.*, integrations,
+          # Aspire.AppHost.Sdk, etc.). The native CLI is built separately below.
+          ./build.sh --build --pack -c Release
+        env:
+          # The solution build does not need the native AOT CLI; it is produced by the
+          # dedicated bundle build step below. Skipping it here keeps this step fast.
+          SkipNativeBuild: true
+
+      - name: Build native CLI with embedded bundle
+        run: |
+          # Produce the real, self-extracting native Aspire CLI exactly as a user gets it.
+          # eng/Bundle.proj publishes aspire-managed, restores DCP, runs CreateLayout to
+          # assemble the bundle (managed + dcp) and archive it, then publishes the native
+          # AOT CLI with that archive embedded as a resource. On first run the CLI
+          # self-extracts the bundle to ~/.aspire/versions/<id>/, which is what C# AppHosts
+          # (AspireUseCliBundle=true by default, #18188) resolve during build. The default
+          # BundleVersion is the same <VersionPrefix>-dev stamp the packages above use, so
+          # the CLI and the hive packages stay version-consistent.
+          ./dotnet.sh msbuild eng/Bundle.proj /restore \
+            /p:Configuration=Release \
+            /p:TargetRid=linux-x64
+
+      - name: Prepare CLI artifacts
+        run: |
+          # Create a clean artifact directory with the native CLI and packages.
+          ARTIFACT_DIR="${{ github.workspace }}/cli-artifacts"
+          mkdir -p "$ARTIFACT_DIR/bin"
+          mkdir -p "$ARTIFACT_DIR/packages"
+
+          # Copy the self-extracting native CLI binary. It carries the embedded bundle, so
+          # there is no separate managed/ or dcp/ staging — the CLI extracts those itself.
+          ASPIRE_BIN=$(find "${{ github.workspace }}/artifacts/bin/Aspire.Cli" -type f -name aspire -path '*linux-x64*publish*' | head -1)
+          if [ -z "$ASPIRE_BIN" ] || [ ! -f "$ASPIRE_BIN" ]; then
+            echo "❌ Native Aspire CLI not found under artifacts/bin/Aspire.Cli/**/linux-x64/publish/."
+            echo "   eng/Bundle.proj did not produce the native CLI; deploy tests cannot run."
+            exit 1
+          fi
+          cp "$ASPIRE_BIN" "$ARTIFACT_DIR/bin/aspire"
+          chmod +x "$ARTIFACT_DIR/bin/aspire"
+          echo "Copied native CLI from $ASPIRE_BIN"
+
+          # Copy NuGet packages
+          PACKAGES_DIR="${{ github.workspace }}/artifacts/packages/Release/Shipping"
+          if [ -d "$PACKAGES_DIR" ]; then
+            find "$PACKAGES_DIR" -name "*.nupkg" -exec cp {} "$ARTIFACT_DIR/packages/" \;
+          fi
+
+          echo "CLI artifacts prepared:"
+          ls -la "$ARTIFACT_DIR/bin/"
+          echo "Package count: $(find "$ARTIFACT_DIR/packages" -name "*.nupkg" | wc -l)"
+
+      - name: Upload CLI artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aspire-cli-artifacts
+          path: ${{ github.workspace }}/cli-artifacts/
+          retention-days: 1
+
+  # Prepare the target subscription once, before the test matrix fans out: register the resource
+  # providers the suite needs and self-heal the configured quotas. Doing this in a single
+  # prerequisite job (rather than inside every matrix entry) avoids dozens of jobs issuing the
+  # same subscription-level registration writes and Microsoft.Quota requests at once — which
+  # throttle each other on a cold subscription — and it keeps each matrix job's Azure token
+  # freshly minted right before that job deploys. Best-effort: continue-on-error plus the
+  # deploy-test `if:` below mean a hiccup here never blocks the tests; a test that genuinely
+  # needs a still-missing provider or quota surfaces its own clear error.
+  provision-subscription:
+    name: Provision subscription
+    needs: [enumerate]
+    if: ${{ needs.enumerate.outputs.matrix != '{"include":[]}' && needs.enumerate.outputs.matrix != '' }}
+    runs-on: ubuntu-latest
+    environment: deployment-testing
+    continue-on-error: true  # Best-effort subscription prep must never fail the overall run
+    permissions:
+      id-token: write  # For OIDC Azure login
+      contents: read
+    env:
+      ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/preload-azure-cli-requests
+
+      - name: Azure Login (OIDC)
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+        with:
+          script: |
+            const token = await core.getIDToken('api://AzureADTokenExchange');
+            core.setSecret(token);
+
+            // Login directly - token never leaves this step
+            await exec.exec('az', [
+              'login', '--service-principal',
+              '--username', process.env.AZURE_CLIENT_ID,
+              '--tenant', process.env.AZURE_TENANT_ID,
+              '--federated-token', token,
+              '--allow-no-subscriptions'
+            ]);
+
+            await exec.exec('az', [
+              'account', 'set',
+              '--subscription', process.env.AZURE_SUBSCRIPTION_ID
+            ]);
+
+      - name: Verify Azure authentication
+        run: |
+          echo "Verifying Azure authentication..."
+          az account show --query "{subscriptionId:id, tenantId:tenantId, user:user.name}" -o table
+          echo "✅ Azure authentication successful"
+
+      # Ensure the target subscription has every Azure resource provider the deployment test
+      # suite relies on. This is per-subscription setup, not a test concern: registration is a
+      # subscription-level, eventually-consistent operation, so doing it here means pointing the
+      # workflow at a fresh subscription (by swapping the deployment-testing environment secrets)
+      # self-heals instead of failing tests with "not registered for the Microsoft.X resource
+      # provider" / MissingSubscriptionRegistration. Already-registered providers are skipped, so
+      # on a warm subscription this is a fast no-op. It is intentionally best-effort and never
+      # fails the job: a test that genuinely needs a provider surfaces its own clear error.
+      - name: Register Azure resource providers
+        run: |
+          providers=(
+            Microsoft.Resources
+            Microsoft.Authorization
+            Microsoft.Quota
+            Microsoft.ManagedIdentity
+            # AKS node pools are Microsoft.Compute VMSS, and reading/requesting the compute vCPU
+            # quota (StandardDASv5Family, in QUOTA_TARGETS below) needs this provider registered on a
+            # fresh subscription; without it the quota self-heal step silently skips that target.
+            Microsoft.Compute
+            Microsoft.ContainerInstance
+            Microsoft.OperationalInsights
+            Microsoft.OperationsManagement
+            Microsoft.Insights
+            Microsoft.App
+            Microsoft.ContainerRegistry
+            Microsoft.ContainerService
+            Microsoft.Web
+            Microsoft.Network
+            Microsoft.NetworkFunction
+            Microsoft.ServiceNetworking
+            Microsoft.Cdn
+            Microsoft.AppConfiguration
+            Microsoft.CognitiveServices
+            Microsoft.DocumentDB
+            Microsoft.EventHub
+            Microsoft.KeyVault
+            Microsoft.Kusto
+            Microsoft.DBforPostgreSQL
+            Microsoft.Cache
+            Microsoft.Search
+            Microsoft.ServiceBus
+            Microsoft.SignalRService
+            Microsoft.Sql
+            Microsoft.Storage
+          )
+
+          # Query the already-registered providers in a single call, then act only on the ones
+          # actually missing. Registration is per-subscription and idempotent, so on a warm
+          # subscription this step is a single API call with no register requests at all.
+          list_registered() {
+            az provider list --query "[?registrationState=='Registered'].namespace" -o tsv 2>/dev/null || true
+          }
+          missing_providers() {
+            # Emit the required providers not present in the registered set piped in on stdin.
+            local registered p
+            registered="$(cat)"
+            for p in "${providers[@]}"; do
+              # Azure canonicalizes some namespaces with different casing (for example,
+              # microsoft.insights), but provider namespace matching is case-insensitive.
+              grep -qxiF "$p" <<<"$registered" || echo "$p"
+            done
+          }
+
+          # Recompute the 'missing' array from a single 'provider list' call.
+          collect_missing() {
+            missing=()
+            local line
+            while IFS= read -r line; do
+              [ -n "$line" ] && missing+=("$line")
+            done < <(list_registered | missing_providers)
+          }
+
+          collect_missing
+          if [ ${#missing[@]} -eq 0 ]; then
+            echo "✅ All ${#providers[@]} required resource providers already registered."
+            exit 0
+          fi
+
+          # az has no batch register, so this is one call per missing namespace (never more).
+          # Non-fatal: a transient failure or missing permission on one provider must not block
+          # the run; the test that needs it will surface a clear error.
+          echo "Registering ${#missing[@]} missing provider(s): ${missing[*]}"
+          for p in "${missing[@]}"; do
+            az provider register --namespace "$p" --only-show-errors >/dev/null 2>&1 \
+              || echo "⚠ could not start registration for $p (continuing)"
+          done
+
+          # Kick the registrations off, give them a short bounded head start, then continue.
+          # This runs once in the provision-subscription prerequisite job that the test matrix waits
+          # on, so the bound is kept small to avoid delaying the whole run. Registration is eventually
+          # consistent and keeps completing in the background, so a short head start is enough for the
+          # deploy steps that block on RP registration (e.g. the SQL admin SequencerJob deployment
+          # script); a provider still mid-registration only affects a test that actually needs it,
+          # which surfaces its own clear error. Never fail on timeout.
+          deadline=$(( SECONDS + 120 ))
+          while [ ${#missing[@]} -gt 0 ] && [ "$SECONDS" -lt "$deadline" ]; do
+            sleep 15
+            collect_missing
+          done
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "⚠ Providers still not registered after timeout: ${missing[*]}"
+            echo "  Continuing; a test needing one of these may fail until registration completes."
+          else
+            echo "✅ All required resource providers registered."
+          fi
+
+      # Ensure the target subscription has enough quota for the resources listed in QUOTA_TARGETS
+      # below. Like provider registration above, this is per-subscription setup rather than a test
+      # concern: a fresh subscription can have little or no dedicated vCPU quota for the target
+      # compute family, so tests fail with QuotaExceeded. For each requested quota, read the current
+      # limit via the provider-agnostic
+      # Microsoft.Quota service and only when it is below the desired value submit an increase
+      # request. Best-effort and never fails the job: quota requests can route to manual review
+      # (self-service auto-approves only small increases; larger asks need a support ticket) and are
+      # not guaranteed to be granted synchronously, so a still-short quota surfaces its own
+      # QuotaExceeded error in the test that needs it.
+      #
+      # Scope: this self-heals only the quotas configured in QUOTA_TARGETS (currently the westus3
+      # AKS node-pool compute vCPUs and managed-cluster count). Azure enforces both the
+      # StandardDASv5Family quota and Total Regional vCPUs independently, so a node pool needs
+      # headroom in each. Other quotas the suite depends on, such as westus3 Container Apps and
+      # App Service, remain documented manual quota requests (see the E2E README's quota section).
+      # Requests are submitted asynchronously (--no-wait, below), so extending QUOTA_TARGETS does
+      # not lengthen this step.
+      - name: Ensure Azure quotas
+        env:
+          # Quotas to ensure, one per line: "provider location resourceName desiredLimit [resourceType]".
+          #   provider     - resource provider that owns the quota (e.g. Microsoft.Compute, Microsoft.Network)
+          #   location     - region the quota applies to; match the Azure__Location the tests deploy into
+          #   resourceName - the quota's resource name (e.g. StandardDASv5Family, cores)
+          #   desiredLimit - both the minimum we accept and the value we request
+          #   resourceType - optional; compute vCPU quotas need it (dedicated | lowPriority), omit otherwise
+          # Add a line to cover a new provider, region, resource, or higher limit.
+          QUOTA_TARGETS: |
+            Microsoft.Compute westus3 StandardDASv5Family 200 dedicated
+            Microsoft.Compute westus3 cores 200 dedicated
+            Microsoft.ContainerService westus3 ManagedClusters 20
+        run: |
+          sub="$ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION"
+
+          # az quota is the provider-agnostic way to read and request quotas, so it lives in an
+          # extension. Install once up front since every check below uses it.
+          az extension add --name quota --only-show-errors >/dev/null 2>&1 || true
+
+          # Read the current effective limit for a quota (works across providers). Shape of
+          # 'az quota show':
+          #   { "name": "standardDASv5Family",
+          #     "properties": { "limit": { "value": 100 }, "unit": "Count", ... } }
+          read_limit() {
+            az quota show --resource-name "$2" --scope "$1" \
+              --query "properties.limit.value" -o tsv 2>/dev/null || true
+          }
+
+          while read -r provider location name desired resource_type; do
+            [ -z "$provider" ] && continue
+
+            scope="/subscriptions/$sub/providers/$provider/locations/$location"
+
+            limit="$(read_limit "$scope" "$name")"
+            if [ -z "$limit" ] || ! [[ "$limit" =~ ^[0-9]+$ ]]; then
+              echo "⚠ Could not read $provider/$name quota in $location (got '${limit:-}'); skipping."
+              continue
+            fi
+
+            if [ "$limit" -ge "$desired" ]; then
+              echo "✅ $provider/$name in $location: limit $limit ≥ $desired, no request needed."
+              continue
+            fi
+
+            echo "$provider/$name in $location: limit $limit < $desired; requesting increase to $desired."
+
+            # resource_type only applies to some providers (compute vCPU quotas need
+            # dedicated/lowPriority), so pass it only when the row supplies it.
+            rt_args=()
+            [ -n "$resource_type" ] && rt_args=(--resource-type "$resource_type")
+
+            # A quota override may not exist yet (only a default limit does), so try create (new
+            # override) first and fall back to update (adjust an existing override). Both submit a
+            # request to Microsoft.Quota that may auto-approve or route to manual review; neither is
+            # allowed to fail the job.
+            #
+            # Submit with --no-wait: the request is queued and the CLI returns as soon as it is
+            # accepted instead of polling the long-running operation to a terminal state, which can
+            # otherwise block for minutes when the request routes to manual review. A short `timeout`
+            # still guards a pathological network/throttle hang; because --no-wait returns once the
+            # request is accepted, that bound no longer risks killing an already-accepted request and
+            # re-submitting it via the `||` fallback. A request that is not granted in time surfaces
+            # later as a normal QuotaExceeded error in the test that needs it.
+            if timeout 30 az quota create --resource-name "$name" --scope "$scope" \
+                 --limit-object value="$desired" "${rt_args[@]}" --no-wait --only-show-errors \
+               || timeout 30 az quota update --resource-name "$name" --scope "$scope" \
+                 --limit-object value="$desired" "${rt_args[@]}" --no-wait --only-show-errors; then
+              echo "  Request submitted for $provider/$name in $location (asynchronous; may await manual approval)."
+            else
+              echo "⚠ Quota request for $provider/$name in $location was not accepted (may need manual approval); continuing."
+            fi
+          done <<< "$QUOTA_TARGETS"
+
+  # Run each test class in parallel
+  deploy-test:
+    name: Deploy (${{ matrix.shortname }})
+    needs: [enumerate, build, provision-subscription]
+    if: ${{ !cancelled() && needs.enumerate.result == 'success' && needs.build.result == 'success' && needs.enumerate.outputs.matrix != '{"include":[]}' && needs.enumerate.outputs.matrix != '' }}
+    runs-on: 8-core-ubuntu-latest
+    environment: deployment-testing
+    permissions:
+      id-token: write  # For OIDC Azure login
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.enumerate.outputs.matrix) }}
+    env:
+      ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+      ASPIRE_DEPLOYMENT_TEST_RG_PREFIX: ${{ vars.ASPIRE_DEPLOYMENT_TEST_RG_PREFIX || 'aspire-e2e' }}
+      # Sandboxes remain an explicit opt-in until the deployment-testing environment has
+      # preview enrollment and the Container Apps SandboxGroup Data Owner role.
+      ASPIRE_DEPLOYMENT_TEST_ENABLE_SANDBOXES: ${{ vars.ASPIRE_DEPLOYMENT_TEST_ENABLE_SANDBOXES || 'false' }}
+      # Connector Namespace remains opt-in until the deployment-testing subscription is enrolled
+      # in the preview and has a tenant user dedicated to access-policy validation.
+      ASPIRE_DEPLOYMENT_TEST_ENABLE_CONNECTOR_NAMESPACE: ${{ vars.ASPIRE_DEPLOYMENT_TEST_ENABLE_CONNECTOR_NAMESPACE || 'false' }}
+      ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_LOCATION: ${{ vars.ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_LOCATION }}
+      ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_PRINCIPAL_OBJECT_ID: ${{ vars.ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_PRINCIPAL_OBJECT_ID }}
+      ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore and build test project
+        run: |
+          ./restore.sh
+          ./build.sh -restore -ci -build -projects ${{ github.workspace }}/tests/Aspire.Deployment.EndToEnd.Tests/Aspire.Deployment.EndToEnd.Tests.csproj -c Release
+        env:
+          SkipNativeBuild: true
+
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: aspire-cli-artifacts
+          path: ${{ github.workspace }}/cli-artifacts
+
+      - name: Install Aspire CLI from artifacts
+        run: |
+          ASPIRE_HOME="$HOME/.aspire"
+          mkdir -p "$ASPIRE_HOME/bin"
+
+          # Install the self-extracting native CLI binary, exactly as a real install does.
+          cp "${{ github.workspace }}/cli-artifacts/bin/aspire" "$ASPIRE_HOME/bin/aspire"
+          chmod +x "$ASPIRE_HOME/bin/aspire"
+
+          # Add to PATH for this job
+          echo "$ASPIRE_HOME/bin" >> $GITHUB_PATH
+
+          # Set up NuGet hive for local packages
+          HIVE_DIR="$ASPIRE_HOME/hives/local/packages"
+          mkdir -p "$HIVE_DIR"
+          cp "${{ github.workspace }}/cli-artifacts/packages/"*.nupkg "$HIVE_DIR/" 2>/dev/null || true
+
+          # Configure CLI to use local channel
+          "$ASPIRE_HOME/bin/aspire" config set channel local --global || true
+
+          # Extract the embedded bundle (managed + dcp) up front. This is the same step
+          # install scripts run; it lays the bundle down at ~/.aspire/versions/<id>/ so
+          # C# AppHost builds (AspireUseCliBundle=true, #18188) resolve DCP/dashboard and
+          # do not fail with ASPIRE009. Without this the first deploy would extract lazily,
+          # but doing it here makes the layout deterministic and fails fast if it can't.
+          "$ASPIRE_HOME/bin/aspire" setup --force
+
+          echo "✅ Aspire CLI installed:"
+          "$ASPIRE_HOME/bin/aspire" --version
+          echo "Extracted bundle layout:"
+          ls -la "$ASPIRE_HOME/versions/"*/ 2>/dev/null || { echo "❌ No extracted bundle under $ASPIRE_HOME/versions/"; exit 1; }
+
+      - uses: ./.github/actions/preload-azure-cli-requests
+
+      - name: Azure Login (OIDC)
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+        with:
+          script: |
+            const token = await core.getIDToken('api://AzureADTokenExchange');
+            core.setSecret(token);
+
+            // Login directly - token never leaves this step
+            await exec.exec('az', [
+              'login', '--service-principal',
+              '--username', process.env.AZURE_CLIENT_ID,
+              '--tenant', process.env.AZURE_TENANT_ID,
+              '--federated-token', token,
+              '--allow-no-subscriptions'
+            ]);
+
+            await exec.exec('az', [
+              'account', 'set',
+              '--subscription', process.env.AZURE_SUBSCRIPTION_ID
+            ]);
+
+      - name: Verify Azure authentication
+        run: |
+          echo "Verifying Azure authentication..."
+          az account show --query "{subscriptionId:id, tenantId:tenantId, user:user.name}" -o table
+          echo "✅ Azure authentication successful"
+
+      - name: Verify Docker is running
+        run: |
+          echo "Verifying Docker daemon..."
+          docker version
+          docker info | head -20
+          echo "✅ Docker is available"
+
+      # Pin Helm so AKS deployment scenarios run against a known Helm 4 release
+      # that satisfies Aspire.Hosting.Kubernetes' minimum supported version
+      # (HelmVersionValidator.MinimumHelmVersion, currently v4.0.0). The
+      # check-helm-prereqs-{env} pipeline step fails fast on older Helm CLIs.
+      - name: Setup Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.2.0
+
+      - name: Run deployment test (${{ matrix.shortname }})
+        id: run_tests
+        env:
+          GITHUB_PR_NUMBER: ${{ inputs.pr_number || '' }}
+          GITHUB_PR_HEAD_SHA: ${{ github.sha }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_CLIENT_ID }}
+          Azure__SubscriptionId: ${{ secrets.AZURE_DEPLOYMENT_TEST_SUBSCRIPTION_ID }}
+          Azure__Location: westus3
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # MTP returns exit code 8 ("zero tests ran") when the single matrix test is dynamically
+          # skipped — e.g. the opt-in Connector Namespace scenario
+          # (ASPIRE_DEPLOYMENT_TEST_ENABLE_CONNECTOR_NAMESPACE=false) or a transient Azure
+          # regional-capacity skip — so 8 must be treated as success to keep a skipped deploy green.
+          # The MTP `--ignore-exit-code 8` flag cannot do that here: it only remaps the exit code of
+          # the test module itself, while `dotnet test` computes its own exit code from the
+          # aggregated run and still reports 8. So the exit code is classified explicitly instead.
+          bash .github/workflows/run-deployment-test.sh \
+            "${{ github.workspace }}/testresults" \
+            "${{ matrix.shortname }}" \
+            ${{ matrix.extraTestArgs }}
+
+      - name: Collect Aspire CLI logs
+        if: always()
+        run: |
+          # The CLI writes a detailed deployment log (including the underlying ARM error,
+          # e.g. the subcode behind a generic "OperationFailed" provisioning failure) to
+          # ~/.aspire/logs/cli_*.log. That detail is otherwise lost because only testresults/
+          # is uploaded, so copy the logs under testresults/ to capture them in the artifact.
+          if [ -d "$HOME/.aspire/logs" ]; then
+            mkdir -p "${{ github.workspace }}/testresults/aspire-cli-logs"
+            cp -r "$HOME/.aspire/logs/." "${{ github.workspace }}/testresults/aspire-cli-logs/" || true
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deployment-test-results-${{ matrix.shortname }}
+          path: |
+            ${{ github.workspace }}/testresults/
+          retention-days: 30
+
+      - name: Upload recordings
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deployment-test-recordings-${{ matrix.shortname }}
+          path: |
+            ${{ github.workspace }}/testresults/recordings/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Check for test failures
+        if: steps.run_tests.outputs.test_failed == 'true'
+        run: |
+          echo "::error::Deployment test ${{ matrix.shortname }} failed. Check the test results artifact for details."
+          exit 1
+
+  # File/append a single deduplicated issue on a scheduled-run failure. One issue
+  # is kept open per workflow and a row is appended per failed run; a human closes
+  # it once fixed. See docs/ci/pipeline-failure-issues.md.
+  create_issue_on_failure:
+    name: Create Issue on Failure
+    needs: [deploy-test]
+    runs-on: ubuntu-latest
+    if: ${{ failure() && github.event_name == 'schedule' && github.repository == 'microsoft/aspire' }}
+    permissions:
+      contents: read   # checkout to require the local .js modules
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: File or update failure issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          WORKFLOW_FILE: deployment-tests.yml
+          DISPLAY_NAME: Deployment E2E Tests
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await require('./.github/workflows/report-pipeline-failure.js').report({
+              github, context, core,
+              labels: ['automation-broken', 'area-testing', 'deployment-e2e'],
+              cc: '@microsoft/aspire-team',
+            });

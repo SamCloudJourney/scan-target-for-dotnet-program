@@ -1,0 +1,73 @@
+# Polyglot SDK Validation - TypeScript
+# This Dockerfile sets up an environment for validating the TypeScript AppHost SDK
+#
+# Usage:
+#   docker build -f Dockerfile.typescript -t polyglot-typescript .
+#   docker run --rm \
+#     -v "$(pwd):/workspace" \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     polyglot-typescript
+#
+# Note: Expects self-extracting binary and NuGet artifacts to be pre-downloaded to /workspace/artifacts/
+#
+ARG NODE_VERSION=24
+FROM mcr.microsoft.com/devcontainers/typescript-node:${NODE_VERSION}
+ARG NODE_VERSION
+ARG TSGO_VERSION=7.0.0-dev.20260523.1
+ARG NPM_REGISTRY=https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/
+
+# Ensure Yarn APT repository signing key is available (base image includes Yarn repo)
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee /etc/apt/keyrings/yarn-archive-keyring.gpg > /dev/null
+
+# Install system dependencies and verify the MCR base image provides the requested Node.js runtime.
+RUN case "$NODE_VERSION" in 22|24) ;; *) echo "Unsupported NODE_VERSION: $NODE_VERSION" >&2; exit 1 ;; esac && \
+    apt-get update && apt-get install -y \
+    wget \
+    docker.io \
+    jq \
+    && node --version | grep -E "^v${NODE_VERSION}\\." \
+    && rm -rf /var/lib/apt/lists/*
+
+# TypeScript validation fixtures intentionally cover npm, pnpm, Yarn 4+, and Bun
+# package-manager markers, so make all selected tools available in the image.
+# Install each tool directly because Corepack's package-manager downloads bypass
+# NPM_REGISTRY and would acquire pnpm and Yarn outside dotnet-public-npm.
+# Node 22's npm 10 crashes resolving the Nuxt fixture's peers; npm 11 includes:
+# https://github.com/npm/cli/commit/208c06e91a187b03d6bdd75bff4e4285b365750c
+# Clear the shell's cached npm path after installation to verify the new binary.
+RUN npm install --global --force --registry "${NPM_REGISTRY}" \
+    npm@11.19.0 \
+    pnpm@10.0.0 \
+    @yarnpkg/cli-dist@4.14.1 \
+    bun@1.2.0 \
+    "@typescript/native-preview@${TSGO_VERSION}" && \
+    hash -r && \
+    test "$(npm --version)" = "11.19.0" && \
+    test "$(pnpm --version)" = "10.0.0" && \
+    test "$(yarn --version)" = "4.14.1" && \
+    test "$(bun --version)" = "1.2.0" && \
+    test "$(tsgo --version)" = "Version ${TSGO_VERSION}"
+
+# Pre-configure Aspire CLI path
+ENV PATH="/root/.aspire/bin:${PATH}"
+ENV ASPIRE_CLI_TELEMETRY_OPTOUT=1
+
+WORKDIR /workspace
+
+COPY setup-local-cli.sh /scripts/setup-local-cli.sh
+COPY test-typescript.sh /scripts/test-typescript.sh
+COPY test-typescript-playground.sh /scripts/test-typescript-playground.sh
+COPY test-typescript-integrations.sh /scripts/test-typescript-integrations.sh
+COPY test-nuxt-integration.sh /scripts/test-nuxt-integration.sh
+RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-typescript.sh /scripts/test-typescript-playground.sh /scripts/test-typescript-integrations.sh /scripts/test-nuxt-integration.sh
+
+# Entrypoint: Set up Aspire CLI and run validation
+# Bundle extraction happens lazily on first command that needs the layout
+ENTRYPOINT ["/bin/bash", "-c", "\
+    set -e && \
+    /scripts/setup-local-cli.sh && \
+    /scripts/test-typescript.sh && \
+    /scripts/test-typescript-playground.sh && \
+    /scripts/test-typescript-integrations.sh /workspace && \
+    /scripts/test-nuxt-integration.sh /workspace \
+"]

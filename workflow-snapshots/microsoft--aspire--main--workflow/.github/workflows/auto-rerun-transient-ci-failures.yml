@@ -1,0 +1,112 @@
+# Policy routing and orchestration live in auto-rerun-transient-ci-failures.js.
+name: Auto rerun transient CI failures
+
+on:
+  # zizmor: ignore[dangerous-triggers] - Uses trusted default-branch code and revalidates live run identity before writes.
+  workflow_run:
+    # zizmor: ignore[dangerous-triggers] - the job validates the source CI run before requesting narrowly scoped reruns
+    workflows: ["CI"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'CI workflow run ID to inspect'
+        required: true
+        type: number
+      dry_run:
+        description: 'Inspect and summarize without requesting reruns'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.run_id || github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  # Keep analysis read-only and grant write permissions only to execution.
+  # GITHUB_TOKEN permissions are fixed per job: they cannot use expressions or
+  # be escalated between steps. Both jobs call the same JavaScript dispatcher;
+  # PR/main routing belongs to the scripts, not these job definitions.
+  # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idpermissions
+  analyze-transient-failures:
+    name: Analyze CI rerun eligibility
+    if: >-
+      ${{
+          github.repository == 'microsoft/aspire' &&
+          (github.event_name == 'workflow_dispatch' ||
+           github.event.workflow_run.conclusion == 'failure')
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      analysis: ${{ steps.analyze.outputs.analysis }}
+      rerun_execution_eligible: ${{ steps.analyze.outputs.rerun_execution_eligible }}
+    steps:
+      - name: Checkout trusted rerun scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Analyze rerun eligibility
+        id: analyze
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MANUAL_RUN_ID: ${{ inputs.run_id }}
+          MANUAL_DRY_RUN: ${{ inputs.dry_run }}
+          # Temporary PR/manual force mode bypasses classification. Main ignores
+          # this flag and always uses its narrow allowlist and one-shot retry cap.
+          FORCE_RERUN_ALL: 'true'
+        with:
+          script: |
+            const dispatcher = require('./.github/workflows/auto-rerun-transient-ci-failures.js');
+            await dispatcher.run({
+              phase: 'analyze',
+              github,
+              core,
+              context,
+              runId: process.env.MANUAL_RUN_ID,
+              dryRun: context.eventName === 'workflow_dispatch' &&
+                String(process.env.MANUAL_DRY_RUN).toLowerCase() === 'true',
+              forceRerunAll: String(process.env.FORCE_RERUN_ALL).toLowerCase() === 'true',
+              workspace: process.env.GITHUB_WORKSPACE,
+              token: process.env.GITHUB_TOKEN,
+            });
+
+  rerun-transient-failures:
+    name: Rerun eligible CI failures
+    needs: [analyze-transient-failures]
+    if: ${{ needs.analyze-transient-failures.outputs.rerun_execution_eligible == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted rerun scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Execute eligible rerun
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          ANALYSIS: ${{ needs.analyze-transient-failures.outputs.analysis }}
+        with:
+          script: |
+            const dispatcher = require('./.github/workflows/auto-rerun-transient-ci-failures.js');
+            await dispatcher.run({
+              phase: 'execute',
+              github,
+              core,
+              context,
+              analysis: JSON.parse(process.env.ANALYSIS),
+            });
