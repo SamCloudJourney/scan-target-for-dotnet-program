@@ -320,5 +320,17 @@
     "owner": "dotnet",
     "regular_files": 123,
     "archive_sha256": "27660fa0a83094e0b1bc11ad13967351f6b0f8e497012b744b1d40879341226b"
+  },
+  {
+    "name": "diagnostics",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "2a3cfe2d2997d2fbe909de1ddd8fc3f100d97fb3",
+    "path": "workflow-snapshots/dotnet--diagnostics--main--workflow",
+    "files": 13,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 13,
+    "archive_sha256": "fa46520a3029d901035d3dd9930aaabae896d3eda55326370aad56403a01bead"
   }
 ]
