@@ -272,5 +272,17 @@
     "owner": "dotnet",
     "regular_files": 10,
     "archive_sha256": "5bb892aba59a60c28bfc691fc0c5bd2bfa5fa5752a007a7345a5c73e4bd487b7"
+  },
+  {
+    "name": "wcf",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "e04dcb3d89f03d23b02f8cb1528eabc1e27e7212",
+    "path": "workflow-snapshots/dotnet--wcf--main--workflow",
+    "files": 11,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 11,
+    "archive_sha256": "028ce2b7f400b52ad0fa0036067f0ad809f8bdba998597d1bbd8f739fa008c4a"
   }
 ]
