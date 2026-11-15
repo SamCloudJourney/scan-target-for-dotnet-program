@@ -10,5 +10,15 @@
     "owner": "dotnet",
     "regular_files": 1017,
     "archive_sha256": "588a2da595a30f7c9ce87b16c6d2fa3d99f17a2a39c9305e93d5379eab033ba5"
+  },
+  {
+    "owner": "dotnet",
+    "name": "runtime",
+    "kind": "release",
+    "ref": "v10.0.15",
+    "commit": "a3788b71495457354b64ca8040b6ded5ff6ca4f9",
+    "path": "release-sources/dotnet-10.0.15/runtime",
+    "regular_files": 60884,
+    "archive_sha256": "df3899ce646abce8486600eb7fc91dc6076d663e0f126c3dd35c7d3af939c06d"
   }
 ]
