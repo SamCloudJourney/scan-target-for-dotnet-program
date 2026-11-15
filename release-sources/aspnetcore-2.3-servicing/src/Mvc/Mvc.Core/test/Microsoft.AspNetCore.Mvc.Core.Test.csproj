@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net462</TargetFrameworks>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.AspNetCore.Mvc" />
+    <Reference Include="Microsoft.AspNetCore.Mvc.Abstractions" />
+    <Reference Include="Microsoft.AspNetCore.Mvc.Core" />
+    <Reference Include="Microsoft.AspNetCore.Mvc.TestCommon" />
+    <Reference Include="Microsoft.AspNetCore.Mvc.TestDiagnosticListener" />
+
+    <Reference Include="Microsoft.AspNetCore.Http" />
+    <Reference Include="Microsoft.AspNetCore.ResponseCaching" />
+    <Reference Include="Microsoft.Extensions.DependencyInjection" />
+    <Reference Include="Microsoft.Extensions.Logging" />
+    <Reference Include="Microsoft.Extensions.Logging.Testing" />
+    <Reference Include="System.Threading.Tasks.Extensions" />
+  </ItemGroup>
+</Project>

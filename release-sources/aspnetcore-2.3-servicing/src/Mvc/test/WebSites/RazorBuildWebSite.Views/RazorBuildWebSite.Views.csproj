@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <DefineConstants>$(DefineConstants)</DefineConstants>
+    <IsTestAssetProject>true</IsTestAssetProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.AspNetCore.Mvc" />
+    <Reference Include="System.Threading.Tasks.Extensions" />
+  </ItemGroup>
+</Project>
+

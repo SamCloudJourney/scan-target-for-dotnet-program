@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedSourceRoot)NullScope.cs" />
+    <Compile Include="$(KestrelSharedSourceRoot)test\**\*.cs" />
+    <Content Include="$(KestrelSharedSourceRoot)test\TestCertificates\*.pfx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\src\Microsoft.AspNetCore.Server.Kestrel.Core.csproj" />
+    <ProjectReference Include="..\..\Https\src\Microsoft.AspNetCore.Server.Kestrel.Https.csproj" />
+    <ProjectReference Include="..\..\Transport.Abstractions\src\Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Transport.Libuv\src\Microsoft.AspNetCore.Server.Kestrel.Transport.Libuv.csproj" />
+    <ProjectReference Include="..\..\Transport.Sockets\src\Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.csproj" />
+    <ProjectReference Include="..\src\Microsoft.AspNetCore.Server.Kestrel.csproj" />
+  </ItemGroup>
+
+</Project>

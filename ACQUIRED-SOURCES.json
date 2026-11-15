@@ -70,5 +70,15 @@
     "path": "release-sources/dotnet-10.0.15/windowsdesktop",
     "regular_files": 240,
     "archive_sha256": "ed89dacd4c475679dd3ee33fa64389feb22b4cafd518dc83bcd8901ac7effa2e"
+  },
+  {
+    "owner": "dotnet",
+    "name": "aspnetcore",
+    "kind": "servicing-branch",
+    "ref": "release/2.3",
+    "commit": "ca25e14376afea01c601f0a2470f90e142f97c3d",
+    "path": "release-sources/aspnetcore-2.3-servicing",
+    "regular_files": 9398,
+    "archive_sha256": "8cfb9c504f402b4fd9dc0db0ca80e77947e75c7ea9a1392045690533fc086e35"
   }
 ]
