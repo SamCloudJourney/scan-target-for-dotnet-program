@@ -260,5 +260,17 @@
     "owner": "microsoft",
     "regular_files": 223,
     "archive_sha256": "80c8f140d1632cda7f920f23efc75c0307bb23e50d9bde56de67c28de347ce0f"
+  },
+  {
+    "name": "yarp",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "93ef5fd021be1e3e1d9eac133c7ea7c3565bedb0",
+    "path": "workflow-snapshots/dotnet--yarp--main--workflow",
+    "files": 10,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 10,
+    "archive_sha256": "5bb892aba59a60c28bfc691fc0c5bd2bfa5fa5752a007a7345a5c73e4bd487b7"
   }
 ]
