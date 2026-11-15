@@ -1,0 +1,112 @@
+name: AppHost Build
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: AppHost Build
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      TEST_RESULTS_DIR: ${{ github.workspace }}/testresults
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: |
+          mkdir -p "$TEST_RESULTS_DIR"
+          dotnet restore tests/Aspire.Dev.AppHost.Tests/Aspire.Dev.AppHost.Tests.csproj -bl:"$TEST_RESULTS_DIR/Aspire.Dev.AppHost.Tests.restore.binlog"
+          dotnet restore tests/StaticHost.Tests/StaticHost.Tests.csproj -bl:"$TEST_RESULTS_DIR/StaticHost.Tests.restore.binlog"
+
+      - name: Build
+        id: build
+        run: |
+          dotnet build tests/Aspire.Dev.AppHost.Tests/Aspire.Dev.AppHost.Tests.csproj --no-restore --configuration Release -bl:"$TEST_RESULTS_DIR/Aspire.Dev.AppHost.Tests.build.binlog"
+          dotnet build tests/StaticHost.Tests/StaticHost.Tests.csproj --no-restore --configuration Release -bl:"$TEST_RESULTS_DIR/StaticHost.Tests.build.binlog"
+
+      - name: Verify output
+        run: |
+          APPHOST_DLL=$(ls -1 src/apphost/Aspire.Dev.AppHost/bin/Release/*/Aspire.Dev.AppHost.dll 2>/dev/null | head -n 1)
+          if [ -z "$APPHOST_DLL" ]; then
+            echo "AppHost build failed - output assembly not found"
+            ls -R src/apphost/Aspire.Dev.AppHost/bin/Release || true
+            exit 1
+          fi
+          echo "Found $APPHOST_DLL"
+
+      - name: Run AppHost tests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: >
+          dotnet test tests/Aspire.Dev.AppHost.Tests/Aspire.Dev.AppHost.Tests.csproj
+          --configuration Release
+          --no-restore
+          --no-build
+          --verbosity normal
+          --results-directory "$TEST_RESULTS_DIR"
+          --logger "trx;LogFileName=Aspire.Dev.AppHost.Tests.trx"
+          -bl:"$TEST_RESULTS_DIR/Aspire.Dev.AppHost.Tests.binlog"
+
+      - name: Run StaticHost unit and HTTP tests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: >
+          dotnet test tests/StaticHost.Tests/StaticHost.Tests.csproj
+          --configuration Release
+          --no-restore
+          --no-build
+          --verbosity normal
+          --filter "Category!=RedisIntegration"
+          --results-directory "$TEST_RESULTS_DIR"
+          --logger "trx;LogFileName=StaticHost.Tests.trx"
+          -bl:"$TEST_RESULTS_DIR/StaticHost.Tests.binlog"
+
+      - name: Run StaticHost Redis integration tests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: >
+          dotnet test tests/StaticHost.Tests/StaticHost.Tests.csproj
+          --configuration Release
+          --no-restore
+          --no-build
+          --verbosity normal
+          --filter "Category=RedisIntegration"
+          --results-directory "$TEST_RESULTS_DIR"
+          --logger "trx;LogFileName=StaticHost.RedisIntegration.Tests.trx"
+          -bl:"$TEST_RESULTS_DIR/StaticHost.RedisIntegration.Tests.binlog"
+
+      - name: Upload test results
+        id: upload-test-results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-AppHost-ubuntu-latest
+          path: |
+            testresults/**/*.trx
+            testresults/**/*.binlog
+          retention-days: 7
+
+      - name: Generate test results summary
+        if: always()
+        shell: pwsh
+        run: |
+          & "${{ github.workspace }}/tests/scripts/Write-TestSummary.ps1" `
+            -TestResultsFolder $env:TEST_RESULTS_DIR `
+            -SummaryOutputPath $env:GITHUB_STEP_SUMMARY `
+            -ArtifactUrl "${{ steps.upload-test-results.outputs.artifact-url }}" `
+            -SummaryTitle "AppHost and StaticHost Tests"
+
+      - name: Upload artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: apphost-release
+          path: src/apphost/Aspire.Dev.AppHost/bin/Release/*/
+          if-no-files-found: warn
+          retention-days: 7

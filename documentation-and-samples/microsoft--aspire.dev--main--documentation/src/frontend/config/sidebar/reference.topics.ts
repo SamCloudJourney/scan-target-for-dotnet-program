@@ -1,0 +1,892 @@
+import type { StarlightSidebarTopicsUserConfig } from 'starlight-sidebar-topics';
+
+export const referenceTopics: StarlightSidebarTopicsUserConfig[number] = {
+  id: 'reference',
+  label: {
+    en: 'Reference',
+    es: 'Referencia',
+    fr: 'Référence',
+    de: 'Referenz',
+    it: 'Riferimento',
+    ru: 'Справочник',
+    'zh-CN': '参考',
+    da: 'Reference',
+    hi: 'संदर्भ',
+    id: 'Referensi',
+    ja: 'リファレンス',
+    ko: '참고 자료',
+    'pt-BR': 'Referência',
+    tr: 'Referans',
+    uk: 'Довідник',
+  },
+  link: '/reference/overview/',
+  icon: 'seti:json',
+  items: [
+    {
+      label: 'Aspire Reference',
+      translations: {
+        da: 'Aspire-reference',
+        de: 'Aspire-Referenz',
+        en: 'Aspire Reference',
+        es: 'Referencia de Aspire',
+        fr: 'Référence Aspire',
+        hi: 'Aspire संदर्भ',
+        id: 'Referensi Aspire',
+        it: 'Riferimento di Aspire',
+        ja: 'Aspireリファレンス',
+        ko: 'Aspire 참고 자료',
+        'pt-BR': 'Referência do Aspire',
+        ru: 'Справочник Aspire',
+        tr: 'Aspire Referansı',
+        uk: 'Довідник Aspire',
+        'zh-CN': 'Aspire 参考',
+      },
+      items: [
+        {
+          label: 'Overview',
+          translations: {
+            da: 'Oversigt',
+            de: 'Übersicht',
+            en: 'Overview',
+            es: 'Descripción general',
+            fr: "Vue d'ensemble",
+            hi: 'अवलोकन',
+            id: 'Ikhtisar',
+            it: 'Panoramica',
+            ja: '概要',
+            ko: '개요',
+            'pt-BR': 'Visão geral',
+            ru: 'Обзор',
+            tr: 'Genel Bakış',
+            uk: 'Огляд',
+            'zh-CN': '概述',
+          },
+          slug: 'reference/overview',
+        },
+        {
+          label: 'Reference samples',
+          translations: {
+            da: 'Reference-eksempler',
+            de: 'Referenzbeispiele',
+            en: 'Reference samples',
+            es: 'Muestras de referencia',
+            fr: 'Exemples de référence',
+            hi: 'संदर्भ नमूने',
+            id: 'Sampel referensi',
+            it: 'Esempi di riferimento',
+            ja: 'リファレンスサンプル',
+            ko: '참조 샘플',
+            'pt-BR': 'Exemplos de referência',
+            ru: 'Образцы из справочника',
+            tr: 'Referans örnekleri',
+            uk: 'Зразки з довідника',
+            'zh-CN': '参考示例',
+          },
+          slug: 'reference/samples',
+        },
+        {
+          label: 'Container images',
+          translations: {
+            da: 'Container-images',
+            de: 'Container-Images',
+            en: 'Container images',
+            es: 'Imágenes de contenedor',
+            fr: 'Images de conteneur',
+            hi: 'कंटेनर इमेज',
+            id: 'Image kontainer',
+            it: 'Immagini dei container',
+            ja: 'コンテナーイメージ',
+            ko: '컨테이너 이미지',
+            'pt-BR': 'Imagens de contêiner',
+            ru: 'Образы контейнеров',
+            tr: 'Kapsayıcı görüntüleri',
+            uk: 'Образи контейнерів',
+            'zh-CN': '容器映像',
+          },
+          slug: 'reference/container-images',
+        },
+      ],
+    },
+    {
+      label: 'API reference',
+      translations: {
+        da: 'API reference',
+        de: 'API-Referenz',
+        en: 'API reference',
+        es: 'Referencia de API',
+        fr: "Référence de l'API",
+        hi: 'एपीआई संदर्भ',
+        id: 'Referensi API',
+        it: "Riferimento all'API",
+        ja: 'APIリファレンス',
+        ko: 'API 참조',
+        'pt-BR': 'Referência da API',
+        ru: 'Справочник по API',
+        tr: 'API referansı',
+        uk: 'Довідник API',
+        'zh-CN': 'API参考',
+      },
+      collapsed: false,
+      items: [
+        {
+          label: 'Search C# APIs',
+          translations: {
+            da: "Søg i C# API'er",
+            de: 'C# APIs durchsuchen',
+            en: 'Search C# APIs',
+            es: 'Buscar API de C#',
+            fr: 'Rechercher les API C#',
+            hi: 'C# एपीआई खोजें',
+            id: 'Cari API C#',
+            it: 'Cerca API C#',
+            ja: 'C# APIを検索する',
+            ko: 'C# API 검색',
+            'pt-BR': 'Pesquisar APIs C#',
+            ru: 'Поиск C# API',
+            tr: "C# API'leri Arayın",
+            uk: 'Пошук C# API',
+            'zh-CN': '搜索 C# API',
+          },
+          link: '/reference/api/csharp/',
+        },
+        {
+          label: 'Search TypeScript APIs',
+          translations: {
+            da: "Søg i TypeScript API'er",
+            de: 'TypeScript APIs durchsuchen',
+            en: 'Search TypeScript APIs',
+            es: 'Buscar API de TypeScript',
+            fr: 'Rechercher les API TypeScript',
+            hi: 'TypeScript एपीआई खोजें',
+            id: 'Cari API TypeScript',
+            it: 'Cerca API TypeScript',
+            ja: 'TypeScript APIを検索する',
+            ko: 'TypeScript API 검색',
+            'pt-BR': 'Pesquisar APIs TypeScript',
+            ru: 'Поиск TypeScript API',
+            tr: "TypeScript API'leri Arayın",
+            uk: 'Пошук TypeScript API',
+            'zh-CN': '搜索 TypeScript API',
+          },
+          link: '/reference/api/typescript/',
+        },
+      ],
+    },
+    {
+      label: 'CLI reference',
+      translations: {
+        en: 'CLI reference',
+        es: 'Referencia de CLI',
+        fr: 'Référence CLI',
+        de: 'CLI-Referenz',
+        it: 'Riferimento CLI',
+        ru: 'Справочник CLI',
+        'zh-CN': 'CLI 参考',
+        da: 'CLI-reference',
+        hi: 'CLI संदर्भ',
+        id: 'Referensi CLI',
+        ja: 'CLI リファレンス',
+        ko: 'CLI 참고서',
+        'pt-BR': 'Referência de CLI',
+        tr: 'CLI referansı',
+        uk: 'CLI Довідник',
+      },
+      collapsed: false,
+      items: [
+        {
+          label: 'Overview',
+          translations: {
+            da: 'Oversigt',
+            de: 'Übersicht',
+            en: 'Overview',
+            es: 'Descripción general',
+            fr: "Vue d'ensemble",
+            hi: 'अवलोकन',
+            id: 'Ikhtisar',
+            it: 'Panoramica',
+            ja: '概要',
+            ko: '개요',
+            'pt-BR': 'Visão geral',
+            ru: 'Обзор',
+            tr: 'Genel Bakış',
+            uk: 'Огляд',
+            'zh-CN': '概述',
+          },
+          slug: 'reference/cli/overview',
+        },
+        {
+          label: 'Install script',
+          translations: {
+            da: 'Installationsscript',
+            de: 'Installationsskript',
+            en: 'Install script',
+            es: 'Script de instalación',
+            fr: "Script d'installation",
+            hi: 'इंस्टॉलेशन स्क्रिप्ट',
+            id: 'Skrip Instalasi',
+            it: 'Script di installazione',
+            ja: 'インストールスクリプト',
+            ko: '설치 스크립트',
+            'pt-BR': 'Script de instalação',
+            ru: 'Скрипт установки',
+            tr: 'Kurulum Betiği',
+            uk: 'Скрипт установки',
+            'zh-CN': '安装脚本',
+          },
+          slug: 'reference/cli/install-script',
+        },
+        {
+          label: 'Search and filter',
+          slug: 'reference/cli/search-filter',
+        },
+        {
+          label: 'Configuration',
+          translations: {
+            da: 'Konfiguration',
+            de: 'Konfiguration',
+            en: 'Configuration',
+            es: 'Configuración',
+            fr: 'Configuration',
+            hi: 'कॉन्फ़िगरेशन',
+            id: 'Konfigurasi',
+            it: 'Configurazione',
+            ja: '構成',
+            ko: '구성',
+            'pt-BR': 'Configuração',
+            ru: 'Конфигурация',
+            tr: 'Yapılandırma',
+            uk: 'Конфігурація',
+            'zh-CN': '配置',
+          },
+          slug: 'reference/cli/configuration',
+        },
+        {
+          label: 'Microsoft telemetry',
+          translations: {
+            da: 'Microsoft telemetri',
+            de: 'Microsoft-Telemetrie',
+            en: 'Microsoft telemetry',
+            es: 'Telemetría de Microsoft',
+            fr: 'Télémétrie Microsoft',
+            hi: 'Microsoft टेलीमेट्री',
+            id: 'Telemetri Microsoft',
+            it: 'Telemetria Microsoft',
+            ja: 'Microsoft テレメトリ',
+            ko: 'Microsoft 원격 분석',
+            'pt-BR': 'Telemetria da Microsoft',
+            ru: 'Телеметрия Microsoft',
+            tr: 'Microsoft telemetrisi',
+            uk: 'Телеметрія Microsoft',
+            'zh-CN': 'Microsoft 遥测',
+          },
+          slug: 'reference/cli/microsoft-collected-cli-telemetry',
+        },
+        {
+          label: 'Commands',
+          translations: {
+            da: 'Kommandoer',
+            de: 'Befehle',
+            en: 'Commands',
+            es: 'Comandos',
+            fr: 'Commandes',
+            hi: 'कमांड',
+            id: 'Perintah',
+            it: 'Comandi',
+            ja: 'コマンド',
+            ko: '명령어',
+            'pt-BR': 'Comandos',
+            ru: 'Команды',
+            tr: 'Komutlar',
+            uk: 'Команди',
+            'zh-CN': '命令',
+          },
+          collapsed: true,
+          items: [
+            { label: 'aspire', slug: 'reference/cli/commands/aspire' },
+            { label: 'aspire add', slug: 'reference/cli/commands/aspire-add' },
+            {
+              label: 'aspire agent',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire agent',
+                  slug: 'reference/cli/commands/aspire-agent',
+                },
+                {
+                  label: 'aspire agent init',
+                  slug: 'reference/cli/commands/aspire-agent-init',
+                },
+                {
+                  label: 'aspire agent mcp',
+                  slug: 'reference/cli/commands/aspire-agent-mcp',
+                },
+              ],
+            },
+            {
+              label: 'aspire cache',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire cache',
+                  slug: 'reference/cli/commands/aspire-cache',
+                },
+                {
+                  label: 'aspire cache clear',
+                  slug: 'reference/cli/commands/aspire-cache-clear',
+                },
+              ],
+            },
+            {
+              label: 'aspire certs',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire certs',
+                  slug: 'reference/cli/commands/aspire-certs',
+                },
+                {
+                  label: 'aspire certs clean',
+                  slug: 'reference/cli/commands/aspire-certs-clean',
+                },
+                {
+                  label: 'aspire certs trust',
+                  slug: 'reference/cli/commands/aspire-certs-trust',
+                },
+              ],
+            },
+            {
+              label: 'aspire config',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire config',
+                  slug: 'reference/cli/commands/aspire-config',
+                },
+                {
+                  label: 'aspire config delete',
+                  slug: 'reference/cli/commands/aspire-config-delete',
+                },
+                {
+                  label: 'aspire config get',
+                  slug: 'reference/cli/commands/aspire-config-get',
+                },
+                {
+                  label: 'aspire config list',
+                  slug: 'reference/cli/commands/aspire-config-list',
+                },
+                {
+                  label: 'aspire config set',
+                  slug: 'reference/cli/commands/aspire-config-set',
+                },
+              ],
+            },
+            {
+              label: 'aspire dashboard',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire dashboard',
+                  slug: 'reference/cli/commands/aspire-dashboard',
+                },
+                {
+                  label: 'aspire dashboard run',
+                  slug: 'reference/cli/commands/aspire-dashboard-run',
+                },
+              ],
+            },
+            {
+              label: 'aspire deploy',
+              slug: 'reference/cli/commands/aspire-deploy',
+            },
+            {
+              label: 'aspire describe',
+              slug: 'reference/cli/commands/aspire-describe',
+            },
+            {
+              label: 'aspire destroy',
+              slug: 'reference/cli/commands/aspire-destroy',
+            },
+            { label: 'aspire do', slug: 'reference/cli/commands/aspire-do' },
+            {
+              label: 'aspire docs',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire docs',
+                  slug: 'reference/cli/commands/aspire-docs',
+                },
+                {
+                  label: 'aspire docs get',
+                  slug: 'reference/cli/commands/aspire-docs-get',
+                },
+                {
+                  label: 'aspire docs list',
+                  slug: 'reference/cli/commands/aspire-docs-list',
+                },
+                {
+                  label: 'aspire docs search',
+                  slug: 'reference/cli/commands/aspire-docs-search',
+                },
+                {
+                  label: 'aspire docs api',
+                  collapsed: true,
+                  items: [
+                    {
+                      label: 'aspire docs api',
+                      slug: 'reference/cli/commands/aspire-docs-api',
+                    },
+                    {
+                      label: 'aspire docs api get',
+                      slug: 'reference/cli/commands/aspire-docs-api-get',
+                    },
+                    {
+                      label: 'aspire docs api list',
+                      slug: 'reference/cli/commands/aspire-docs-api-list',
+                    },
+                    {
+                      label: 'aspire docs api search',
+                      slug: 'reference/cli/commands/aspire-docs-api-search',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              label: 'aspire doctor',
+              slug: 'reference/cli/commands/aspire-doctor',
+            },
+            {
+              label: 'aspire export',
+              slug: 'reference/cli/commands/aspire-export',
+            },
+            { label: 'aspire init', slug: 'reference/cli/commands/aspire-init' },
+            { label: 'aspire ls', slug: 'reference/cli/commands/aspire-ls' },
+            {
+              label: 'aspire logs',
+              slug: 'reference/cli/commands/aspire-logs',
+            },
+            {
+              label: 'aspire mcp',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire mcp',
+                  slug: 'reference/cli/commands/aspire-mcp',
+                },
+                {
+                  label: 'aspire mcp call',
+                  slug: 'reference/cli/commands/aspire-mcp-call',
+                },
+                {
+                  label: 'aspire mcp tools',
+                  slug: 'reference/cli/commands/aspire-mcp-tools',
+                },
+              ],
+            },
+            { label: 'aspire new', slug: 'reference/cli/commands/aspire-new' },
+            {
+              label: 'aspire otel',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire otel',
+                  slug: 'reference/cli/commands/aspire-otel',
+                },
+                {
+                  label: 'aspire otel logs',
+                  slug: 'reference/cli/commands/aspire-otel-logs',
+                },
+                {
+                  label: 'aspire otel spans',
+                  slug: 'reference/cli/commands/aspire-otel-spans',
+                },
+                {
+                  label: 'aspire otel traces',
+                  slug: 'reference/cli/commands/aspire-otel-traces',
+                },
+              ],
+            },
+            { label: 'aspire ps', slug: 'reference/cli/commands/aspire-ps' },
+            {
+              label: 'aspire publish',
+              slug: 'reference/cli/commands/aspire-publish',
+            },
+            {
+              label: 'aspire resource',
+              slug: 'reference/cli/commands/aspire-resource',
+            },
+            {
+              label: 'aspire resources',
+              slug: 'reference/cli/commands/aspire-resources',
+            },
+            {
+              label: 'aspire restore',
+              slug: 'reference/cli/commands/aspire-restore',
+            },
+            { label: 'aspire run', slug: 'reference/cli/commands/aspire-run' },
+            {
+              label: 'aspire secret',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire secret',
+                  slug: 'reference/cli/commands/aspire-secret',
+                },
+                {
+                  label: 'aspire secret delete',
+                  slug: 'reference/cli/commands/aspire-secret-delete',
+                },
+                {
+                  label: 'aspire secret get',
+                  slug: 'reference/cli/commands/aspire-secret-get',
+                },
+                {
+                  label: 'aspire secret list',
+                  slug: 'reference/cli/commands/aspire-secret-list',
+                },
+                {
+                  label: 'aspire secret path',
+                  slug: 'reference/cli/commands/aspire-secret-path',
+                },
+                {
+                  label: 'aspire secret set',
+                  slug: 'reference/cli/commands/aspire-secret-set',
+                },
+              ],
+            },
+            {
+              label: 'aspire start',
+              slug: 'reference/cli/commands/aspire-start',
+            },
+            { label: 'aspire stop', slug: 'reference/cli/commands/aspire-stop' },
+            {
+              label: 'aspire terminal',
+              collapsed: true,
+              items: [
+                {
+                  label: 'aspire terminal',
+                  slug: 'reference/cli/commands/aspire-terminal',
+                },
+                {
+                  label: 'aspire terminal attach',
+                  slug: 'reference/cli/commands/aspire-terminal-attach',
+                },
+                {
+                  label: 'aspire terminal ps',
+                  slug: 'reference/cli/commands/aspire-terminal-ps',
+                },
+                {
+                  label: 'aspire terminal tape',
+                  slug: 'reference/cli/commands/aspire-terminal-tape',
+                },
+                {
+                  label: 'aspire terminal tape play',
+                  slug: 'reference/cli/commands/aspire-terminal-tape-play',
+                },
+              ],
+            },
+            {
+              label: 'aspire update',
+              slug: 'reference/cli/commands/aspire-update',
+            },
+            {
+              label: 'aspire wait',
+              slug: 'reference/cli/commands/aspire-wait',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      label: 'Diagnostics',
+      translations: {
+        da: 'Diagnostik',
+        de: 'Diagnose',
+        en: 'Diagnostics',
+        es: 'Diagnósticos',
+        fr: 'Diagnostics',
+        hi: 'निदान',
+        id: 'Diagnostik',
+        it: 'Diagnostica',
+        ja: '診断',
+        ko: '진단',
+        'pt-BR': 'Diagnósticos',
+        ru: 'Диагностика',
+        tr: 'Tanılama',
+        uk: 'Діагностика',
+        'zh-CN': '诊断',
+      },
+      collapsed: true,
+      items: [
+        { label: 'Overview', link: '/diagnostics/overview' },
+        {
+          label: 'Warnings',
+          collapsed: true,
+          items: [
+            { label: 'ASPIRE001', link: '/diagnostics/aspire001' },
+            { label: 'ASPIRE002', link: '/diagnostics/aspire002' },
+            { label: 'ASPIRE003', link: '/diagnostics/aspire003' },
+            { label: 'ASPIRE004', link: '/diagnostics/aspire004' },
+            { label: 'ASPIRE010', link: '/diagnostics/aspire010' },
+            {
+              label: 'ASPIREEXPORT005',
+              link: '/diagnostics/aspireexport005',
+            },
+            {
+              label: 'ASPIREEXPORT006',
+              link: '/diagnostics/aspireexport006',
+            },
+            {
+              label: 'ASPIREEXPORT007',
+              link: '/diagnostics/aspireexport007',
+            },
+            {
+              label: 'ASPIREEXPORT008',
+              link: '/diagnostics/aspireexport008',
+            },
+            {
+              label: 'ASPIREEXPORT009',
+              link: '/diagnostics/aspireexport009',
+            },
+            {
+              label: 'ASPIREEXPORT010',
+              link: '/diagnostics/aspireexport010',
+            },
+            {
+              label: 'ASPIREEXPORT013',
+              link: '/diagnostics/aspireexport013',
+            },
+            {
+              label: 'ASPIREEXPORT016',
+              link: '/diagnostics/aspireexport016',
+            },
+            {
+              label: 'ASPIREACANAMING001',
+              link: '/diagnostics/aspireacanaming001',
+            },
+            {
+              label: 'ASPIREBLAZOR001',
+              link: '/diagnostics/aspireblazor001',
+            },
+            {
+              label: 'ASPIRECERTIFICATES001',
+              link: '/diagnostics/aspirecertificates001',
+            },
+            {
+              label: 'ASPIRECOMMAND001',
+              link: '/diagnostics/aspirecommand001',
+            },
+            {
+              label: 'ASPIRECOMPUTE002',
+              link: '/diagnostics/aspirecompute002',
+            },
+            {
+              label: 'ASPIRECOMPUTE003',
+              link: '/diagnostics/aspirecompute003',
+            },
+            {
+              label: 'ASPIRECONTAINERRUNTIME001',
+              link: '/diagnostics/aspirecontainerruntime001',
+            },
+            {
+              label: 'ASPIRECONTAINERSHELLEXECUTION001',
+              link: '/diagnostics/aspirecontainershellexecution001',
+            },
+            {
+              label: 'ASPIREDOCKERFILEBUILDER001',
+              link: '/diagnostics/aspiredockerfilebuilder001',
+            },
+            {
+              label: 'ASPIREDOTNETPROJECT001',
+              link: '/diagnostics/aspiredotnetproject001',
+            },
+            {
+              label: 'ASPIREDOTNETTOOL001',
+              link: '/diagnostics/aspiredotnettool001',
+            },
+            {
+              label: 'ASPIREDURABLETASK001',
+              link: '/diagnostics/aspiredurabletask001',
+            },
+            {
+              label: 'ASPIREEXTENSION001',
+              link: '/diagnostics/aspireextension001',
+            },
+            {
+              label: 'ASPIREFILESYSTEM001',
+              link: '/diagnostics/aspirefilesystem001',
+            },
+            {
+              label: 'ASPIREINTERACTION001',
+              link: '/diagnostics/aspireinteraction001',
+            },
+            {
+              label: 'ASPIREJAVASCRIPT001',
+              link: '/diagnostics/aspirejavascript001',
+            },
+            {
+              label: 'ASPIREMCP001',
+              link: '/diagnostics/aspiremcp001',
+            },
+            {
+              label: 'ASPIREPIPELINES004',
+              link: '/diagnostics/aspirepipelines004',
+            },
+            {
+              label: 'ASPIREPROBES001',
+              link: '/diagnostics/aspireprobes001',
+            },
+            {
+              label: 'ASPIREPOSTGRES001',
+              link: '/diagnostics/aspirepostgres001',
+            },
+            {
+              label: 'ASPIREPROCESSCOMMAND001',
+              link: '/diagnostics/aspireprocesscommand001',
+            },
+            {
+              label: 'ASPIREPROJECTS001',
+              link: '/diagnostics/aspireprojects001',
+            },
+            {
+              label: 'ASPIRERADIUS003',
+              link: '/diagnostics/aspireradius003',
+            },
+            {
+              label: 'ASPIRERADIUS004',
+              link: '/diagnostics/aspireradius004',
+            },
+            {
+              label: 'ASPIRERADIUS006',
+              link: '/diagnostics/aspireradius006',
+            },
+            {
+              label: 'ASPIRERADIUS057',
+              link: '/diagnostics/aspireradius057',
+            },
+            {
+              label: 'ASPIRETERMINAL001',
+              link: '/diagnostics/aspireterminal001',
+            },
+            {
+              label: 'ASPIREUSERSECRETS001',
+              link: '/diagnostics/aspireusersecrets001',
+            },
+            {
+              label: 'ASPIREWATCH001',
+              link: '/diagnostics/aspirewatch001',
+            },
+          ],
+        },
+        {
+          label: 'Errors',
+          collapsed: true,
+          items: [
+            { label: 'ASPIRE006', link: '/diagnostics/aspire006' },
+            { label: 'ASPIRE007', link: '/diagnostics/aspire007' },
+            { label: 'ASPIRE008', link: '/diagnostics/aspire008' },
+            { label: 'ASPIRE009', link: '/diagnostics/aspire009' },
+            { label: 'ASPIRE011', link: '/diagnostics/aspire011' },
+            {
+              label: 'ASPIREACADOMAIN001',
+              link: '/diagnostics/aspireacadomains001',
+            },
+            {
+              label: 'ASPIREACAEXPRESS001',
+              link: '/diagnostics/aspireacaexpress001',
+            },
+            { label: 'ASPIRECOMPUTE001', link: '/diagnostics/aspirecompute001' },
+            {
+              label: 'ASPIREACANAMING002',
+              link: '/diagnostics/aspireacanaming002',
+            },
+            {
+              label: 'ASPIRECSHARPAPPS001',
+              link: '/diagnostics/aspirecsharpapps001',
+            },
+            {
+              label: 'ASPIRECOSMOSDB001',
+              link: '/diagnostics/aspirecosmosdb001',
+            },
+            {
+              label: 'ASPIREEXPORT001',
+              link: '/diagnostics/aspireexport001',
+            },
+            {
+              label: 'ASPIREEXPORT002',
+              link: '/diagnostics/aspireexport002',
+            },
+            {
+              label: 'ASPIREEXPORT003',
+              link: '/diagnostics/aspireexport003',
+            },
+            {
+              label: 'ASPIREEXPORT004',
+              link: '/diagnostics/aspireexport004',
+            },
+            {
+              label: 'ASPIREEXPORT015',
+              link: '/diagnostics/aspireexport015',
+            },
+            {
+              label: 'ASPIREHOSTINGPYTHON001',
+              link: '/diagnostics/aspirehostingpython001',
+            },
+            {
+              label: 'ASPIREPERSISTENCE001',
+              link: '/diagnostics/aspirepersistence001',
+            },
+            {
+              label: 'ASPIREPIPELINES001',
+              link: '/diagnostics/aspirepipelines001',
+            },
+            {
+              label: 'ASPIREPIPELINES002',
+              link: '/diagnostics/aspirepipelines002',
+            },
+            {
+              label: 'ASPIREPIPELINES003',
+              link: '/diagnostics/aspirepipelines003',
+            },
+            {
+              label: 'ASPIREPROXYENDPOINTS001',
+              link: '/diagnostics/aspireproxyendpoints001',
+            },
+            {
+              label: 'ASPIREPUBLISHERS001',
+              link: '/diagnostics/aspirepublishers001',
+            },
+            { label: 'ASPIREAZURE001', link: '/diagnostics/aspireazure001' },
+            { label: 'ASPIREAZURE002', link: '/diagnostics/aspireazure002' },
+            { label: 'ASPIREAZURE003', link: '/diagnostics/aspireazure003' },
+            {
+              label: 'ASPIREBROWSERLOGS001',
+              link: '/diagnostics/aspirebrowserlogs001',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      label: 'Support',
+      translations: {
+        da: 'Support',
+        de: 'Support',
+        en: 'Support',
+        es: 'Soporte',
+        fr: 'Support',
+        hi: 'समर्थन',
+        id: 'Dukungan',
+        it: 'Supporto',
+        ja: 'サポート',
+        ko: '지원',
+        'pt-BR': 'Suporte',
+        ru: 'Поддержка',
+        tr: 'Destek',
+        uk: 'Підтримка',
+        'zh-CN': '支持',
+      },
+      link: '/support/',
+    },
+  ],
+};

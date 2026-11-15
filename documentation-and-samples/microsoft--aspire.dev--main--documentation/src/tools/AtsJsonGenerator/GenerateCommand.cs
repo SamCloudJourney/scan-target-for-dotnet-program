@@ -1,0 +1,183 @@
+using System.CommandLine;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using AtsJsonGenerator.Helpers;
+
+namespace AtsJsonGenerator;
+
+/// <summary>
+/// Root command: transform a single <c>aspire sdk dump --format json</c> output file
+/// into a docs-site JSON file.
+/// </summary>
+internal static class GenerateCommand
+{
+    private static readonly Option<string> s_inputOption = new("--input", "-i")
+    {
+        Required = true,
+        Description = "Path to the JSON file produced by 'aspire sdk dump --format json'.",
+    };
+
+    private static readonly Option<string> s_outputOption = new("--output", "-o")
+    {
+        Required = true,
+        Description = "Path to write the transformed docs-site JSON file.",
+    };
+
+    private static readonly Option<string> s_packageNameOption = new("--package-name")
+    {
+        Description = "Package name override. Defaults to inferring from the input file name.",
+    };
+
+    private static readonly Option<string?> s_versionOption = new("--version")
+    {
+        Description = "Package version to include in the output metadata.",
+    };
+
+    private static readonly Option<string?> s_sourceRepoOption = new("--source-repo")
+    {
+        Description = "Source repository URL (e.g. https://github.com/microsoft/aspire).",
+    };
+
+    private static readonly Option<string?> s_sourceCommitOption = new("--source-commit")
+    {
+        Description = "Source commit SHA.",
+    };
+
+    private static readonly Option<string[]> s_baseOption = new("--base")
+    {
+        AllowMultipleArgumentsPerToken = true,
+        Description = "Paths to core and supporting-context docs-site JSON files. Capabilities and types already present in these packages are excluded from the output.",
+    };
+
+    private static readonly Option<bool> s_tolerateKnownScannerDiagnosticsOption = new("--tolerate-known-scanner-diagnostics")
+    {
+        Description = "Accept error diagnostics caused by known ATS scanner defects and report each one. Any other error diagnostic still fails.",
+    };
+
+    public static RootCommand GetCommand()
+    {
+        var command = new RootCommand("Transforms 'aspire sdk dump --format json' output into docs-site JSON.")
+        {
+            s_inputOption,
+            s_outputOption,
+            s_packageNameOption,
+            s_versionOption,
+            s_sourceRepoOption,
+            s_sourceCommitOption,
+            s_baseOption,
+            s_tolerateKnownScannerDiagnosticsOption,
+        };
+
+        command.SetAction(static parseResult =>
+        {
+            var input = parseResult.GetValue(s_inputOption)!;
+            var output = parseResult.GetValue(s_outputOption)!;
+            var packageName = parseResult.GetValue(s_packageNameOption);
+            var version = parseResult.GetValue(s_versionOption);
+            var sourceRepo = parseResult.GetValue(s_sourceRepoOption);
+            var sourceCommit = parseResult.GetValue(s_sourceCommitOption);
+            var basePaths = parseResult.GetValue(s_baseOption);
+            var tolerateKnownScannerDiagnostics = parseResult.GetValue(s_tolerateKnownScannerDiagnosticsOption);
+
+            return TransformFile(
+                input, output, packageName, version, sourceRepo, sourceCommit, basePaths, tolerateKnownScannerDiagnostics);
+        });
+
+        return command;
+    }
+
+    internal static int TransformFile(
+        string inputPath,
+        string outputPath,
+        string? packageName,
+        string? version,
+        string? sourceRepo,
+        string? sourceCommit,
+        string[]? basePaths = null,
+        bool tolerateKnownScannerDiagnostics = false)
+    {
+        if (!File.Exists(inputPath))
+        {
+            Console.Error.WriteLine($"Input file not found: {inputPath}");
+            return 1;
+        }
+
+        // Infer package name from file name if not provided
+        packageName ??= Path.GetFileNameWithoutExtension(inputPath);
+
+        var json = File.ReadAllText(inputPath);
+        var dump = JsonSerializer.Deserialize<AtsDumpRoot>(json);
+        if (dump is null)
+        {
+            Console.Error.WriteLine($"Failed to deserialize: {inputPath}");
+            return 1;
+        }
+
+        var result = AtsTransformer.Transform(
+            dump, packageName, version, sourceRepo, sourceCommit, tolerateKnownScannerDiagnostics);
+
+        // Supporting packages contribute scan targets, not APIs owned by this package.
+        foreach (var basePath in basePaths ?? [])
+        {
+            if (!File.Exists(basePath))
+            {
+                Console.Error.WriteLine($"Base file not found: {basePath}");
+                return 1;
+            }
+
+            var baseJson = File.ReadAllText(basePath);
+            var baseModel = JsonSerializer.Deserialize<TsPackageModel>(baseJson);
+            if (baseModel is null)
+            {
+                Console.Error.WriteLine($"Failed to deserialize base file: {basePath}");
+                return 1;
+            }
+
+            var baseFuncIds = new HashSet<string>(baseModel.Functions.Select(f => f.CapabilityId));
+            var baseHandleIds = new HashSet<string>(baseModel.HandleTypes.Select(h => h.FullName));
+            var baseDtoIds = new HashSet<string>(baseModel.DtoTypes.Select(d => d.FullName));
+            var baseEnumIds = new HashSet<string>(baseModel.EnumTypes.Select(e => e.FullName));
+
+            result.Functions.RemoveAll(f => baseFuncIds.Contains(f.CapabilityId));
+            result.HandleTypes.RemoveAll(h => baseHandleIds.Contains(h.FullName));
+            result.DtoTypes.RemoveAll(d => baseDtoIds.Contains(d.FullName));
+            result.EnumTypes.RemoveAll(e => baseEnumIds.Contains(e.FullName));
+
+            // Also strip base capabilities from handle type capabilities lists
+            foreach (var handle in result.HandleTypes)
+            {
+                handle.Capabilities.RemoveAll(c => baseFuncIds.Contains(c.CapabilityId));
+            }
+        }
+
+        var outputDir = Path.GetDirectoryName(outputPath);
+        if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
+        {
+            Directory.CreateDirectory(outputDir);
+        }
+
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
+            // Match the C# packages JSON output: emit characters like `, <, >, ', + and other
+            // non-ASCII content as their literal UTF-8 bytes rather than \uXXXX escape sequences.
+            // The output is read by Astro at build time, not embedded in HTML, so the relaxed
+            // encoder is safe and keeps diffs human-readable.
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
+        var wroteFile = StableFileWriter.WriteIfChanged(outputPath, JsonSerializer.Serialize(result, options));
+
+        Console.WriteLine($"{(wroteFile ? "Generated" : "Unchanged")}: {outputPath} ({result.Functions.Count} functions, {result.HandleTypes.Count} handles, {result.DtoTypes.Count} DTOs, {result.EnumTypes.Count} enums)");
+
+        if (tolerateKnownScannerDiagnostics)
+        {
+            foreach (var message in KnownScannerDiagnostics.GetToleratedErrors(dump))
+            {
+                Console.WriteLine($"{KnownScannerDiagnostics.ToleratedOutputPrefix} {message}");
+            }
+        }
+
+        return 0;
+    }
+}

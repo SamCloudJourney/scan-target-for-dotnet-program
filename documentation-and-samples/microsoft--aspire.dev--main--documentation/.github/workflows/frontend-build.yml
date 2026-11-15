@@ -1,0 +1,529 @@
+name: Frontend Build
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: Node.js version
+        required: true
+        default: "24.x"
+        type: string
+      pull_number:
+        description: Pull request number when available
+        required: false
+        default: ""
+        type: string
+      profile_build:
+        description: Capture opt-in CPU, timing, and output diagnostics
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      ASPIRE_BOT_APP_ID:
+        required: false
+      ASPIRE_BOT_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Frontend Build
+    # The heaviest job uses the larger runner. Forks cannot use that label, so
+    # they fall back to the standard runner.
+    runs-on: ${{ github.repository_owner == 'microsoft' && '8-core-ubuntu-latest' || 'ubuntu-latest' }}
+    outputs:
+      # Set even when a later step fails, so the browsable artifact can still
+      # be produced for debugging a failed build.
+      site_archive_uploaded: ${{ steps.upload_site.outputs.artifact-id != '' }}
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure full git history for Lunaria
+        env:
+          PULL_NUMBER: ${{ inputs.pull_number }}
+        run: |
+          if [ -n "$PULL_NUMBER" ]; then
+            case "$PULL_NUMBER" in
+              (*[!0-9]*)
+                echo "Invalid pull_number input: '$PULL_NUMBER'" >&2
+                exit 1
+                ;;
+            esac
+
+            pull_ref="+refs/pull/${PULL_NUMBER}/head:refs/remotes/origin/pull/${PULL_NUMBER}/head"
+
+            if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+              git fetch origin "$pull_ref" --unshallow
+            else
+              git fetch origin "$pull_ref"
+            fi
+          elif [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch --unshallow
+          fi
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: src/frontend/package.json
+
+      # Bun installs packages and runs the Astro build; Vitest, ESLint,
+      # Playwright, and `astro preview` still run on Node.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      # `incrementalBuild` keeps its state, including a copy of every
+      # prerendered route, under node_modules/.astro and decides for itself
+      # what is stale. The key only partitions by the inputs that invalidate
+      # all of it (lockfile, config, patches), so restore-keys always resolves
+      # to the newest compatible state. Pushes and a PR's first build save a
+      # new entry (below); later PR builds keep restoring it instead of
+      # writing another entry per commit.
+      - name: Restore Astro build state
+        id: astro_cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: src/frontend/node_modules/.astro
+          key: astro-build-${{ runner.os }}-${{ hashFiles('src/frontend/bun.lock', 'src/frontend/astro.config.mjs', 'src/frontend/patches/*.patch') }}-${{ github.sha }}
+          restore-keys: |
+            astro-build-${{ runner.os }}-${{ hashFiles('src/frontend/bun.lock', 'src/frontend/astro.config.mjs', 'src/frontend/patches/*.patch') }}-
+
+      # Validation has its own checkout so astro sync cannot dirty Lunaria's tree.
+      - name: Build frontend
+        env:
+          MODE: production
+          ASTRO_TELEMETRY_DISABLED: 1
+          # The complete provisioning API catalog exceeds Node's default 4 GiB heap.
+          NODE_OPTIONS: --max-old-space-size=8192
+          BUILD_TIMING: ${{ inputs.profile_build && '1' || '0' }}
+          BUILD_TIMING_OUT: ${{ runner.temp }}/frontend-performance/timing.jsonl
+          BUILD_TIMING_LABEL: ${{ github.sha }}
+          PROFILE_BUILD: ${{ inputs.profile_build }}
+        run: |
+          set -euo pipefail
+          if [[ "$PROFILE_BUILD" == "true" ]]; then
+            mkdir -p "$RUNNER_TEMP/frontend-performance"
+            bun run git-env
+            bun run compute-skill-digests
+            # CPU profiles come from Node's inspector, so profiling runs Astro on Node.
+            /usr/bin/time -v node --cpu-prof \
+              --cpu-prof-dir="$RUNNER_TEMP/frontend-performance" \
+              ./node_modules/astro/bin/astro.mjs build --mode production \
+              2>&1 | tee "$RUNNER_TEMP/frontend-performance/build.log"
+          else
+            bun run build:production
+          fi
+
+      - name: Save Astro build state
+        if: ${{ success() && (github.event_name == 'push' || steps.astro_cache.outputs.cache-matched-key == '') }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: src/frontend/node_modules/.astro
+          key: ${{ steps.astro_cache.outputs.cache-primary-key }}
+
+      - name: Report Astro build cache
+        if: ${{ always() }}
+        env:
+          CACHE_HIT: ${{ steps.astro_cache.outputs.cache-hit }}
+          CACHE_MATCHED_KEY: ${{ steps.astro_cache.outputs.cache-matched-key }}
+        run: |
+          {
+            echo '### Astro incremental build cache'
+            echo "- Restored key: \`${CACHE_MATCHED_KEY:-none}\`"
+            echo "- Exact hit: \`${CACHE_HIT:-false}\`"
+            echo "- Size: \`$(du -sh node_modules/.astro 2>/dev/null | cut -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Measure frontend output
+        if: ${{ inputs.profile_build }}
+        env:
+          BUILD_METRICS_DIR: ${{ runner.temp }}/frontend-performance
+          ASTRO_CACHE_HIT: ${{ steps.astro_cache.outputs.cache-matched-key != '' }}
+          PROFILE_BUILD: ${{ inputs.profile_build }}
+        run: node scripts/measure-build-output.mjs
+
+      - name: Upload build diagnostics
+        if: ${{ always() && inputs.profile_build }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-performance
+          path: ${{ runner.temp }}/frontend-performance
+          if-no-files-found: warn
+          retention-days: 7
+
+      # The E2E shards need the whole site, about 60k files. Uploading that
+      # as a many-file artifact takes 70-90 s and each shard needs 20-60 s to
+      # download it, so the build ships one zstd tar instead (3-5 s each way).
+      # Pack and upload before the dist sanity-check so the archive is always
+      # available for debugging, even when the check step fails.
+      # Note: `uses` actions ignore the job-level working-directory, so
+      # their paths are repo-root-relative.
+      - name: Pack site archive
+        id: pack_site
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          if [ ! -d dist ]; then
+            echo "::warning::dist was not found; skipping the site archive."
+            exit 0
+          fi
+          tar -C dist -cf - . | zstd -3 -T0 -q -o "$RUNNER_TEMP/site.tar.zst"
+          ls -lh "$RUNNER_TEMP/site.tar.zst"
+
+      - name: Upload site archive
+        id: upload_site
+        if: ${{ always() && steps.pack_site.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-site
+          path: ${{ runner.temp }}/site.tar.zst
+          if-no-files-found: warn
+          retention-days: 7
+          # Already zstd-compressed.
+          compression-level: 0
+
+      - name: Check dist
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Frontend build failed - dist directory not found"
+            exit 1
+          fi
+
+          if [ ! -f "dist/index.html" ]; then
+            echo "Frontend build incomplete - index.html not found"
+            exit 1
+          fi
+
+          ls -la dist
+
+  validation:
+    name: Frontend validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: src/frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ inputs.node_version }}
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Lint
+        env:
+          ASTRO_TELEMETRY_DISABLED: 1
+        run: bun run lint
+
+      - name: Run unit tests
+        env:
+          ASTRO_TELEMETRY_DISABLED: 1
+        run: bun run test:unit
+
+  # The browsable many-file `frontend-dist` artifact (for GitHub Artifacts
+  # Explorer and the PR comment) is unpacked from the site archive in its own
+  # job, so its slow upload runs alongside the E2E shards instead of before them.
+  # Like the old in-build upload, it also runs when the build job failed after
+  # packing the site, so the HTML stays browsable for debugging.
+  browsable-artifact:
+    name: Frontend HTML artifact
+    needs: build
+    if: ${{ !cancelled() && needs.build.outputs.site_archive_uploaded == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download site archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend-site
+          path: ${{ runner.temp }}
+
+      - name: Unpack site archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          zstd -d -T0 -q -c "$RUNNER_TEMP/site.tar.zst" | tar -C dist -xf -
+
+      - name: Upload build artifact
+        id: upload_build_artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-dist
+          path: dist
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 1
+
+      - name: Check PR comment prerequisites
+        id: pr_comment_prerequisites
+        if: ${{ always() && inputs.pull_number != '' && steps.upload_build_artifact.outcome == 'success' }}
+        env:
+          ASPIRE_BOT_APP_ID: ${{ secrets.ASPIRE_BOT_APP_ID }}
+          ASPIRE_BOT_PRIVATE_KEY: ${{ secrets.ASPIRE_BOT_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          can_comment=true
+
+          if [ ! -f "dist/index.html" ]; then
+            echo "::notice::Skipping frontend artifact PR comment because dist/index.html was not found."
+            can_comment=false
+          fi
+
+          if [ -z "$ASPIRE_BOT_APP_ID" ] || [ -z "$ASPIRE_BOT_PRIVATE_KEY" ]; then
+            echo "::notice::Skipping frontend artifact PR comment because GitHub App credentials are unavailable."
+            can_comment=false
+          fi
+
+          echo "can_comment=$can_comment" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub App token for PR comment
+        id: pr_comment_app_token
+        if: ${{ always() && steps.pr_comment_prerequisites.outputs.can_comment == 'true' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.ASPIRE_BOT_APP_ID }}
+          private-key: ${{ secrets.ASPIRE_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          github-api-url: ${{ github.api_url }}
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Upsert PR artifact comment
+        if: ${{ always() && steps.pr_comment_app_token.outputs.token != '' }}
+        env:
+          GH_TOKEN: ${{ steps.pr_comment_app_token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          PULL_NUMBER: ${{ inputs.pull_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          urlencode() {
+            node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$1"
+          }
+
+          marker='<!-- aspire-dev-frontend-dist-artifact -->'
+          pr_url="${GITHUB_SERVER_URL}/${GH_REPO}/pull/${PULL_NUMBER}"
+          vscode_url="vscode://davidpine-dev.asciinema/open?url=$(urlencode "$pr_url")"
+          redirect_url="https://vscode.dev/redirect?url=$(urlencode "$vscode_url")"
+          badge_message=$(urlencode "Open PR #${PULL_NUMBER} artifacts")
+          badge_url="https://img.shields.io/badge/VS%20Code-${badge_message}-555?labelColor=007ACC&logo=visualstudiocode&logoColor=white"
+          badge="[![VS Code: Open PR #${PULL_NUMBER} artifacts](${badge_url})](${redirect_url})"
+
+          body_file=$(mktemp)
+          comment_ids_file=$(mktemp)
+          trap 'rm -f "$body_file" "$comment_ids_file"' EXIT
+
+          cat > "$body_file" <<EOF
+          ${marker}
+          ## Frontend HTML artifact ready
+
+          The latest frontend build uploaded the \`frontend-dist\` artifact for PR #${PULL_NUMBER}. Use the VS Code button below to open this PR with GitHub Artifacts Explorer and browse the built HTML locally.
+
+          ${badge}
+
+          _This comment updates automatically when a new frontend build artifact is uploaded._
+          EOF
+
+          body=$(cat "$body_file")
+          gh api "repos/${GH_REPO}/issues/${PULL_NUMBER}/comments" \
+            --paginate \
+            --jq ".[] | select(.body | contains(\"${marker}\")) | .id" \
+            > "$comment_ids_file"
+          comment_id=$(sed -n '1p' "$comment_ids_file")
+
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/${GH_REPO}/issues/comments/${comment_id}" \
+              --raw-field body="$body" \
+              >/dev/null
+          else
+            gh api --method POST "repos/${GH_REPO}/issues/${PULL_NUMBER}/comments" \
+              --raw-field body="$body" \
+              >/dev/null
+          fi
+
+  e2e:
+    name: E2E (${{ matrix.project }}, shard ${{ matrix.shard }}/2)
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    strategy:
+      # One viewport failure shouldn't cancel the others - we want every
+      # shard's report so we can see the whole picture in the merged HTML.
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+        project:
+          - desktop-chromium
+          - tablet-chromium
+          - mobile-chromium
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: src/frontend/package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Download site archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend-site
+          path: ${{ runner.temp }}
+
+      - name: Unpack site archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          zstd -d -T0 -q -c "$RUNNER_TEMP/site.tar.zst" | tar -C dist -xf -
+
+      - name: Install Playwright Chromium
+        run: bun run playwright install --with-deps chromium
+
+      # Reporters (blob, github, junit, list) are configured in
+      # `playwright.config.mjs` so they apply to every shard. Avoid passing
+      # `--reporter=` here: that would override the config and silently drop
+      # GitHub workflow annotations and the JUnit XML artifact.
+      - name: Run Playwright (${{ matrix.project }})
+        env:
+          ASTRO_TELEMETRY_DISABLED: 1
+        run: bun run playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}/2
+
+      # Each shard publishes its blob report under a unique name so the
+      # merge job below can stitch them back together into a single HTML
+      # report identical to the unsharded output.
+      - name: Upload Playwright blob report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-blob-report-${{ matrix.project }}-${{ matrix.shard }}
+          path: src/frontend/blob-report
+          if-no-files-found: warn
+          retention-days: 7
+          # Blob reports contain pre-compressed PNG/webm/trace assets; the
+          # default gzip layer just burns CPU for no size reduction.
+          compression-level: 0
+
+      - name: Upload Playwright raw results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-test-results-${{ matrix.project }}-${{ matrix.shard }}
+          path: src/frontend/test-results
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 0
+
+  report:
+    name: Merge Playwright reports
+    # Run even when one or more e2e shards failed, so reviewers always
+    # get a merged HTML report with the failure context.
+    if: ${{ always() && needs.e2e.result != 'skipped' }}
+    needs: e2e
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: src/frontend/package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Download blob reports
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          # Each shard uploads under `frontend-blob-report-<project>-<shard>`;
+          # the pattern collects all of them into one tree under
+          # `all-blob-reports/`.
+          path: src/frontend/all-blob-reports
+          pattern: frontend-blob-report-*
+          merge-multiple: true
+
+      - name: Merge into HTML report
+        run: |
+          bun run playwright merge-reports --reporter=html ./all-blob-reports
+
+      - name: Upload Playwright HTML report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-playwright-report
+          path: src/frontend/playwright-report
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 0
+
+      - name: Summarize frontend quality gates
+        if: ${{ always() }}
+        run: |
+          {
+            echo '## Frontend quality reports'
+            echo ''
+            echo '- Lint and unit validation run in a separate checkout alongside the build.'
+            echo '- Unit contracts: static analytics delivery and route regressions.'
+            echo '- Browser coverage: two shards each for desktop, tablet, and mobile Chromium, starting as soon as the build is ready.'
+            echo '- Accessibility gate: WCAG 2.0 A/AA audit, including color-contrast.'
+            echo '- Responsive gate: viewport-specific UI behavior is asserted in Playwright.'
+            echo '- GitHub diagnostics: Playwright github reporter emits workflow annotations.'
+            echo '- Artifacts: merged HTML report, JUnit XML, screenshots, traces, videos, and raw test outputs.'
+            echo ''
+            echo 'Artifacts:'
+            echo '- `frontend-playwright-report` (merged across all viewports)'
+            echo '- `frontend-test-results-<project>-<shard>` (per shard)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  frontend-gate:
+    name: Frontend gate
+    if: ${{ always() }}
+    needs: [build, browsable-artifact, validation, e2e, report]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all frontend checks
+        env:
+          BUILD: ${{ needs.build.result }}
+          BROWSABLE_ARTIFACT: ${{ needs.browsable-artifact.result }}
+          VALIDATION: ${{ needs.validation.result }}
+          E2E: ${{ needs.e2e.result }}
+          REPORT: ${{ needs.report.result }}
+        run: |
+          for result in "$BUILD" "$BROWSABLE_ARTIFACT" "$VALIDATION" "$E2E" "$REPORT"; do
+            if [[ "$result" != "success" ]]; then
+              echo "::error::Every frontend job must succeed (build=$BUILD browsable-artifact=$BROWSABLE_ARTIFACT validation=$VALIDATION e2e=$E2E report=$REPORT)."
+              exit 1
+            fi
+          done

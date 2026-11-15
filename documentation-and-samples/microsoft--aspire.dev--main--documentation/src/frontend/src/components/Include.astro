@@ -1,0 +1,27 @@
+---
+// Include a Markdown/MDX file from the docs collection inline.
+// Usage in MDX: <Include relativePath="reference/cli/includes/project-search-logic-description.md" />
+
+import { getEntry, render } from 'astro:content';
+
+interface Props {
+  /** Path relative to /src/content/docs (may start with or without a leading slash). */
+  relativePath: string;
+}
+
+const { relativePath } = Astro.props as Props;
+
+// Resolve the include through the docs collection instead of eagerly globbing
+// the entire docs tree into every page that uses <Include>.
+const normalizedPath = relativePath.replace(/^\/+/, '');
+const entryId = normalizedPath.replace(/\.(md|mdx)$/i, '');
+const entry = await getEntry('docs', entryId);
+
+if (!entry) {
+  throw new Error(`Include.astro: File not found: ${normalizedPath} (entry id: ${entryId})`);
+}
+
+const { Content: ResolvedContent } = await render(entry);
+---
+
+{ResolvedContent ? <ResolvedContent /> : null}

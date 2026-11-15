@@ -1,0 +1,77 @@
+---
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import { Icon } from '@astrojs/starlight/components';
+import InstallCliModal from '@components/InstallCliModal.astro';
+import CookiesSvg from '@assets/icons/cookies.svg';
+---
+
+<div class="misc-section sl-flex">
+  <a
+    href="/rss.xml"
+    rel="no"
+    rel="noopener noreferrer"
+    class="sl-flex external-link"
+    target="_blank"
+    title="RSS feed"
+    data-placement="top"
+    aria-label="(RSS feed opens in new tab)"
+  >
+    <span class="sr-only">RSS Feed</span>
+    <Icon name="rss" />
+  </a>
+  <button
+    class="sl-flex external-link install-cli-btn"
+    data-open-install-modal
+    title="Install Aspire CLI"
+    data-placement="top"
+    aria-label="Open install Aspire CLI dialog"
+  >
+    <span class="sr-only">Install Aspire CLI</span>
+    <Icon name="download" />
+  </button>
+  <button
+    type="button"
+    class="sl-flex external-link cookie-consent-btn"
+    data-cookie-manage-consent
+    title="Cookie preferences"
+    data-placement="top"
+    aria-label="Open cookie preferences dialog"
+  >
+    <span class="sr-only">Cookie Preferences</span>
+    <CookiesSvg />
+  </button>
+</div>
+
+<Default>
+  <slot />
+</Default>
+
+<InstallCliModal />
+
+<style>
+  .misc-section {
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .misc-section a.external-link,
+  .misc-section button.external-link {
+    color: var(--sl-color-text-accent);
+    padding: 0.5em;
+    margin: -0.5em;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+  }
+  .misc-section a.external-link:hover,
+  .misc-section button.external-link:hover {
+    opacity: 0.66;
+  }
+
+  .misc-section::after {
+    content: '';
+    height: 2rem;
+    border-inline-end: 1px solid var(--sl-color-gray-5);
+  }
+</style>

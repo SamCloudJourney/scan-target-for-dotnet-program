@@ -1,0 +1,19 @@
+{
+  "name": "root",
+  "private": true,
+  "description": "Root-level package.json delegating to src/frontend.",
+  "scripts": {
+    "install": "bun install --cwd ./src/frontend",
+    "dev": "bun run --cwd ./src/frontend dev",
+    "build": "bun run --cwd ./src/frontend build",
+    "build:skip-search": "bun run --cwd ./src/frontend build:skip-search",
+    "preview": "bun run --cwd ./src/frontend preview",
+    "test": "bun run --cwd ./src/frontend test",
+    "test:all": "bun run --cwd ./src/frontend test:all",
+    "test:report": "bun run --cwd ./src/frontend playwright show-report",
+    "lint": "bun run --cwd ./src/frontend lint",
+    "format": "bun run --cwd ./src/frontend format",
+    "update:all": "bun run --cwd ./src/frontend update:all"
+  },
+  "packageManager": "bun@1.4.3"
+}

@@ -1,0 +1,243 @@
+import type { StarlightSidebarTopicsUserConfig } from 'starlight-sidebar-topics';
+
+export const deploymentTopics: StarlightSidebarTopicsUserConfig = {
+  id: 'deployment',
+  label: {
+    da: 'Udrulning',
+    de: 'Bereitstellung',
+    en: 'Deployment',
+    es: 'Despliegue',
+    fr: 'Déploiement',
+    hi: 'तैनाती',
+    id: 'Penyebaran',
+    it: 'Distribuzione',
+    ja: 'デプロイ',
+    ko: '배포',
+    'pt-BR': 'Implantação',
+    ru: 'Развертывание',
+    tr: 'Dağıtım',
+    uk: 'Розгортання',
+    'zh-CN': '部署',
+  },
+  link: '/deployment/',
+  icon: 'rocket',
+  items: [
+    {
+      label: 'Aspire Deployment',
+      translations: {
+        da: 'Aspire-udrulning',
+        de: 'Aspire-Bereitstellung',
+        en: 'Aspire Deployment',
+        es: 'Despliegue de Aspire',
+        fr: 'Déploiement Aspire',
+        hi: 'Aspire तैनाती',
+        id: 'Penyebaran Aspire',
+        it: 'Distribuzione di Aspire',
+        ja: 'Aspireデプロイ',
+        ko: 'Aspire 배포',
+        'pt-BR': 'Implantação Aspire',
+        ru: 'Развертывание Aspire',
+        tr: 'Aspire dağıtımı',
+        uk: 'Розгортання Aspire',
+        'zh-CN': 'Aspire 部署',
+      },
+      items: [
+        {
+          label: 'Overview',
+          translations: {
+            da: 'Oversigt',
+            de: 'Übersicht',
+            en: 'Overview',
+            es: 'Descripción general',
+            fr: "Vue d'ensemble",
+            hi: 'अवलोकन',
+            id: 'Ikhtisar',
+            it: 'Panoramica',
+            ja: '概要',
+            ko: '개요',
+            'pt-BR': 'Visão geral',
+            ru: 'Обзор',
+            tr: 'Genel Bakış',
+            uk: 'Огляд',
+            'zh-CN': '概述',
+          },
+          slug: 'deployment',
+        },
+        {
+          label: 'Deploy with Aspire',
+          translations: {
+            da: 'Udrul med Aspire',
+            de: 'Mit Aspire bereitstellen',
+            en: 'Deploy with Aspire',
+            es: 'Desplegar con Aspire',
+            fr: 'Déployer avec Aspire',
+            hi: 'Aspire के साथ तैनात करें',
+            id: 'Sebarkan dengan Aspire',
+            it: 'Distribuisci con Aspire',
+            ja: 'Aspireでデプロイする',
+            ko: 'Aspire로 배포',
+            'pt-BR': 'Implantar com Aspire',
+            ru: 'Развертывание с Aspire',
+            tr: 'Aspire ile dağıtın',
+            uk: 'Розгортайте з Aspire',
+            'zh-CN': '使用 Aspire 部署',
+          },
+          slug: 'deployment/deploy-with-aspire',
+        },
+      ],
+    },
+    {
+      label: 'Environments',
+      slug: 'deployment/environments',
+    },
+    {
+      label: 'Pipeline model',
+      collapsed: false,
+      items: [
+        {
+          label: 'Overview',
+          slug: 'deployment/pipelines',
+        },
+        {
+          label: 'Custom deployment pipelines',
+          slug: 'deployment/custom-deployments',
+        },
+        {
+          label: 'Deployment state caching',
+          slug: 'deployment/deployment-state-caching',
+        },
+      ],
+    },
+    {
+      label: 'CI/CD',
+      collapsed: false,
+      items: [
+        {
+          label: 'Overview',
+          slug: 'deployment/ci-cd',
+        },
+        {
+          label: 'Example app lifecycle workflow',
+          slug: 'deployment/app-lifecycle',
+        },
+      ],
+    },
+    {
+      label: 'JavaScript apps',
+      slug: 'deployment/javascript-apps',
+    },
+    {
+      label: 'Docker Compose',
+      slug: 'deployment/docker-compose',
+    },
+    {
+      label: 'Radius',
+      slug: 'deployment/radius',
+    },
+    {
+      label: 'Kubernetes',
+      collapsed: false,
+      items: [
+        {
+          label: 'Overview',
+          slug: 'deployment/kubernetes',
+        },
+        {
+          label: 'Kubernetes clusters',
+          slug: 'deployment/kubernetes/clusters',
+        },
+        {
+          label: 'Azure Kubernetes Service (AKS)',
+          slug: 'deployment/kubernetes/aks',
+        },
+        {
+          label: 'External Helm charts',
+          slug: 'deployment/kubernetes/helm-charts',
+        },
+        {
+          label: 'Persistent volumes',
+          slug: 'deployment/kubernetes/persistent-volumes',
+        },
+        {
+          label: 'Ingress & Gateway API',
+          slug: 'deployment/kubernetes-ingress',
+        },
+        {
+          label: 'Gateway API on AKS',
+          slug: 'deployment/kubernetes-gateway-aks',
+        },
+        {
+          label: 'Ingress on AKS',
+          slug: 'deployment/kubernetes-ingress-aks',
+        },
+      ],
+    },
+    {
+      label: 'Deploy to Azure',
+      collapsed: false,
+      items: [
+        {
+          label: 'Overview',
+          slug: 'deployment/azure',
+        },
+        {
+          label: 'Deployment targets',
+          collapsed: false,
+          items: [
+            {
+              label: 'Azure Container Apps',
+              slug: 'deployment/azure/container-apps',
+            },
+            {
+              label: 'Azure Kubernetes Service (AKS)',
+              slug: 'deployment/kubernetes/aks',
+            },
+            {
+              label: 'Azure App Service',
+              slug: 'deployment/azure/app-service',
+            },
+            {
+              label: 'Azure Container Apps Sandboxes',
+              slug: 'deployment/azure/sandboxes',
+            },
+          ],
+        },
+        {
+          label: 'Guidance',
+          collapsed: false,
+          items: [
+            {
+              label: 'Customize Azure resources',
+              slug: 'integrations/cloud/azure/customize-resources',
+            },
+            {
+              label: 'Bicep helpers',
+              slug: 'integrations/cloud/azure/bicep-helpers',
+            },
+            {
+              label: 'Azure security best practices',
+              translations: {
+                da: 'Bedste praksis for Azure-sikkerhed',
+                de: 'Bewährte Methoden für Azure-Sicherheit',
+                en: 'Azure security best practices',
+                es: 'Prácticas recomendadas de seguridad de Azure',
+                fr: 'Bonnes pratiques de sécurité Azure',
+                hi: 'Azure सुरक्षा सर्वोत्तम प्रथाएँ',
+                id: 'Praktik terbaik keamanan Azure',
+                it: 'Procedure consigliate per la sicurezza di Azure',
+                ja: 'Azure セキュリティのベスト プラクティス',
+                ko: 'Azure 보안 모범 사례',
+                'pt-BR': 'Práticas recomendadas de segurança do Azure',
+                ru: 'Рекомендации по безопасности Azure',
+                tr: 'Azure güvenlik en iyi uygulamaları',
+                uk: 'Найкращі практики безпеки Azure',
+                'zh-CN': 'Azure 安全最佳实践',
+              },
+              slug: 'deployment/azure/azure-security-best-practices',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};

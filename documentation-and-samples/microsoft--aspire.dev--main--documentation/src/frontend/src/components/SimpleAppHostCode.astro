@@ -1,0 +1,66 @@
+---
+import { Code, TabItem, Tabs } from '@astrojs/starlight/components';
+import {
+  getSimpleAppHostCode,
+  shiftCollapseValue,
+  shiftMarkerValue,
+  typescriptLineOffset,
+} from './SimpleAppHostCode.shared';
+import type { CollapseValueType, LangType, MarkerValueType } from './SimpleAppHostCode.shared';
+
+export type { CollapseValueType, LangType, MarkerValueType } from './SimpleAppHostCode.shared';
+
+interface Props {
+  lang?: LangType;
+  mark?: MarkerValueType;
+  collapse?: CollapseValueType;
+}
+
+const { lang = 'csharp', mark, collapse }: Props = Astro.props;
+const { csharpCode, typescriptCode } = getSimpleAppHostCode(lang);
+const typescriptMark = shiftMarkerValue(mark, typescriptLineOffset);
+const typescriptCollapse = shiftCollapseValue(collapse, typescriptLineOffset);
+---
+
+{
+  typescriptCode ? (
+    <Tabs syncKey="aspire-lang">
+      <TabItem label="TypeScript">
+        <Code
+          code={typescriptCode}
+          lang="ts"
+          title="apphost.mts"
+          mark={typescriptMark}
+          collapse={typescriptCollapse}
+          collapseStyle={'collapsible-auto'}
+        />
+        <slot name="typescript-content" />
+      </TabItem>
+      <TabItem label="C#">
+        <Code
+          code={csharpCode}
+          lang="cs"
+          title="AppHost.cs"
+          mark={mark}
+          collapse={collapse}
+          collapseStyle={'collapsible-auto'}
+        />
+        <slot name="csharp-content" />
+      </TabItem>
+    </Tabs>
+  ) : (
+    <>
+      <Code
+        code={csharpCode}
+        lang="cs"
+        title="AppHost.cs"
+        mark={mark}
+        collapse={collapse}
+        collapseStyle={'collapsible-auto'}
+      />
+      <slot />
+    </>
+  )
+}
+
+{typescriptCode && <slot />}

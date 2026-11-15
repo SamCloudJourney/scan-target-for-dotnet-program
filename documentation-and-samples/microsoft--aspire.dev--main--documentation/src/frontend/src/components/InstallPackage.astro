@@ -1,0 +1,65 @@
+---
+import { generateFriendlyName } from '@utils/helpers';
+import { Aside, Code, TabItem, Tabs } from '@astrojs/starlight/components';
+
+interface Props {
+  packageName: string;
+  shortName?: string;
+  omitPackageReference?: boolean;
+  cliOnly?: boolean;
+}
+
+const {
+  packageName,
+  shortName = generateFriendlyName(packageName),
+  omitPackageReference,
+  cliOnly,
+} = Astro.props;
+
+const cliCommandTitle = Astro.locals.t('package.cliCommandTitle', {
+  packageName,
+});
+const cliCode = `aspire add ${shortName}`;
+const cliPromptCode = `Select an integration to add:
+
+> ${shortName} (${packageName})
+> Other results listed as selectable options...`;
+
+const packageReferenceTitle = Astro.locals.t('package.packageReferenceTitle', {
+  packageName,
+});
+const packageCode = `<PackageReference Include="${packageName}" Version="*" />`;
+
+const appHostTitle = `C# — AppHost.cs`;
+const appHostCode = `#:package ${packageName}@*`;
+---
+
+<Tabs syncKey="aspire-install">
+  <TabItem label="Aspire CLI">
+    <Code lang="bash" frame="terminal" title={cliCommandTitle} code={cliCode} />
+    <p>{Astro.locals.t('package.interactiveCli')}</p>
+    <Code
+      lang="bash"
+      frame="terminal"
+      title={Astro.locals.t('package.exampleCliOutput')}
+      code={cliPromptCode}
+    />
+    <Aside type="note">
+      {Astro.locals.t('package.autoCliSelection')}
+    </Aside>
+  </TabItem>
+  {
+    !cliOnly && (
+      <TabItem label="apphost.cs (C# file-based app)">
+        <Code lang="csharp" title={appHostTitle} code={appHostCode} />
+      </TabItem>
+    )
+  }
+  {
+    !cliOnly && !omitPackageReference && (
+      <TabItem label="PackageReference (*.csproj)">
+        <Code lang="xml" title={packageReferenceTitle} code={packageCode} />
+      </TabItem>
+    )
+  }
+</Tabs>

@@ -1,0 +1,122 @@
+---
+import YourChoiceSvg from '@assets/icons/your-choices.svg';
+
+const repoUrl = (
+  import.meta.env.PUBLIC_REPO_URL ||
+  import.meta.env.REPO_URL ||
+  'https://github.com/microsoft/aspire.dev'
+).replace(/\/$/, '');
+const commit = import.meta.env.PUBLIC_GIT_COMMIT_ID || import.meta.env.GIT_COMMIT_ID || '';
+---
+
+<!-- Legal Column -->
+<nav class="footer-column" aria-labelledby="microsoft-footer-legal-heading">
+  <p id="microsoft-footer-legal-heading" class="footer-heading">
+    {Astro.locals.t('footer.legal' as any) || 'Legal'}
+  </p>
+  <ul class="footer-links">
+    <li>
+      <a
+        href="https://aka.ms/yourcaliforniaprivacychoices"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="privacy-choice"
+      >
+        <YourChoiceSvg />
+        {Astro.locals.t('footer.privacyChoices')}
+      </a>
+    </li>
+    <li>
+      <a
+        href="https://go.microsoft.com/fwlink/?LinkId=521839"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {Astro.locals.t('footer.privacyAndCookies')}
+      </a>
+    </li>
+    <li>
+      <a
+        href="https://go.microsoft.com/fwlink/?LinkID=206977"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {Astro.locals.t('footer.terms')}
+      </a>
+    </li>
+    <li>
+      <a
+        href="https://go.microsoft.com/fwlink/?linkid=2196228"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {Astro.locals.t('footer.trademarks')}
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<!-- Resources Column -->
+<nav class="footer-column" aria-labelledby="microsoft-footer-resources-heading">
+  <p id="microsoft-footer-resources-heading" class="footer-heading">
+    {Astro.locals.t('footer.resources' as any) || 'Resources'}
+  </p>
+  <ul class="footer-links">
+    <li>
+      <a
+        href="https://support.microsoft.com/en-US/contactus/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {Astro.locals.t('footer.contact')}
+      </a>
+    </li>
+    <li>
+      <a href="/support/" rel="noopener noreferrer">
+        {Astro.locals.t('footer.support')}
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<style>
+  .footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .footer-heading {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin: 0 0 0.25rem 0;
+  }
+
+  .footer-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    font-size: var(--sl-text-sm);
+    transition: color 0.15s ease;
+  }
+
+  .footer-links a:hover {
+    color: var(--sl-color-white);
+  }
+
+  .privacy-choice {
+    gap: 0.5rem;
+  }
+</style>

@@ -1,0 +1,922 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+import { dismissCookieConsentIfVisible, getSiteNavigationLink } from '@tests/e2e/helpers';
+import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+
+const require = createRequire(import.meta.url);
+const pagefindRequire = createRequire(require.resolve('@astrojs/starlight'));
+// Native prefix expansion can match an indexed "Z" for an unquoted nonsense
+// term. Exact-phrase syntax makes these tests exercise a genuinely empty search.
+const missingSearchQuery = '"zzzznonexistentcatalogquery"';
+
+// Exercise native transitions on desktop and the supported swap fallback on
+// touch projects, matching the other client-navigation regression suites.
+test.beforeEach(async ({ page, isMobile }) => {
+  if (isMobile) {
+    await page.addInitScript(() => {
+      Object.defineProperty(document, 'startViewTransition', {
+        configurable: true,
+        value: undefined,
+      });
+    });
+  }
+});
+
+/**
+ * Opens the Pagefind/Starlight search dialog and waits for either the
+ * Pagefind input or the dev-mode warning to appear.
+ *
+ * Returns `true` if the real Pagefind UI is mounted (so result-driven
+ * assertions are meaningful) and `false` if the page is being served by
+ * `astro dev`, where Pagefind is not built. Callers should `test.skip()`
+ * when the helper returns `false`.
+ */
+async function openSearchDialog(page: Page): Promise<boolean> {
+  const openButton = page.locator('site-search button[data-open-modal]');
+  await expect(openButton).toBeVisible({ timeout: 15000 });
+  await openButton.click();
+
+  const dialog = page.locator('site-search dialog[open]');
+  await expect(dialog).toBeVisible();
+
+  // Pagefind UI is mounted asynchronously after dialog open. In `astro dev`,
+  // Pagefind is not built, so the dialog renders a dev-mode warning instead.
+  const input = dialog.locator('input.pagefind-ui__search-input');
+  const devWarning = dialog.locator('text=/Search is only available in production builds/i');
+
+  await expect(input.or(devWarning)).toBeVisible({ timeout: 15000 });
+
+  return await input.isVisible().catch(() => false);
+}
+
+async function typeSearchQuery(page: Page, query: string): Promise<void> {
+  const input = page.locator('site-search dialog input.pagefind-ui__search-input');
+  await input.fill(query);
+}
+
+// Scans the open, populated search UI (query combobox and results listbox) in
+// its current selection state.
+async function expectOpenSearchDialogAccessible(page: Page, state: string): Promise<void> {
+  const results = await new AxeBuilder({ page })
+    .include('site-search dialog[open] #starlight__search')
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+  const violations = results.violations.map(({ id, impact, nodes }) => ({
+    id,
+    impact,
+    nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+  }));
+  expect(violations, `${state}: ${JSON.stringify(violations, null, 2)}`).toEqual([]);
+}
+
+async function navigateClient(page: Page, navigate: () => Promise<unknown>): Promise<void> {
+  await page.evaluate(() => {
+    Reflect.set(window, '__siteSearchPageLoaded', false);
+    document.addEventListener('astro:page-load', () => {
+      Reflect.set(window, '__siteSearchPageLoaded', true);
+    }, { once: true });
+  });
+  await navigate();
+  await expect.poll(
+    () => page.evaluate(() => Reflect.get(window, '__siteSearchPageLoaded')),
+    { timeout: 30_000 }
+  ).toBe(true);
+  await expect(page.locator('html[data-astro-transition]')).toHaveCount(0);
+}
+
+test.describe('site search dialog', () => {
+  for (const theme of ['light', 'dark']) {
+    test(`search result row hit areas remain stable on hover in ${theme}`, async ({ page }) => {
+      await page.addInitScript((value) => localStorage.setItem('starlight-theme', value), theme);
+      await page.goto('/');
+      await dismissCookieConsentIfVisible(page);
+      await openSearchDialog(page);
+      // Isolate hit testing from the production-only index using Pagefind's row markup.
+      await page.evaluate(() => {
+        const container = document.createElement('div');
+        container.className = 'search-container';
+        const root = document.createElement('div');
+        root.id = 'starlight__search';
+        root.innerHTML = `
+          <div class="pagefind-ui">
+            <form class="pagefind-ui__form" role="search">
+              <input class="pagefind-ui__search-input" type="search" aria-label="Search" />
+            </form>
+            <ol class="pagefind-ui__results">
+              <li class="pagefind-ui__result">
+                <div class="pagefind-ui__result-inner">
+                  <p class="pagefind-ui__result-title">
+                    <a class="pagefind-ui__result-link" href="/reference/overview/">Overview</a>
+                  </p>
+                  <div class="pagefind-ui__result-nested">
+                    <p class="pagefind-ui__result-title">
+                      <a class="pagefind-ui__result-link" href="/reference/overview/#reference">Reference</a>
+                    </p>
+                    <p class="pagefind-ui__result-excerpt">A matching <mark>reference</mark> excerpt.</p>
+                  </div>
+                </div>
+              </li>
+            </ol>
+          </div>`;
+        document.querySelector('#starlight__search')?.remove();
+        const frame = document.querySelector('site-search .dialog-frame')!;
+        // Retain Starlight's scoped mobile layout, including space for Cancel.
+        for (const element of [container, root]) {
+          element.classList.add(...[...frame.classList].filter((name) => name.startsWith('astro-')));
+          for (const name of frame.getAttributeNames().filter((name) => name.startsWith('data-astro-cid-'))) {
+            element.setAttribute(name, '');
+          }
+        }
+        container.append(root);
+        frame.prepend(container);
+        root.addEventListener('click', (event) => {
+          const link = (event.target as Element).closest('a');
+          if (!link) return;
+          event.preventDefault();
+          event.stopPropagation();
+          root.dataset.clickedHref = link.getAttribute('href')!;
+        });
+      });
+
+      for (const selector of [
+        '.pagefind-ui__result-inner > .pagefind-ui__result-title',
+        '.pagefind-ui__result-nested',
+      ]) {
+        const row = page.locator(`#starlight__search ${selector}`);
+        const link = row.locator('.pagefind-ui__result-link');
+        const textBox = await link.boundingBox();
+        expect(textBox).not.toBeNull();
+        await page.mouse.move(textBox!.x + textBox!.width / 2, textBox!.y + textBox!.height / 2);
+        await expect(link).toHaveCSS('filter', 'none');
+        const box = await row.boundingBox();
+        expect(box).not.toBeNull();
+        const point = { x: box!.x + box!.width - 4, y: box!.y + box!.height / 2 };
+        await page.mouse.move(point.x, point.y);
+        await expect(link).toHaveCSS('filter', 'none');
+        await expect(link).toHaveCSS('cursor', 'pointer');
+        await expect.poll(() => page.evaluate(({ x, y }) => {
+          return document.elementFromPoint(x, y)?.closest('a')?.getAttribute('href');
+        }, point)).toBe(await link.getAttribute('href'));
+        const overlay = await link.evaluate((element) => {
+          const style = getComputedStyle(element, '::after');
+          return { width: style.width, height: style.height, cursor: style.cursor };
+        });
+        expect(Number.parseFloat(overlay.width)).toBeCloseTo(box!.width, 0);
+        expect(Number.parseFloat(overlay.height)).toBeCloseTo(box!.height, 0);
+        expect(overlay.cursor).toBe('pointer');
+        await page.mouse.click(point.x, point.y);
+        await expect(page.locator('#starlight__search')).toHaveAttribute(
+          'data-clicked-href', await link.getAttribute('href') as string,
+        );
+        await page.locator('#starlight__search').evaluate((root) => {
+          delete (root as HTMLElement).dataset.clickedHref;
+        });
+        await link.focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#starlight__search')).toHaveAttribute(
+          'data-clicked-href', await link.getAttribute('href') as string,
+        );
+      }
+    });
+  }
+
+  for (const theme of ['light', 'dark']) {
+    test(`native Pagefind input presentation matches browse in ${theme}`, async ({ page }, testInfo) => {
+      await page.addInitScript((value) => localStorage.setItem('starlight-theme', value), theme);
+      await page.goto('/hub/browse/');
+      await dismissCookieConsentIfVisible(page);
+      const presentation = (element: Element) => {
+        const style = getComputedStyle(element);
+        return {
+          height: element.getBoundingClientRect().height,
+          fontSize: style.fontSize,
+          background: style.backgroundColor,
+          color: style.color,
+          borderColor: style.borderColor,
+          borderRadius: style.borderRadius,
+          padding: style.padding,
+        };
+      };
+      const expected = await page.locator('#browse-search-input').evaluate(presentation);
+      const iconColor = await page.locator('#browse-search-input').locator('..').locator('.search-field-icon').evaluate(
+        (icon) => getComputedStyle(icon).color,
+      );
+      const focusPresentation = (element: Element) => {
+        const style = getComputedStyle(element);
+        return {
+          outlineStyle: style.outlineStyle,
+          outlineWidth: style.outlineWidth,
+          outlineOffset: style.outlineOffset,
+          outlineColor: style.outlineColor,
+          borderColor: style.borderColor,
+          boxShadow: style.boxShadow,
+        };
+      };
+      await page.locator('#browse-search-input').focus();
+      const expectedFocus = await page.locator('#browse-search-input').evaluate(focusPresentation);
+      expect(expectedFocus).toMatchObject({
+        outlineStyle: 'solid',
+        outlineWidth: '2px',
+        outlineOffset: '2px',
+        boxShadow: 'none',
+      });
+      await page.goto('/');
+      const ready = await openSearchDialog(page);
+      if (!ready) {
+        testInfo.annotations.push({
+          type: 'presentation-only',
+          description: 'Mounts installed native Pagefind UI with an empty-result backend fixture; production index behavior is tested separately.',
+        });
+        await page.route('**/__pagefind-presentation__/pagefind.js', (route) => route.fulfill({
+          contentType: 'text/javascript',
+          body: `
+            export async function options() {}
+            export async function filters() { return {}; }
+            export async function preload() {}
+            export async function search() { return { results: [], filters: {}, unfilteredResultCount: 0 }; }
+          `,
+        }));
+        const nativeModule = readFileSync(
+          pagefindRequire.resolve('@pagefind/default-ui/npm_dist/mjs/ui-core.mjs'), 'utf8',
+        );
+        await page.addScriptTag({
+          type: 'module',
+          content: `${nativeModule}\nwindow.PagefindUI = PagefindUI;`,
+        });
+        await page.evaluate(() => {
+          const container = document.createElement('div');
+          container.className = 'search-container';
+          const root = document.createElement('div');
+          root.id = 'starlight__search';
+          const frame = document.querySelector('site-search .dialog-frame')!;
+          // Match the production wrapper's Astro-scoped styles, including
+          // reserved mobile Cancel space, when mounting the native UI in dev.
+          for (const element of [container, root]) {
+            element.classList.add(...[...frame.classList].filter((name) => name.startsWith('astro-')));
+            for (const name of frame.getAttributeNames().filter((name) => name.startsWith('data-astro-cid-'))) {
+              element.setAttribute(name, '');
+            }
+          }
+          container.append(root);
+          frame.prepend(container);
+          const PagefindUI = Reflect.get(window, 'PagefindUI') as new (options: {
+            element: string;
+            autofocus: boolean;
+            bundlePath: string;
+          }) => unknown;
+          new PagefindUI({ element: '#starlight__search', autofocus: false, bundlePath: '/__pagefind-presentation__/' });
+        });
+      }
+      const input = page.locator('#starlight__search .pagefind-ui__search-input');
+      await input.blur();
+      await expect(input).toBeVisible();
+      expect(await input.evaluate(presentation)).toEqual(expected);
+      await input.focus();
+      expect(await input.evaluate(focusPresentation)).toEqual(expectedFocus);
+      const icon = await page.locator('#starlight__search .pagefind-ui__form').evaluate((form) => {
+        const style = getComputedStyle(form, '::before');
+        return { width: style.width, height: style.height, color: style.backgroundColor, mask: style.maskImage };
+      });
+      expect(icon).toMatchObject({ width: '18px', height: '18px', color: iconColor });
+      expect(decodeURIComponent(icon.mask)).toContain('m21 21-4.35-4.35');
+      const clear = page.locator('#starlight__search .pagefind-ui__search-clear');
+      await expect(clear).toHaveAccessibleName('Clear search');
+      await expect(clear).toHaveCSS('font-size', '0px');
+      await expect(clear).toHaveText('Clear');
+      const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+      const compact = coarse || page.viewportSize()!.width < 800;
+      await expect(clear).toHaveCSS('width', compact ? '34px' : '36px');
+      await expect(clear).toHaveCSS('height', compact ? '34px' : '36px');
+      const clearIcon = await clear.evaluate((button) => {
+        const style = getComputedStyle(button, '::before');
+        return { width: style.width, height: style.height, mask: style.maskImage };
+      });
+      expect(clearIcon).toMatchObject({ width: '16px', height: '16px' });
+      expect(decodeURIComponent(clearIcon.mask)).toContain('m18 6-12 12M6 6l12 12');
+      await input.fill(missingSearchQuery);
+      const message = page.locator('#starlight__search .pagefind-ui__message');
+      await expect(message).toContainText(/no results|0 results/i);
+      await expect(page.locator('#starlight__search .pagefind-ui__result-link')).toHaveCount(0);
+      await expect(message).toHaveCSS('font-size', '14px');
+      await expect(message).toHaveCSS('font-weight', '400');
+      await expect(message).toHaveCSS('font-style', 'normal');
+      await expect(message).toHaveCSS('line-height', '21px');
+      const apiLinks = page.locator('site-search dialog[open]');
+      for (const language of ['csharp', 'typescript']) {
+        await expect(apiLinks.locator(`a[data-api-lang="${language}"]`)).toHaveAttribute(
+          'href', `/reference/api/${language}/?q=${encodeURIComponent(missingSearchQuery)}`,
+        );
+      }
+      await clear.click();
+      await expect(input).toHaveValue('');
+      await expect(input).toBeFocused();
+      for (const language of ['csharp', 'typescript']) {
+        await expect(apiLinks.locator(`a[data-api-lang="${language}"]`)).toHaveAttribute(
+          'href', `/reference/api/${language}/`,
+        );
+      }
+    });
+  }
+
+  test('zero matches retain one native clear action and return focus to the query', async ({ page }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind requires the existing CI production artifact; no local build.');
+    const dialog = page.locator('site-search dialog[open]');
+    const input = dialog.locator('.pagefind-ui__search-input');
+    await input.fill(missingSearchQuery);
+    await expect(dialog.locator('.pagefind-ui__message')).toContainText(/no results|0 results/i);
+    await expect(dialog.locator('.pagefind-ui__result-link')).toHaveCount(0);
+    await expect(dialog.locator('.pagefind-ui__message')).toHaveAttribute('aria-live', 'polite');
+    const clear = dialog.locator('.pagefind-ui__search-clear');
+    await expect(clear).toHaveCount(1);
+    await expect(clear).toHaveAccessibleName('Clear search');
+    await clear.click();
+    await expect(input).toHaveValue('');
+    await expect(input).toBeFocused();
+    await expect(dialog.locator('a[data-api-lang="csharp"]')).toHaveAttribute('href', /\/reference\/api\/csharp\/$/);
+  });
+
+  for (const openWith of ['button', 'shortcut'] as const) {
+    test(`docs search survives client navigation and history when opened by ${openWith}`, async ({
+      page,
+    }) => {
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.goto('/');
+      await dismissCookieConsentIfVisible(page);
+      await page.evaluate(() => Reflect.set(window, '__siteSearchSession', true));
+
+      const assertSearch = async () => {
+        if (openWith === 'shortcut') {
+          await page.keyboard.press('Control+k');
+        } else {
+          await page.locator('site-search button[data-open-modal]').click();
+        }
+        const dialog = page.locator('site-search dialog[open]');
+        await expect(dialog).toBeVisible();
+        const input = dialog.locator('input.pagefind-ui__search-input');
+        const devWarning = dialog.getByText(/Search is only available in production builds/i);
+        await expect(input.or(devWarning)).toBeVisible({ timeout: 15000 });
+        if (await input.isVisible()) {
+          await expect(input).toHaveCount(1);
+          await expect(input).toBeFocused();
+          await input.fill('redis');
+          const results = dialog.locator('.pagefind-ui__result-link');
+          await expect(results.first()).toBeVisible({ timeout: 15000 });
+          const hrefs = await results.evaluateAll((links) =>
+            links.map((link) => link.getAttribute('href')),
+          );
+          expect(hrefs.some((href) => href?.includes('/integrations/'))).toBe(true);
+          expect(hrefs.every((href) => !href?.includes('/reference/api/'))).toBe(true);
+        }
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+        await expect(page.locator('body')).not.toHaveAttribute('data-search-modal-open');
+        expect(errors).toEqual([]);
+      };
+
+      await assertSearch();
+      // Use the real links, not page.goto: a hard reload hides the regression.
+      for (const path of ['/docs/', '/get-started/first-app/']) {
+        await navigateClient(page, async () => (await getSiteNavigationLink(page, path)).click());
+        await expect(page).toHaveURL((url) => url.pathname === path);
+        expect(await page.evaluate(() => Reflect.get(window, '__siteSearchSession'))).toBe(true);
+        await assertSearch();
+      }
+      await navigateClient(page, () => page.goBack());
+      await expect(page).toHaveURL(/\/docs\/$/);
+      expect(await page.evaluate(() => Reflect.get(window, '__siteSearchSession'))).toBe(true);
+      await assertSearch();
+      await navigateClient(page, () => page.goForward());
+      await expect(page).toHaveURL((url) => url.pathname === '/get-started/first-app/');
+      expect(await page.evaluate(() => Reflect.get(window, '__siteSearchSession'))).toBe(true);
+      await assertSearch();
+    });
+  }
+
+  test('search initializes when entering from API pages and cleans up when leaving for them', async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/reference/api/csharp/');
+    await dismissCookieConsentIfVisible(page);
+    await expect(page.locator('site-search')).toHaveCount(0);
+    await page.evaluate(() => Reflect.set(window, '__siteSearchSession', true));
+
+    for (let visit = 0; visit < 2; visit++) {
+      await navigateClient(page, () => page.locator('header a[href="/"]:visible').click());
+      await expect(page).toHaveURL((url) => url.pathname === '/');
+      expect(await page.evaluate(() => Reflect.get(window, '__siteSearchSession'))).toBe(true);
+      const ready = await openSearchDialog(page);
+      if (ready) {
+        await typeSearchQuery(page, 'redis');
+        await expect(page.locator('.pagefind-ui__result-link').first()).toBeVisible();
+        await typeSearchQuery(page, '');
+      }
+      await page.locator('site-search a[data-api-lang="csharp"]').click();
+      await expect(page).toHaveURL(/\/reference\/api\/csharp\/$/);
+      await expect(page.locator('site-search')).toHaveCount(0);
+      await page.keyboard.press('Control+k');
+      await expect(page.locator('body')).not.toHaveAttribute('data-search-modal-open');
+      expect(errors).toEqual([]);
+    }
+  });
+
+  test('API search result navigation restores homepage hero typography', async ({ page }) => {
+    await page.setViewportSize({ width: 2000, height: 1001 });
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const hero = page.getByRole('heading', {
+      level: 1,
+      name: 'Compose distributed apps in code.',
+    });
+    const expectedFontSize = await hero.evaluate((element) => getComputedStyle(element).fontSize);
+
+    await page.goto('/reference/api/csharp/');
+    await page.evaluate(() => {
+      const result = document.createElement('a');
+      result.className = 'pagefind-ui__result-link';
+      result.href = '/';
+      result.textContent = 'Home';
+      result.style.cssText =
+        'position:fixed;inset-block-start:0;inset-inline-start:0;z-index:2147483647';
+      document.body.append(result);
+    });
+
+    await navigateClient(page, () =>
+      page.locator('.pagefind-ui__result-link', { hasText: 'Home' }).click()
+    );
+    await expect(page).toHaveURL((url) => url.pathname === '/');
+    await expect(hero).not.toHaveClass(/api-page-title/);
+    await expect.poll(() => hero.evaluate((element) => getComputedStyle(element).fontSize)).toBe(
+      expectedFontSize
+    );
+  });
+
+  test('navigation during the lazy UI import mounts only the current search instance', async ({
+    page,
+  }) => {
+    test.skip(!process.env.CI, 'Pagefind is generated by the production build.');
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    let releaseImport!: () => void;
+    const importGate = new Promise<void>((resolve) => { releaseImport = resolve; });
+    let markRequested!: () => void;
+    const importRequested = new Promise<void>((resolve) => { markRequested = resolve; });
+    await page.route('**/_astro/ui-core.*.js', async (route) => {
+      markRequested();
+      await importGate;
+      await route.continue();
+    });
+    try {
+      await page.goto('/');
+      await dismissCookieConsentIfVisible(page);
+      await importRequested;
+      await navigateClient(page, async () => (await getSiteNavigationLink(page, '/docs/')).click());
+      await expect(page).toHaveURL(/\/docs\/$/);
+      await page.keyboard.press('Control+k');
+      releaseImport();
+      const input = page.locator('site-search dialog input.pagefind-ui__search-input');
+      await expect(input).toBeVisible();
+      await expect(input).toHaveCount(1);
+      await expect(input).toBeFocused();
+      await input.fill('redis');
+      await expect(page.locator('.pagefind-ui__result-link').first()).toBeVisible();
+      await expect(input).toHaveCount(1);
+      expect(errors).toEqual([]);
+    } finally {
+      releaseImport();
+    }
+  });
+
+  test('does not index AppHost examples deferred from the homepage', async ({ page }) => {
+    test.skip(!process.env.CI, 'Pagefind is generated by the production build.');
+    await page.goto('/');
+
+    const urls = await page.evaluate(async () => {
+      const pagefind = (await import(
+        /* @vite-ignore */ `${window.location.origin}/pagefind/pagefind.js`
+      )) as {
+        search: (query: string) => Promise<{
+          results: Array<{ data: () => Promise<{ url: string }> }>;
+        }>;
+      };
+      const response = await pagefind.search('publishAsKubernetes');
+      return Promise.all(response.results.map(async (result) => (await result.data()).url));
+    });
+
+    expect(urls).not.toContain('/');
+  });
+
+  test('renders keyboard shortcut hints in the footer', async ({ page }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind is not available in dev mode; this assertion runs against astro preview.');
+
+    const footer = page.locator('[data-testid="search-keyboard-footer"]');
+    await expect(footer).toBeVisible();
+
+    // Real <kbd> elements so the shortcut text scales with the user's font size.
+    await expect(footer.locator('kbd', { hasText: '↑' })).toBeVisible();
+    await expect(footer.locator('kbd', { hasText: '↓' })).toBeVisible();
+    await expect(footer.locator('kbd', { hasText: '↵' })).toBeVisible();
+    await expect(footer.locator('kbd', { hasText: 'Esc' })).toBeVisible();
+
+    await expect(footer).toContainText('Navigate');
+    await expect(footer).toContainText('Open');
+    await expect(footer).toContainText('Close');
+  });
+
+  test('arrow keys cycle through results, Tab keeps state, and Escape closes the dialog', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind is not available in dev mode; keyboard nav runs against astro preview.');
+
+    // Use a query that consistently returns multiple Pagefind hits across
+    // the docs index. "aspire" is referenced by virtually every doc page.
+    await typeSearchQuery(page, 'aspire');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const results = dialog.locator('.pagefind-ui__result-link');
+    // Anchor the input to the dialog element itself (not `dialog[open]`)
+    // so the locator still resolves after Escape closes the dialog and
+    // we can assert the post-close `aria-expanded` value.
+    const input = page.locator('site-search dialog input.pagefind-ui__search-input');
+    await expect(results.first()).toBeVisible({ timeout: 15000 });
+    await expect.poll(() => results.count()).toBeGreaterThanOrEqual(3);
+
+    // First result should auto-highlight as soon as Pagefind renders.
+    await expect(results.nth(0)).toHaveAttribute('data-search-active', 'true');
+    await expect(results.nth(0)).toHaveAttribute('aria-selected', 'true');
+
+    await expect(input).toBeFocused();
+    await expect(input).toHaveAttribute('role', 'combobox');
+    await expect(input).toHaveAttribute('aria-controls', 'aspire-search-results');
+    await expect(input).toHaveAttribute('aria-expanded', 'true');
+
+    // ArrowDown moves the active marker to the next result *and* moves
+    // real focus there, so Tab can resume from that location.
+    await input.press('ArrowDown');
+    await expect(results.nth(0)).not.toHaveAttribute('data-search-active', 'true');
+    await expect(results.nth(1)).toHaveAttribute('data-search-active', 'true');
+    await expect(results.nth(1)).toHaveAttribute('aria-selected', 'true');
+    await expect(results.nth(1)).toBeFocused();
+
+    // Native Tab from result[1] should advance focus to result[2] and
+    // the focusin handler should keep activeIndex in sync.
+    await page.keyboard.press('Tab');
+    await expect(results.nth(2)).toBeFocused();
+    await expect(results.nth(2)).toHaveAttribute('data-search-active', 'true');
+    await expect(results.nth(1)).not.toHaveAttribute('data-search-active', 'true');
+
+    // Up/Down can resume from the post-Tab location.
+    await page.keyboard.press('ArrowUp');
+    await expect(results.nth(1)).toBeFocused();
+    await expect(results.nth(1)).toHaveAttribute('data-search-active', 'true');
+
+    // The input's aria-activedescendant tracks the active result.
+    const activeId = await results.nth(1).getAttribute('id');
+    expect(activeId).toBeTruthy();
+    await expect(input).toHaveAttribute('aria-activedescendant', activeId!);
+
+    // Escape closes the dialog (native <dialog> behaviour) and
+    // aria-expanded flips back to "false".
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(input).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('auto-highlights the first result when later results render first', async ({ page }) => {
+    // Pagefind renders each result once its own fragment loads. Hold the
+    // first result's fragment so later results render before it.
+    let fragmentRequests = 0;
+    let releaseFirstFragment = () => {};
+    const firstFragmentReleased = new Promise<void>((resolve) => {
+      releaseFirstFragment = resolve;
+    });
+    await page.route('**/pagefind/fragment/**', async (route) => {
+      if (fragmentRequests++ === 0) await firstFragmentReleased;
+      await route.continue();
+    });
+
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind is not available in dev mode; keyboard nav runs against astro preview.');
+
+    await typeSearchQuery(page, 'aspire');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const input = dialog.locator('input.pagefind-ui__search-input');
+    const firstResult = dialog.locator('.pagefind-ui__result').first();
+    const activeTargets = dialog.locator('[data-search-active="true"]');
+
+    await expect(activeTargets).toHaveCount(1);
+    await expect(firstResult.locator('.pagefind-ui__result-link')).toHaveCount(0);
+
+    releaseFirstFragment();
+
+    const firstLink = firstResult.locator('.pagefind-ui__result-link').first();
+    await expect(firstLink).toBeVisible();
+    await expect(firstLink).toHaveAttribute('data-search-active', 'true');
+    await expect(firstLink).toHaveAttribute('aria-selected', 'true');
+    await expect(activeTargets).toHaveCount(1);
+    const firstId = (await firstLink.getAttribute('id'))!;
+    await expect(input).toHaveAttribute('aria-activedescendant', firstId);
+    await expectOpenSearchDialogAccessible(page, 'after out-of-order first result');
+
+    const firstHref = (await firstLink.getAttribute('href'))!;
+    await input.press('Enter');
+    await expect(page).toHaveURL(new URL(firstHref, page.url()).href);
+  });
+
+  test('keeps the highlight on a focused result when an earlier result renders later', async ({
+    page,
+  }) => {
+    let fragmentRequests = 0;
+    let releaseFirstFragment = () => {};
+    const firstFragmentReleased = new Promise<void>((resolve) => {
+      releaseFirstFragment = resolve;
+    });
+    await page.route('**/pagefind/fragment/**', async (route) => {
+      if (fragmentRequests++ === 0) await firstFragmentReleased;
+      await route.continue();
+    });
+
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind is not available in dev mode; keyboard nav runs against astro preview.');
+
+    await typeSearchQuery(page, 'aspire');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const firstResult = dialog.locator('.pagefind-ui__result').first();
+    const activeTargets = dialog.locator('[data-search-active="true"]');
+
+    await expect(activeTargets).toHaveCount(1);
+    await expect(firstResult.locator('.pagefind-ui__result-link')).toHaveCount(0);
+
+    // Focus the result that was auto-highlighted before the first one loaded.
+    const focusedHref = (await activeTargets.getAttribute('href'))!;
+    await activeTargets.focus();
+    await expect(activeTargets).toBeFocused();
+
+    releaseFirstFragment();
+
+    const firstLink = firstResult.locator('.pagefind-ui__result-link').first();
+    await expect(firstLink).toBeVisible();
+    await expect(firstLink).not.toHaveAttribute('data-search-active', 'true');
+    await expect(firstLink).not.toHaveAttribute('aria-selected', 'true');
+    await expect(activeTargets).toHaveCount(1);
+    await expect(activeTargets).toHaveAttribute('href', focusedHref);
+    await expect(activeTargets).toBeFocused();
+    await expectOpenSearchDialogAccessible(page, 'after preserving the focused result');
+  });
+
+  test('a query change hands the highlight back to the new first result', async ({ page }) => {
+    // A deterministic backend whose results for the second query still
+    // include the user's selection, but not first.
+    const pages = {
+      first: '/get-started/install-cli/',
+      selected: '/get-started/app-host/',
+      third: '/get-started/aspire-sdk/',
+      newFirst: '/get-started/deploy-first-app/',
+    };
+    await page.route('**/pagefind/pagefind.js', (route) =>
+      route.fulfill({
+        contentType: 'text/javascript',
+        body: `
+          const pages = ${JSON.stringify(pages)};
+          const result = (id) => ({
+            id,
+            score: 1,
+            words: [],
+            data: async () => ({
+              url: pages[id],
+              meta: { title: id },
+              excerpt: id,
+              sub_results: [],
+              content: id,
+              word_count: 1,
+              filters: {},
+              anchors: [],
+              weighted_locations: [],
+              locations: [],
+              raw_content: id,
+              raw_url: pages[id],
+            }),
+          });
+          const resultsFor = (term) =>
+            term === 'alpha' ? ['first', 'selected', 'third']
+            : term === 'alpha beta' ? ['newFirst', 'selected']
+            : [];
+          export async function options() {}
+          export async function filters() { return {}; }
+          export async function preload() {}
+          export async function search(term) {
+            const results = resultsFor(term).map(result);
+            return { results, filters: {}, unfilteredResultCount: results.length };
+          }
+        `,
+      })
+    );
+
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(
+      !ready,
+      'Pagefind is not available in dev mode; keyboard nav runs against astro preview.'
+    );
+
+    const dialog = page.locator('site-search dialog[open]');
+    const input = dialog.locator('input.pagefind-ui__search-input');
+    const links = dialog.locator('.pagefind-ui__result-link');
+    const activeTargets = dialog.locator('[data-search-active="true"]');
+
+    await typeSearchQuery(page, 'alpha');
+    await expect(links).toHaveCount(3);
+    await expect(links.first()).toHaveAttribute('data-search-active', 'true');
+
+    // Explicitly select the second result.
+    await input.press('ArrowDown');
+    const selected = dialog.locator(`.pagefind-ui__result-link[href="${pages.selected}"]`);
+    await expect(selected).toHaveAttribute('data-search-active', 'true');
+    await expect(selected).toBeFocused();
+
+    // Return to the input and refine the query; the selection survives in the
+    // new results, but the new first result must take over the highlight.
+    await input.focus();
+    await typeSearchQuery(page, 'alpha beta');
+    await expect(links).toHaveCount(2);
+    const newFirst = links.first();
+    await expect(newFirst).toHaveAttribute('href', pages.newFirst);
+    await expect(selected).toBeVisible();
+
+    await expect(newFirst).toHaveAttribute('data-search-active', 'true');
+    await expect(newFirst).toHaveAttribute('aria-selected', 'true');
+    await expect(selected).not.toHaveAttribute('data-search-active', 'true');
+    await expect(selected).not.toHaveAttribute('aria-selected', 'true');
+    await expect(activeTargets).toHaveCount(1);
+    await expect(input).toHaveAttribute(
+      'aria-activedescendant',
+      (await newFirst.getAttribute('id'))!
+    );
+    await expectOpenSearchDialogAccessible(page, 'after a query change');
+
+    await input.press('Enter');
+    await expect(page).toHaveURL(new URL(pages.newFirst, page.url()).href);
+  });
+
+  test('arrow nav also cycles through the C#/TypeScript API buttons', async ({ page }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind is not available in dev mode; this assertion runs against astro preview.');
+
+    await typeSearchQuery(page, 'aspire');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const results = dialog.locator('.pagefind-ui__result-link');
+    const csharpBtn = dialog.locator('a[data-api-search-link][data-api-lang="csharp"]');
+    const tsBtn = dialog.locator('a[data-api-search-link][data-api-lang="typescript"]');
+
+    await expect(results.first()).toBeVisible({ timeout: 15000 });
+    await expect(csharpBtn).toBeVisible();
+
+    // Press End to jump to the last keyboard target — that should be the
+    // TypeScript API button (last item in DOM order: results → load-more
+    // → C# button → TS button). Home/End are deliberately ignored while
+    // the caret is in the input (they keep native text-editing behaviour
+    // there), so we ArrowDown into the results first to move focus out
+    // of the search field.
+    const input = dialog.locator('input.pagefind-ui__search-input');
+    await input.press('ArrowDown');
+    await page.keyboard.press('End');
+    await expect(tsBtn).toHaveAttribute('data-search-active', 'true');
+    await expect(tsBtn).toBeFocused();
+
+    // ArrowUp from TS button should land on the C# button.
+    await page.keyboard.press('ArrowUp');
+    await expect(csharpBtn).toHaveAttribute('data-search-active', 'true');
+    await expect(csharpBtn).toBeFocused();
+    await expect(tsBtn).not.toHaveAttribute('data-search-active', 'true');
+
+    // Press Home to jump back to the very first result; the API buttons
+    // release the active marker.
+    await page.keyboard.press('Home');
+    await expect(results.first()).toHaveAttribute('data-search-active', 'true');
+    await expect(csharpBtn).not.toHaveAttribute('data-search-active', 'true');
+  });
+
+  test('Home/End in the search input do not focus the API/load-more buttons', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind is not available in dev mode; this assertion runs against astro preview.');
+
+    await typeSearchQuery(page, 'aspire');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const input = dialog.locator('input.pagefind-ui__search-input');
+    const results = dialog.locator('.pagefind-ui__result-link');
+    const csharpBtn = dialog.locator('a[data-api-search-link][data-api-lang="csharp"]');
+    const tsBtn = dialog.locator('a[data-api-search-link][data-api-lang="typescript"]');
+
+    await expect(results.first()).toBeVisible({ timeout: 15000 });
+
+    // Pressing Home/End while focus is in the input must NOT move the
+    // active marker to the C#/TypeScript API buttons (or any other
+    // out-of-listbox target). This is the regression that previously
+    // stole the caret away from the search field whenever the user
+    // tried to jump to the start/end of their query text.
+    await input.press('Home');
+    await expect(csharpBtn).not.toHaveAttribute('data-search-active', 'true');
+    await expect(tsBtn).not.toHaveAttribute('data-search-active', 'true');
+    await expect(csharpBtn).not.toBeFocused();
+    await expect(tsBtn).not.toBeFocused();
+
+    await input.press('End');
+    await expect(csharpBtn).not.toHaveAttribute('data-search-active', 'true');
+    await expect(tsBtn).not.toHaveAttribute('data-search-active', 'true');
+    await expect(csharpBtn).not.toBeFocused();
+    await expect(tsBtn).not.toBeFocused();
+  });
+
+  test('typed query is forwarded to the C# and TypeScript API buttons', async ({ page }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind input is required to type into; runs against astro preview.');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const csharpBtn = dialog.locator('a[data-api-search-link][data-api-lang="csharp"]');
+    const tsBtn = dialog.locator('a[data-api-search-link][data-api-lang="typescript"]');
+
+    await expect(csharpBtn).toBeVisible();
+    await expect(tsBtn).toBeVisible();
+
+    // Pre-typing: hrefs should be the bare landing pages.
+    await expect(csharpBtn).toHaveAttribute('href', /\/reference\/api\/csharp\/$/);
+    await expect(tsBtn).toHaveAttribute('href', /\/reference\/api\/typescript\/$/);
+
+    // Use a query the TS API search index actually contains so the hand-off
+    // can be verified end-to-end.
+    await typeSearchQuery(page, 'withBun');
+
+    await expect(csharpBtn).toHaveAttribute('href', /\/reference\/api\/csharp\/\?q=withBun$/);
+    await expect(tsBtn).toHaveAttribute('href', /\/reference\/api\/typescript\/\?q=withBun$/);
+
+    // Click the TypeScript button — it should land on the TS API landing
+    // page with the query pre-applied via InpageSearchSync.
+    await tsBtn.click();
+    await page.waitForURL(/\/reference\/api\/typescript\/\?q=withBun/);
+
+    await dismissCookieConsentIfVisible(page);
+
+    const tsInput = page.locator('#ts-api-search-input');
+    await expect(tsInput).toHaveValue('withBun');
+
+    const tsResults = page.locator('#ts-api-search-results .api-search-result');
+    await expect(tsResults.first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('clearing the search input restores the default API button hrefs', async ({ page }) => {
+    await page.goto('/');
+    await dismissCookieConsentIfVisible(page);
+
+    const ready = await openSearchDialog(page);
+    test.skip(!ready, 'Pagefind input is required to type into; runs against astro preview.');
+
+    const dialog = page.locator('site-search dialog[open]');
+    const csharpBtn = dialog.locator('a[data-api-search-link][data-api-lang="csharp"]');
+    const tsBtn = dialog.locator('a[data-api-search-link][data-api-lang="typescript"]');
+
+    await typeSearchQuery(page, 'withBun');
+    await expect(csharpBtn).toHaveAttribute('href', /\?q=withBun$/);
+
+    await typeSearchQuery(page, '');
+    await expect(csharpBtn).toHaveAttribute('href', /\/reference\/api\/csharp\/$/);
+    await expect(tsBtn).toHaveAttribute('href', /\/reference\/api\/typescript\/$/);
+  });
+});

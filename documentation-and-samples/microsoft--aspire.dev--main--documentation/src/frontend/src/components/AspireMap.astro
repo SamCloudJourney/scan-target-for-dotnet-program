@@ -1,0 +1,52 @@
+---
+import ThemeImage from './ThemeImage.astro';
+import mapForLightTheme from '../assets/maps/map-lightdots.svg';
+import mapForDarkTheme from '../assets/maps/map-darkdots.svg';
+---
+
+<div class="not-content map">
+  <ThemeImage
+    light={mapForLightTheme}
+    dark={mapForDarkTheme}
+    alt="Map showing Aspire community locations around the world"
+    classOverride="borderless"
+  />
+</div>
+
+<style>
+  :root .map {
+    --pad-min: 1rem; /* left/right at 480px and below */
+    --pad-max: 14rem; /* left/right at 1024px and above */
+    --w-min: 480px;
+    --w-max: 1024px;
+  }
+
+  /* The map lives inside a `.not-content` wrapper, which strips Starlight's
+     default `img { max-width: 100%; height: auto }`. Restore it so the SVG
+     (which only declares a viewBox, no intrinsic width/height) scales to fit
+     its container instead of overflowing at its viewBox width. */
+  .map :global(img) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .map {
+    background-color: color-mix(in srgb, var(--sl-color-bg) 90%, black);
+    border: 1px solid var(--sl-color-gray-5);
+    box-shadow: var(--sl-shadow-sm);
+    border-radius: 0.5rem;
+    text-align: center;
+
+    padding-block: 1rem;
+
+    /* Responsive padding: min 1rem up to 14rem on large screens */
+    padding-inline: clamp(
+      var(--pad-min),
+      calc(
+        var(--pad-min) + (var(--pad-max) - var(--pad-min)) *
+          ((100vw - var(--w-min)) / (var(--w-max) - var(--w-min)))
+      ),
+      var(--pad-max)
+    );
+  }
+</style>

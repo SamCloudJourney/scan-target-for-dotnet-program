@@ -430,5 +430,17 @@
     "owner": "dotnet",
     "regular_files": 373,
     "archive_sha256": "bf5602ab4294cced505cedff3b079801da4804a5168a1f57a44b5211995e7733"
+  },
+  {
+    "name": "aspire.dev",
+    "kind": "documentation",
+    "ref": "main",
+    "commit": "c1ec59987f2deb629c297ab13f589b2875484a6e",
+    "path": "documentation-and-samples/microsoft--aspire.dev--main--documentation",
+    "files": 2584,
+    "provenance": "EXTRA-DOCS-MANIFEST.json",
+    "owner": "microsoft",
+    "regular_files": 2584,
+    "archive_sha256": "1f8d71eb81b4a750b4e1f38a0a5c30f2f01be5d8deb49426ac1aa8487103edc9"
   }
 ]

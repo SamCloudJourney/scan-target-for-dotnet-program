@@ -1,0 +1,101 @@
+---
+export interface Props {
+  /** Twitch channel name for a live stream */
+  channel?: string;
+  /** Twitch video ID for a past broadcast (e.g. "1234567890") */
+  video?: string;
+  /** Accessible label for the iframe */
+  title?: string | null;
+  /** Aspect ratio — default 16/9 */
+  aspectRatio?: string;
+  /** Explicit parent hostname; defaults to the browser's current hostname */
+  parent?: string;
+  /** Max width constraint — default 100% */
+  maxWidth?: string;
+  /** Autoplay the stream (muted, as browsers require) */
+  autoplay?: boolean;
+}
+
+const {
+  channel,
+  video,
+  title = 'Twitch stream player',
+  aspectRatio = '16 / 9',
+  parent,
+  maxWidth = '100%',
+  autoplay = false,
+} = Astro.props;
+
+if (!channel && !video) {
+  throw new Error('TwitchEmbed requires either a `channel` or `video` prop.');
+}
+
+const params = new URLSearchParams({
+  autoplay: autoplay ? 'true' : 'false',
+  muted: autoplay ? 'true' : 'false',
+});
+if (parent) params.set('parent', parent);
+
+let src: string;
+if (video) {
+  src = `https://player.twitch.tv/?video=${video}&${params.toString()}`;
+} else {
+  src = `https://player.twitch.tv/?channel=${channel}&${params.toString()}`;
+}
+---
+
+<div
+  class="twitch-embed not-content"
+  style={`--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};`}
+>
+  <iframe
+    src={parent ? src : undefined}
+    data-twitch-src={parent ? undefined : src}
+    aria-label={title?.trim() || 'Twitch stream player'}
+    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+    allowfullscreen
+    loading="lazy"
+    data-stream-provider="twitch"
+    sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
+  ></iframe>
+  <noscript>
+    <a href={video ? `https://www.twitch.tv/videos/${video}` : `https://www.twitch.tv/${channel}`}>
+      Watch on Twitch
+    </a>
+  </noscript>
+</div>
+
+<script>
+  import { initializeTwitchEmbed } from '@components/stream-embeds';
+
+  function init(): void {
+    document
+      .querySelectorAll<HTMLIFrameElement>('iframe[data-twitch-src]')
+      .forEach(initializeTwitchEmbed);
+  }
+
+  init();
+  document.addEventListener('astro:after-swap', init);
+</script>
+
+<style>
+  .twitch-embed {
+    position: relative;
+    width: 100%;
+    max-width: var(--max-width, 100%);
+    aspect-ratio: var(--aspect-ratio, 16 / 9);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    box-shadow: var(--sl-shadow-sm);
+  }
+
+  .twitch-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>

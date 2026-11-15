@@ -1,0 +1,91 @@
+name: Tools Tests
+
+on:
+  push:
+    branches: [ main, release/* ]
+    paths:
+      - src/tools/**
+      - tests/**
+      - .github/workflows/tools-tests.yml
+  pull_request:
+    branches: [ main, release/* ]
+    paths:
+      - src/tools/**
+      - tests/**
+      - .github/workflows/tools-tests.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tools-generator-tests:
+    name: Tools Generator Tests
+    runs-on: ubuntu-latest
+    env:
+      TEST_RESULTS_DIR: ${{ github.workspace }}/testresults
+      DOTNET_NOLOGO: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore tests
+        run: |
+          dotnet restore tests/PackageJsonGenerator.Tests/PackageJsonGenerator.Tests.csproj
+          dotnet restore tests/AtsJsonGenerator.Tests/AtsJsonGenerator.Tests.csproj
+
+      - name: Build tests
+        run: |
+          dotnet build tests/PackageJsonGenerator.Tests/PackageJsonGenerator.Tests.csproj --configuration Release --no-restore
+          dotnet build tests/AtsJsonGenerator.Tests/AtsJsonGenerator.Tests.csproj --configuration Release --no-restore
+
+      - name: Test PackageJsonGenerator script
+        shell: pwsh
+        run: ./tests/PackageJsonGenerator.Tests/generate-package-json.Tests.ps1
+
+      - name: Run PackageJsonGenerator tests
+        run: >
+          dotnet test tests/PackageJsonGenerator.Tests/PackageJsonGenerator.Tests.csproj
+          --configuration Release
+          --no-restore
+          --no-build
+          --verbosity normal
+          --results-directory "$TEST_RESULTS_DIR"
+          --logger "trx;LogFileName=PackageJsonGenerator.Tests.trx"
+          -bl:"$TEST_RESULTS_DIR/PackageJsonGenerator.Tests.binlog"
+
+      - name: Run AtsJsonGenerator tests
+        run: >
+          dotnet test tests/AtsJsonGenerator.Tests/AtsJsonGenerator.Tests.csproj
+          --configuration Release
+          --no-restore
+          --no-build
+          --verbosity normal
+          --results-directory "$TEST_RESULTS_DIR"
+          --logger "trx;LogFileName=AtsJsonGenerator.Tests.trx"
+          -bl:"$TEST_RESULTS_DIR/AtsJsonGenerator.Tests.binlog"
+
+      - name: Upload test results
+        id: upload-test-results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-ToolsGenerator-ubuntu-latest
+          path: |
+            testresults/**/*.trx
+            testresults/**/*.binlog
+
+      - name: Generate test results summary
+        if: always()
+        shell: pwsh
+        run: |
+          & "${{ github.workspace }}/tests/scripts/Write-TestSummary.ps1" `
+            -TestResultsFolder $env:TEST_RESULTS_DIR `
+            -SummaryOutputPath $env:GITHUB_STEP_SUMMARY `
+            -ArtifactUrl "${{ steps.upload-test-results.outputs.artifact-url }}" `
+            -SummaryTitle "Tools Generator Tests"

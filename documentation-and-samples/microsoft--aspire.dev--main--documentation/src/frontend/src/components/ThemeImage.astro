@@ -1,0 +1,130 @@
+---
+export interface Props {
+  light: ImageMetadata;
+  dark: ImageMetadata;
+  alt: string;
+  label?: string;
+  height?: number;
+  width?: number;
+  classOverride?: string;
+  zoomable?: boolean;
+  href?: string;
+}
+
+import { Image, getImage } from 'astro:assets';
+import { Zoom } from 'starlight-image-zoom/components';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { normalize } from 'node:path';
+
+async function versionDevelopmentImage(image: ImageMetadata): Promise<ImageMetadata> {
+  if (!import.meta.env.DEV || !image.src.startsWith('/@fs/')) return image;
+
+  const source = new URL(image.src, Astro.url);
+  const filePath = decodeURIComponent(source.pathname.slice('/@fs/'.length));
+  const path = normalize(/^[a-zA-Z]:/.test(filePath) ? filePath : `/${filePath}`);
+  const revision = createHash('sha256')
+    .update(await readFile(path))
+    .digest('hex')
+    .slice(0, 16);
+  source.searchParams.set('v', revision);
+  return { ...image, src: `${source.pathname}${source.search}` };
+}
+
+const {
+  light,
+  dark,
+  alt,
+  label,
+  height,
+  width,
+  classOverride,
+  zoomable = true,
+  href,
+} = Astro.props as Props;
+
+const imageWidth = width ?? dark.width;
+const imageHeight = height ?? dark.height;
+const imageClass = [classOverride, 'theme-image'].filter(Boolean).join(' ');
+const imageOptions = { width: imageWidth, height: imageHeight, fit: 'contain' as const };
+const [lightSource, darkSource] = await Promise.all([
+  versionDevelopmentImage(light),
+  versionDevelopmentImage(dark),
+]);
+const optimizedLight = await getImage({ src: lightSource, ...imageOptions });
+const optimizedDark = await getImage({ src: darkSource, ...imageOptions });
+const themedImageProps = {
+  src: darkSource,
+  alt,
+  'data-light': optimizedLight.src,
+  'data-dark': optimizedDark.src,
+  'data-light-srcset': optimizedLight.srcSet.attribute,
+  'data-dark-srcset': optimizedDark.srcSet.attribute,
+  width: imageWidth,
+  height: imageHeight,
+  decoding: 'async' as const,
+  loading: 'lazy' as const,
+};
+---
+
+{
+  href ? (
+    <a href={href} title={href} class="theme-image-link">
+      <Image class={imageClass} {...themedImageProps} />
+    </a>
+  ) : zoomable ? (
+    <Zoom label={label ?? alt}>
+      <Image class={imageClass} {...themedImageProps} />
+    </Zoom>
+  ) : (
+    <Image class={imageClass} {...themedImageProps} />
+  )
+}
+
+<script>
+  const html = document.documentElement;
+
+  function updateThemeImages() {
+    const theme = html.getAttribute('data-theme') ?? 'light';
+    document.querySelectorAll('.theme-image').forEach((img) => {
+      if (img instanceof HTMLImageElement) {
+        const targetSrc = (theme === 'dark' ? img.dataset.dark : img.dataset.light) || '';
+        const targetSrcset =
+          (theme === 'dark' ? img.dataset.darkSrcset : img.dataset.lightSrcset) || '';
+        if (targetSrc && img.src !== targetSrc) {
+          img.src = targetSrc;
+        }
+        if (img.srcset !== targetSrcset) {
+          img.srcset = targetSrcset;
+        }
+      }
+    });
+  }
+
+  // Initial set
+  updateThemeImages();
+
+  // Watch for theme toggle changes
+  const observer = new MutationObserver(updateThemeImages);
+  observer.observe(html, { attributes: true, attributeFilter: ['data-theme'] });
+</script>
+
+<style>
+  .theme-image {
+    margin-top: 0rem;
+  }
+
+  .theme-image.inline {
+    display: inline;
+    vertical-align: middle;
+  }
+
+  .theme-image.borderless {
+    border: none;
+    box-shadow: none;
+  }
+
+  a.theme-image-link.external-link {
+    background-color: initial !important;
+  }
+</style>
