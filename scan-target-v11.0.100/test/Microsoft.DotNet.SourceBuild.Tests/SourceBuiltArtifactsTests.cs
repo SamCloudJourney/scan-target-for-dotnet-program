@@ -1,0 +1,116 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Collections.Generic;
+using System.Formats.Tar;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Xunit;
+
+namespace Microsoft.DotNet.SourceBuild.Tests;
+
+public class SourceBuiltArtifactsTests : SdkTests
+{
+    public static bool ExcludeSourceBuiltArtifactsTests => string.IsNullOrWhiteSpace(Config.SourceBuiltArtifactsPath);
+
+    public SourceBuiltArtifactsTests(ITestOutputHelper outputHelper) : base(outputHelper) { }
+
+    [Fact(Skip = "A source-built artifacts path is required", SkipWhen = nameof(ExcludeSourceBuiltArtifactsTests))]
+    public void VerifyVersionFile()
+    {
+        Assert.NotNull(Config.SourceBuiltArtifactsPath);
+
+        string outputDir = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName());
+        Directory.CreateDirectory(outputDir);
+        try
+        {
+            // Extract the .version file
+            Utilities.ExtractTarball(Config.SourceBuiltArtifactsPath, outputDir, ".version");
+            string sbVersionFilePath = Path.Combine(outputDir, ".version");
+
+            string[] versionLines = File.ReadAllLines(sbVersionFilePath);
+
+            // Verify the commit SHA, it will likely be either a valid commit SHA or an unknown commit SHA, depending on
+            // the state of the repository and git installation.
+            // Therefore, we only verify the commit SHA is not an unknown commit SHA.
+
+            string commitSha = versionLines[0];
+            OutputHelper.WriteLine($"Commit SHA: {commitSha}");
+            if (Config.RunningInCI)
+            {
+                Assert.False(commitSha.Equals("unknown commit SHA", StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Verify that .version file is the same as the SDK's .version file.
+            string sbVersionFileContent = File.ReadAllText(sbVersionFilePath);
+
+            DirectoryInfo sdkDir = new DirectoryInfo(Path.Combine(Config.DotNetDirectory, "sdk"));
+            string sdkVersionPath = sdkDir.GetFiles(".version", SearchOption.AllDirectories).Single().FullName;
+            string sdkVersionFileContent = File.ReadAllText(Path.Combine(outputDir, sdkVersionPath));
+
+            Assert.Equal(sdkVersionFileContent, sbVersionFileContent);
+        }
+        finally
+        {
+            Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact(Skip = "A source-built artifacts path is required", SkipWhen = nameof(ExcludeSourceBuiltArtifactsTests))]
+    public void EnsureNoSymbolsNupkgs()
+    {
+        Assert.NotNull(Config.SourceBuiltArtifactsPath);
+
+        string outputDir = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName());
+        Directory.CreateDirectory(outputDir);
+        try
+        {
+            // Extract the .version file
+            Utilities.ExtractTarball(Config.SourceBuiltArtifactsPath, outputDir, OutputHelper);
+
+            string[] symbolsNupkgs = Directory.GetFiles(outputDir, "*.nupkg", SearchOption.AllDirectories)
+                .Where(file => file.ToLowerInvariant().Contains(".symbols."))
+                .ToArray();
+
+            if (symbolsNupkgs.Length > 0)
+            {
+                string message = $"Found symbols nupkgs in the source built artifacts: {Environment.NewLine}{string.Join(Environment.NewLine, symbolsNupkgs)}";
+                OutputHelper.WriteLine(message);
+            }
+
+            Assert.Empty(symbolsNupkgs);
+        }
+        finally
+        {
+            Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact(Skip = "A source-built artifacts path is required", SkipWhen = nameof(ExcludeSourceBuiltArtifactsTests))]
+    public void SourceBuiltTarballsHaveExpectedOwnership()
+    {
+        Assert.NotNull(Config.SourceBuiltArtifactsPath);
+
+        string artifactsDirectory = Path.GetDirectoryName(Config.SourceBuiltArtifactsPath)!;
+        string[] tarballPaths = Directory.GetFiles(artifactsDirectory, "*.tar.gz", SearchOption.AllDirectories);
+        Assert.NotEmpty(tarballPaths);
+
+        foreach (string tarballPath in tarballPaths)
+        {
+            using FileStream fileStream = File.OpenRead(tarballPath);
+            using GZipStream gzipStream = new(fileStream, CompressionMode.Decompress);
+            using TarReader reader = new(gzipStream);
+
+            TarEntry? entry;
+            while ((entry = reader.GetNextEntry()) is not null)
+            {
+                Assert.True(entry.Uid == 2001, $"{tarballPath}: {entry.Name} has UID {entry.Uid}, expected 2001.");
+                Assert.True(entry.Gid == 2001, $"{tarballPath}: {entry.Name} has GID {entry.Gid}, expected 2001.");
+            }
+        }
+    }
+}

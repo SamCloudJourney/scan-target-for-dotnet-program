@@ -1,0 +1,132 @@
+<Configuration>
+  <Import ConfigFile="Debugger.Tests.Common.txt" />
+  <DotNetRoot Condition="'$(DotNetRoot)' == ''">$(ArtifactsDir)/dotnet-test</DotNetRoot>
+  <Import ConfigFile="$(ArtifactsDir)/dotnet-test/Debugger.Tests.Versions.txt" />
+
+  <InstallDir Condition="'$(InstallDir)' == ''">$(ArtifactsDir)/bin/$(OS).$(TargetArchitecture).$(TargetConfiguration)</InstallDir>
+  <LogDir>$(ArtifactsDir)/TestResults/$(TargetConfiguration)/dbgshim.unittests_$(Timestamp)</LogDir>
+  <LogDir Condition="'$(HelixWorkItemUploadRoot)' != ''">$(HelixWorkItemUploadRoot)/dbgshim_$(Timestamp)</LogDir>
+
+  <TestProduct>ProjectK</TestProduct>
+  <DebuggeeSourceRoot>$(ArtifactsDir)/test/DebuggeeSources/DbgShim.UnitTests/Debuggees</DebuggeeSourceRoot>
+  <DebuggeeBuildProcess>sdk.prebuilt</DebuggeeBuildProcess>
+  <DebuggeeBuildRoot>$(ArtifactsDir)</DebuggeeBuildRoot>
+  <DebuggeeName>SimpleDebuggee</DebuggeeName>
+
+  <!-- Use the test runtime to run prebuilt debuggees -->
+  <CliPath>$(DotNetRoot)/dotnet</CliPath>
+
+  <!-- Run OpenVirtualProcess tests on Linux -->
+  <RunTestsLinux_x64>false</RunTestsLinux_x64>
+  <RunTestsLinux_x64 Condition="'$(OS)' == 'linux'">true</RunTestsLinux_x64>
+  <RunTestsLinux_x64 Condition="'$(TargetArchitecture)' != 'x64'">false</RunTestsLinux_x64>
+
+  <RunTestsLinux_arm64>false</RunTestsLinux_arm64>
+  <RunTestsLinux_arm64 Condition="'$(OS)' == 'linux'">true</RunTestsLinux_arm64>
+  <RunTestsLinux_arm64 Condition="'$(TargetArchitecture)' != 'arm64'">false</RunTestsLinux_arm64>
+
+  <TestSingleFile>true</TestSingleFile>
+  <TestSingleFile Condition="'$(PrivateBuildTesting)' == 'true'">false</TestSingleFile>
+
+  <Options>
+    <!-- Run OpenVirtualProcess tests on Linux -->
+    <Option>
+      <TestName>OpenVirtualProcess</TestName>
+      <RuntimeFrameworkVersion>$(RuntimeVersionLatest)</RuntimeFrameworkVersion>
+      <BuildProjectFramework>$(TargetFrameworkServicing2)</BuildProjectFramework>
+
+      <!-- Run OpenVirtualProcess tests on Linux x64 -->
+      <Options Condition="'$(RunTestsLinux_x64)' == 'true'">
+        <Option>
+          <DumpFile>$(Package_TestAssets_Linux_x64_6_0)/WebApp3/SOS.WebApp3.Heap.dmp</DumpFile>
+          <TestDataFile>$(Package_TestAssets_Linux_x64_6_0)/WebApp3/SOS.WebApp3.Heap.dmp.xml</TestDataFile>
+        </Option>
+      </Options>
+
+      <!-- Run OpenVirtualProcess tests on Linux arm64 -->
+      <Options Condition="'$(RunTestsLinux_arm64)' == 'true'">
+        <Option>
+          <DumpFile>$(Package_TestAssets_Linux_arm64_6_0)/WebApp3/SOS.WebApp3.Heap.dmp</DumpFile>
+          <TestDataFile>$(Package_TestAssets_Linux_arm64_6_0)/WebApp3/SOS.WebApp3.Heap.dmp.xml</TestDataFile>
+        </Option>
+      </Options>
+    </Option>
+
+    <!-- Run the rest of the tests on Linux/MacOS for all architectures -->
+    <Option>
+      <Options>
+        <!--
+            Prebuilt single-file debuggees
+         -->
+        <Option Condition="'$(TestSingleFile)' == 'true'">
+          <Options>
+            <Option Condition="'$(RuntimeVersionLatest)' != ''">
+              <PublishSingleFile>true</PublishSingleFile>
+              <BuildProjectRuntime>$(TargetRid)</BuildProjectRuntime>
+              <RuntimeFrameworkVersion>$(RuntimeVersionLatest)</RuntimeFrameworkVersion>
+              <BuildProjectFramework>$(TargetFrameworkLatest)</BuildProjectFramework>
+            </Option>
+            <Option Condition="'$(RuntimeVersionServicing1)' != ''">
+              <PublishSingleFile>true</PublishSingleFile>
+              <BuildProjectRuntime>$(TargetRid)</BuildProjectRuntime>
+              <RuntimeFrameworkVersion>$(RuntimeVersionServicing1)</RuntimeFrameworkVersion>
+              <BuildProjectFramework>$(TargetFrameworkServicing1)</BuildProjectFramework>
+            </Option>
+            <Option Condition="'$(RuntimeVersionServicing2)' != ''">
+              <PublishSingleFile>true</PublishSingleFile>
+              <BuildProjectRuntime>$(TargetRid)</BuildProjectRuntime>
+              <RuntimeFrameworkVersion>$(RuntimeVersionServicing2)</RuntimeFrameworkVersion>
+              <BuildProjectFramework>$(TargetFrameworkServicing2)</BuildProjectFramework>
+            </Option>
+            <Option Condition="'$(RuntimeVersionServicing3)' != ''">
+              <PublishSingleFile>true</PublishSingleFile>
+              <BuildProjectRuntime>$(TargetRid)</BuildProjectRuntime>
+              <RuntimeFrameworkVersion>$(RuntimeVersionServicing3)</RuntimeFrameworkVersion>
+              <BuildProjectFramework>$(TargetFrameworkServicing3)</BuildProjectFramework>
+            </Option>
+          </Options>
+        </Option>
+        <!--
+            Prebuilt framework-dependent debuggees
+          -->
+        <Option Condition="'$(RuntimeVersionLatest)' != ''">
+          <RuntimeFrameworkVersion>$(RuntimeVersionLatest)</RuntimeFrameworkVersion>
+          <BuildProjectFramework>$(TargetFrameworkLatest)</BuildProjectFramework>
+        </Option>
+        <Option Condition="'$(RuntimeVersionServicing1)' != ''">
+          <RuntimeFrameworkVersion>$(RuntimeVersionServicing1)</RuntimeFrameworkVersion>
+          <BuildProjectFramework>$(TargetFrameworkServicing1)</BuildProjectFramework>
+        </Option>
+        <Option Condition="'$(RuntimeVersionServicing2)' != ''">
+          <RuntimeFrameworkVersion>$(RuntimeVersionServicing2)</RuntimeFrameworkVersion>
+          <BuildProjectFramework>$(TargetFrameworkServicing2)</BuildProjectFramework>
+        </Option>
+        <Option Condition="'$(RuntimeVersionServicing3)' != ''">
+          <RuntimeFrameworkVersion>$(RuntimeVersionServicing3)</RuntimeFrameworkVersion>
+          <BuildProjectFramework>$(TargetFrameworkServicing3)</BuildProjectFramework>
+        </Option>
+      </Options>
+    </Option>
+  </Options>
+
+  <!-- Single-file debuggees don't need the host -->
+  <HostExe Condition="'$(PublishSingleFile)' != 'true'">$(DotNetRoot)/dotnet</HostExe>
+  <HostArgs Condition="'$(PublishSingleFile)' != 'true'">--fx-version $(RuntimeFrameworkVersion)</HostArgs>
+
+  <RuntimeModuleDir>$(DotNetRoot)/shared/Microsoft.NETCore.App/$(RuntimeFrameworkVersion)</RuntimeModuleDir>
+
+  <Options>
+    <Option Condition="'$(OS)' == 'linux'">
+      <DbgShimPath>$(InstallDir)/libdbgshim.so</DbgShimPath>
+      <RuntimeModulePath Condition="'$(RuntimeModuleDir)' != ''">$(RuntimeModuleDir)/libcoreclr.so</RuntimeModulePath>
+      <DbiModulePath Condition="'$(RuntimeModuleDir)' != ''">$(RuntimeModuleDir)/libmscordbi.so</DbiModulePath>
+      <DacModulePath Condition="'$(RuntimeModuleDir)' != ''">$(RuntimeModuleDir)/libmscordaccore.so</DacModulePath>
+    </Option>
+    <Option Condition="'$(OS)' == 'osx'">
+      <DbgShimPath>$(InstallDir)/libdbgshim.dylib</DbgShimPath>
+      <RuntimeModulePath Condition="'$(RuntimeModuleDir)' != ''">$(RuntimeModuleDir)/libcoreclr.dylib</RuntimeModulePath>
+      <DbiModulePath Condition="'$(RuntimeModuleDir)' != ''">$(RuntimeModuleDir)/libmscordbi.dylib</DbiModulePath>
+      <DacModulePath Condition="'$(RuntimeModuleDir)' != ''">$(RuntimeModuleDir)/libmscordaccore.dylib</DacModulePath>
+    </Option>
+  </Options>
+</Configuration>

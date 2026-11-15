@@ -1,0 +1,12 @@
+﻿<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <OutDirName>Tests\$(MSBuildProjectName)</OutDirName>
+    <TargetFramework>$(SdkTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.NET.TestFramework.MSTest\Microsoft.NET.TestFramework.MSTest.csproj" />
+  </ItemGroup>
+
+</Project>

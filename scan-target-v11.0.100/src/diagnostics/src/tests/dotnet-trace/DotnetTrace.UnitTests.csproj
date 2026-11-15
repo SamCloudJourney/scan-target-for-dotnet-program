@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsHelixTestProject>true</IsHelixTestProject>
+    <HelixIncludeDotNetTrace>true</HelixIncludeDotNetTrace>
+    <TargetFramework>$(NetCoreAppTestTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(SrcDir)Tools/dotnet-trace/dotnet-trace.csproj" />
+    <ProjectReference Include="$(TestDir)CommonTestRunner/CommonTestRunner.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\MockConsole.cs" Link="MockConsole.cs" />
+  </ItemGroup>
+
+  <Import Project="..\CommonTestRunner\HelixPayload.targets" />
+
+</Project>

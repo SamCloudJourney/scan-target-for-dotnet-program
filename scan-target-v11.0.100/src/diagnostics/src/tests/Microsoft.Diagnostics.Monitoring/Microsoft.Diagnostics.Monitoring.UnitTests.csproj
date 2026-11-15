@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsHelixTestProject>true</IsHelixTestProject>
+    <TargetFrameworks>$(SupportedXUnitTestTargetFrameworks)</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(SrcDir)/Microsoft.Diagnostics.Monitoring/Microsoft.Diagnostics.Monitoring.csproj" />
+    <ProjectReference Include="$(SrcDir)/Microsoft.Diagnostics.Monitoring.EventPipe/Microsoft.Diagnostics.Monitoring.EventPipe.csproj" />
+    <ProjectReference Include="$(SrcDir)/Microsoft.Diagnostics.NETCore.Client/Microsoft.Diagnostics.NETCore.Client.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Helix\Managed\HelixPayload.targets" Condition="'$(TargetRid)' == 'linux-x64'" />
+
+</Project>
