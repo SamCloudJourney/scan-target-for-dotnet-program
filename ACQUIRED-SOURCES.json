@@ -236,5 +236,17 @@
     "owner": "dotnet",
     "regular_files": 162,
     "archive_sha256": "b72e1c6f5fdc5fa74fc1b41c4ad8b3ccb6e1cb90b587454ba5993e840ef586ec"
+  },
+  {
+    "name": "NuGet.Client",
+    "kind": "workflow",
+    "ref": "dev",
+    "commit": "f8373784ef0a3aad530c1f398b093a0cf089ac1d",
+    "path": "workflow-snapshots/NuGet--NuGet.Client--dev--workflow",
+    "files": 15,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "NuGet",
+    "regular_files": 15,
+    "archive_sha256": "91fc1bb82a7f4d03caf400a0487cc1056b03277ac5aa0d82e3dc618253247ffa"
   }
 ]
