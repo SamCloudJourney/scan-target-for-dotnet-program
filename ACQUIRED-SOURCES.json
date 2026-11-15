@@ -50,5 +50,15 @@
     "path": "release-sources/dotnet-10.0.15/wpf",
     "regular_files": 7380,
     "archive_sha256": "713db051c864d14da6f2c8b9edb92f3361398bf6c9e1586d5532fbec030ccb78"
+  },
+  {
+    "owner": "dotnet",
+    "name": "winforms",
+    "kind": "release",
+    "ref": "v10.0.15",
+    "commit": "f3adc279ed152f9b88ec678218011168e90b0bdb",
+    "path": "release-sources/dotnet-10.0.15/winforms",
+    "regular_files": 6024,
+    "archive_sha256": "e14b41f3c19df92980005da27cf5a8af7e5dbe7f66220ce2869c996110e2a763"
   }
 ]
