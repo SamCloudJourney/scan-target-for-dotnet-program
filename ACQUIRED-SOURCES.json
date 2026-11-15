@@ -40,5 +40,15 @@
     "path": "release-sources/dotnet-10.0.15/efcore",
     "regular_files": 5965,
     "archive_sha256": "f57330616f536a9c9cc1d0e136268b4db4be84b31bd208693827a51e410ff8c8"
+  },
+  {
+    "owner": "dotnet",
+    "name": "wpf",
+    "kind": "release",
+    "ref": "v10.0.15",
+    "commit": "5961b581c906478ff6de63dc83090bbd4e9a5d9e",
+    "path": "release-sources/dotnet-10.0.15/wpf",
+    "regular_files": 7380,
+    "archive_sha256": "713db051c864d14da6f2c8b9edb92f3361398bf6c9e1586d5532fbec030ccb78"
   }
 ]
