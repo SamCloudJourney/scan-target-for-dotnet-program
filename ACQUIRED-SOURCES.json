@@ -140,5 +140,17 @@
     "owner": "dotnet",
     "regular_files": 18788,
     "archive_sha256": "bcd2b489d727684f1d16cb7881d80148a9272a50bb550585a30583e45c1990fe"
+  },
+  {
+    "name": "samples",
+    "kind": "samples",
+    "ref": "main",
+    "commit": "3810558800760fc39282cc939bac645735514209",
+    "path": "documentation-and-samples/dotnet--samples--main--samples",
+    "files": 7804,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 7804,
+    "archive_sha256": "3e700f760b051ebaed7ef1b1f417bf036de4cd4204cbeada1e950354a59c3b03"
   }
 ]
