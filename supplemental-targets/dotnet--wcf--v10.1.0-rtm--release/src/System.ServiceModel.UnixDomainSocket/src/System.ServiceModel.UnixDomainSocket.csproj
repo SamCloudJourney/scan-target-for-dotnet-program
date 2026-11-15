@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyVersion>$(WcfAssemblyVersion)</AssemblyVersion>
+    <StrongNameKeyId>Microsoft</StrongNameKeyId>
+    <AssemblyName>System.ServiceModel.UnixDomainSocket</AssemblyName>
+    <CLSCompliant>true</CLSCompliant>
+    <IsPackable>true</IsPackable>
+    <TargetFrameworks>$(DotNetVersion)</TargetFrameworks>
+    <IsShipping>$(Ship_WcfPackages)</IsShipping>
+    <PackageDescription>Provides the types that permit SOAP messages to be exchanged using Unix domain socket.</PackageDescription>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\System.ServiceModel.NetFramingBase\src\System.ServiceModel.NetFramingBase.csproj" />
+    <ProjectReference Include="..\..\System.ServiceModel.Primitives\src\System.ServiceModel.Primitives.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <GenerateSource>true</GenerateSource>
+      <ManifestResourceName>FxResources.$(AssemblyName).SR</ManifestResourceName>
+      <GenerateResourcesCodeAsConstants>false</GenerateResourcesCodeAsConstants>
+      <ClassName>System.SR</ClassName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

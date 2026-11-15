@@ -1,0 +1,136 @@
+<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="InstallDotNet;BuildProjects;Test">
+  <PropertyGroup>
+    <HelixSource Condition=" '$(RunAsPublic)' == 'true' ">pr/dotnet/wcf/$(BUILD_SOURCEBRANCH)/</HelixSource>
+    <HelixSource Condition=" '$(RunAsInternal)' == 'true' ">official/dotnet/wcf/$(BUILD_SOURCEBRANCH)/</HelixSource>
+    <HelixType>test/product/</HelixType>
+    <HelixBuild>$(BUILD_BUILDNUMBER)</HelixBuild>
+    <HelixBuild Condition="'$(HelixBuild)' == ''">123460.01</HelixBuild>
+
+    <!-- Read global.json so we know the version of the dotnet cli we need -->
+    <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
+    <DotNetCliPackageType>sdk</DotNetCliPackageType>
+    <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
+
+    <IncludeDotNetCli>true</IncludeDotNetCli>
+    <EnableAzurePipelinesReporter>true</EnableAzurePipelinesReporter>
+    <TestRunNamePrefix>$(AGENT_JOBNAME)</TestRunNamePrefix>
+    <EnableXUnitReporter>true</EnableXUnitReporter>
+  </PropertyGroup>
+  
+  <Target Name="InstallDotNet">
+    <ItemGroup>
+      <AdditionalDotNetPackage Include="10.0.2">
+        <PackageType>aspnetcore-runtime</PackageType>
+        <Channel>Current</Channel>
+      </AdditionalDotNetPackage>
+    </ItemGroup>
+  </Target>
+  
+  <Target Name="BuildProjects">
+    <MSBuild Targets="Restore;Publish" Projects="..\src\System.Private.ServiceModel\tools\SelfHostedCoreWcfService\SelfHostedCoreWCFService.csproj"/>
+  </Target>
+    
+  <ItemGroup>
+    <XUnitProject Include="..\src\System.Private.ServiceModel\tests\Scenarios\**\*.IntegrationTests.csproj">
+      <TargetFramework>$(XUnitPublishTargetFramework)</TargetFramework>
+    </XUnitProject>
+    <XUnitProject Include="..\src\System.ServiceModel.*\tests\*.Tests.csproj">
+      <TargetFramework>$(XUnitPublishTargetFramework)</TargetFramework>
+    </XUnitProject>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestJob)' == 'Windows' AND '$(RunAsPublic)' == 'true'" >
+    <HelixTargetQueue Include="windows.11.amd64.client.open" />
+    <HelixTargetQueue Include="windows.amd64.server2022.open" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestJob)' == 'Windows' AND '$(RunAsInternal)'" >
+    <HelixTargetQueue Include="windows.11.amd64.client" />
+    <HelixTargetQueue Include="(Debian.12.Amd64)Ubuntu.2204.Amd64@mcr.microsoft.com/dotnet-buildtools/prereqs:debian-12-helix-amd64" />
+    <HelixTargetQueue Include="(AzureLinux.3.0.Amd64)Ubuntu.2204.Amd64@mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-helix-amd64" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestJob)' == 'Linux'" >
+    <HelixTargetQueue Include="(Fedora.41.Amd64.Open)ubuntu.2204.amd64.open@mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-41-helix" /> 
+    <HelixTargetQueue Include="Ubuntu.2204.Amd64.Open" />
+    <HelixTargetQueue Include="(Debian.12.Amd64.Open)Ubuntu.2204.Amd64.Open@mcr.microsoft.com/dotnet-buildtools/prereqs:debian-12-helix-amd64" />
+    <HelixTargetQueue Include="(AzureLinux.3.0.Amd64.Open)Ubuntu.2204.Amd64.open@mcr.microsoft.com/dotnet-buildtools/prereqs:azurelinux-3.0-helix-amd64" />
+    <HelixTargetQueue Include="(openSUSE.15.6.Amd64.Open)Ubuntu.2204.Amd64.open@mcr.microsoft.com/dotnet-buildtools/prereqs:opensuse-15.6-helix-amd64" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestJob)' == 'MacOS'" >
+    <HelixTargetQueue Include="OSX.15.Amd64.Open" />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(RunAsPublic)' == 'true' ">
+    <IsExternal>true</IsExternal>
+    <Creator>$(BUILD_SOURCEVERSIONAUTHOR)</Creator>
+    <Creator Condition=" '$(Creator)' == ''">anon</Creator>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RunWithCoreWCFService Condition="'$(RunWithCoreWCFService)' == ''">false</RunWithCoreWCFService>
+    <ServiceHttpPort Condition="'$(ServiceHttpPort)' == ''">8081</ServiceHttpPort>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TestJob)' != 'Windows'" >
+    <HelixPreCommands>$(HelixPreCommands);chmod a+x $HELIX_CORRELATION_PAYLOAD/InstallRootCertificate.sh</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);sudo -E -n $HELIX_CORRELATION_PAYLOAD/InstallRootCertificate.sh --service-host $(ServiceHost) --cert-file /tmp/wcfrootca.crt</HelixPreCommands>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TestJob)' == 'Linux'" >
+    <!-- WCF tests have a dependency on RSA+SHA1 being enabled on Helix: https://github.com/dotnet/wcf/pull/5744#issuecomment-2702201438 -->
+    <HelixPreCommands>$(HelixPreCommands);export OPENSSL_ENABLE_SHA1_SIGNATURES=1</HelixPreCommands>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TestJob)' == 'MacOS'" >
+    <!-- Helix macOS workers run as the non-interactive 'helix-runner' user. The
+         existing login keychain (if any) has a password we do not know, which leaves
+         it locked and causes X509Store(My, CurrentUser).Open(ReadWrite) to fail with
+         errSecNoSuchKeychain / SecKeychainUnlock errors. Drop any pre-existing login
+         keychain and create a fresh one with an empty password so the test
+         infrastructure can install the client cert (dotnet/wcf#2870). -->
+    <HelixPreCommands>$(HelixPreCommands);security delete-keychain $HOME/Library/Keychains/login.keychain-db 2&gt;/dev/null || true</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);security create-keychain -p "" $HOME/Library/Keychains/login.keychain-db</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);security set-keychain-settings -lut 7200 $HOME/Library/Keychains/login.keychain-db</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);security unlock-keychain -p "" $HOME/Library/Keychains/login.keychain-db</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);security list-keychains -d user -s $HOME/Library/Keychains/login.keychain-db /Library/Keychains/System.keychain</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);security default-keychain -d user -s $HOME/Library/Keychains/login.keychain-db</HelixPreCommands>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TestJob)' == 'Windows' AND '$(RunWithCoreWCFService)' == 'true'">
+    <HelixPreCommands>$(HelixPreCommands);set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-cli%3B%PATH%</HelixPreCommands>
+    <!-- %3B is an escaped ; -->
+    <HelixPreCommands>$(HelixPreCommands);set DOTNET_ROOT=%HELIX_CORRELATION_PAYLOAD%\dotnet-cli;set DOTNET_CLI_TELEMETRY_OPTOUT=1</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);set DOTNET_CLI_HOME=%HELIX_WORKITEM_ROOT%\.dotnet</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\.nuget</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);set ServiceUri=localhost</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);set RunWithCoreWCF=true</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);%HELIX_CORRELATION_PAYLOAD%\SelfHostedCoreWCFService\$(Configuration)\net10.0\SelfHostedCoreWCFService httpPort:$(ServiceHttpPort) bootstrap:true</HelixPreCommands>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TestJob)' != 'Windows' AND '$(RunWithCoreWCFService)' == 'true'">
+    <HelixPreCommands>$(HelixPreCommands);export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-cli:$PATH</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);export DOTNET_ROOT=$HELIX_CORRELATION_PAYLOAD/dotnet-cli;export DOTNET_CLI_TELEMETRY_OPTOUT=1</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);export DOTNET_CLI_HOME=$HELIX_WORKITEM_ROOT/.dotnet</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/.nuget</HelixPreCommands>    
+    <HelixPreCommands>$(HelixPreCommands);export ServiceUri=localhost</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);export RunWithCoreWCF=true</HelixPreCommands>
+    <HelixPreCommands>$(HelixPreCommands);dotnet exec --roll-forward Major $HELIX_CORRELATION_PAYLOAD/SelfHostedCoreWCFService/$(Configuration)/net10.0/SelfHostedCoreWCFService.dll httpPort:$(ServiceHttpPort) bootstrap:true</HelixPreCommands>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Directory that is zipped up and sent as a correlation payload to Helix -->
+    <HelixCorrelationPayload Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\src\System.Private.ServiceModel\tools\scripts'))" >
+      <PayloadDirectory>%(Identity)</PayloadDirectory>
+    </HelixCorrelationPayload>
+	
+    <HelixCorrelationPayload Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\artifacts\bin\SelfHostedCoreWCFService'))" >
+      <Destination>SelfHostedCoreWCFService</Destination>
+    </HelixCorrelationPayload>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Language>msbuild</Language>
+  </PropertyGroup>
+</Project>

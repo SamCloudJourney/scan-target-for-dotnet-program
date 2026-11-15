@@ -1,0 +1,389 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+#if NET
+using System.Diagnostics;
+using System.Net;
+using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
+using CoreWCF.Channels;
+using CoreWCF.Configuration;
+using CoreWCF.Description;
+using idunno.Authentication.Basic;
+#else
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.ServiceModel;
+#endif
+
+namespace WcfService
+{
+    internal class TestDefinitionHelper
+    {
+        private static IDictionary<ServiceSchema, string> s_baseAddresses = null;
+        private const int DefaultHttpPort = 8081;
+        private const int DefaultHttpsPort = 44285;
+        private const int DefaultTcpPort = 8808;
+        private const int DefaultWebSocketPort = 8083;
+        private const int DefaultWebSocketSPort = 8084;
+
+        internal static IDictionary<ServiceSchema, string> BaseAddresses
+        {
+            get
+            {
+                if (s_baseAddresses == null)
+                {
+                    IDictionary<ServiceSchema, string> dict = new Dictionary<ServiceSchema, string>();
+                    var httpPort = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("httpPort")) ? DefaultHttpPort : int.Parse(Environment.GetEnvironmentVariable("httpPort"));
+                    dict[ServiceSchema.HTTP] = string.Format(@"http://localhost:{0}", httpPort);
+                    var httpsPort = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("httpsPort")) ? DefaultHttpsPort : int.Parse(Environment.GetEnvironmentVariable("httpsPort"));
+                    dict[ServiceSchema.HTTPS] = string.Format(@"https://localhost:{0}", httpsPort);
+                    var tcpPort = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("tcpPort")) ? DefaultTcpPort : int.Parse(Environment.GetEnvironmentVariable("tcpPort"));
+                    dict[ServiceSchema.NETTCP] = string.Format(@"net.tcp://localhost:{0}", tcpPort);
+                    var websocketPort = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("websocketPort")) ? DefaultWebSocketPort : int.Parse(Environment.GetEnvironmentVariable("websocketPort"));
+                    dict[ServiceSchema.WS] = string.Format(@"http://localhost:{0}", websocketPort);
+                    var websocketsPort = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("websocketsPort")) ? DefaultWebSocketSPort : int.Parse(Environment.GetEnvironmentVariable("websocketsPort"));
+                    dict[ServiceSchema.WSS] = string.Format(@"https://localhost:{0}", websocketsPort);
+
+                    s_baseAddresses = dict;
+                    dict[ServiceSchema.NETPIPE] = @"net.pipe://localhost";
+                    Console.WriteLine("Using base addresses:");
+                    foreach (var ba in dict.Values)
+                    {
+                        Console.WriteLine("\t" + ba);
+                    }
+                }
+
+                return s_baseAddresses;
+            }
+        }
+
+#if NET
+        internal class ServiceTestHostOptions
+        {
+            public List<Uri> serviceBaseAddresses = new List<Uri>();
+            public Dictionary<Enum, string> endpointBasePath = new Dictionary<Enum, string>();
+        }
+
+        internal static async Task<IHost> StartHosts(bool useWebSocket)
+        {
+            bool success = true;
+            Dictionary<string, ServiceTestHostOptions> serviceTestHostOptionsDict = new Dictionary<string, ServiceTestHostOptions>();
+            MultiCredentialServiceCredentials multiCreds = new MultiCredentialServiceCredentials();
+
+            // ASPDEPR004: Replace WebHostBuilder with WebApplicationBuilder
+            WebApplicationBuilder builder = WebApplication.CreateBuilder();
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.AddFilter("Default", LogLevel.Debug);
+            builder.Logging.AddFilter("Microsoft", LogLevel.Debug);
+            builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+            // Diagnostics for WebSocket close-handshake race on Helix Linux (issue #5818).
+            // Capture connection lifecycle, raw TCP byte counts + FIN/RST events, and
+            // WebSocket close-frame events in the SelfHostedCoreWCFService stdout so they
+            // surface in the Helix console log next to the test failure.
+            if (useWebSocket)
+            {
+                builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Trace);
+                builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel.Connections", LogLevel.Trace);
+                builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets", LogLevel.Trace);
+                builder.Logging.AddFilter("Microsoft.AspNetCore.WebSockets", LogLevel.Trace);
+                builder.Logging.AddFilter("CoreWCF", LogLevel.Trace);
+            }
+
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.AllowSynchronousIO = true;
+
+                if (useWebSocket)
+                {
+                    options.Listen(IPAddress.IPv6Any, new Uri(BaseAddresses[ServiceSchema.WS]).Port, listenOptions =>
+                    {
+                        listenOptions.Use(next => new WebSocketDiagnosticsConnectionMiddleware(next, "ws-http").OnConnectionAsync);
+                    });
+                    options.Listen(IPAddress.IPv6Any, new Uri(BaseAddresses[ServiceSchema.WSS]).Port, listenOptions =>
+                    {
+                        X509Certificate2 cert = TestHost.CertificateFromFriendlyName(StoreName.My, StoreLocation.LocalMachine, "WCF Bridge - Machine certificate generated by the CertificateManager");
+                        listenOptions.UseHttps(cert);
+                        listenOptions.Use(next => new WebSocketDiagnosticsConnectionMiddleware(next, "ws-https").OnConnectionAsync);
+
+                        if (Debugger.IsAttached)
+                        {
+                            listenOptions.UseConnectionLogging();
+                        }
+                    });
+                }
+                else
+                {
+                    options.Listen(IPAddress.IPv6Any, new Uri(BaseAddresses[ServiceSchema.HTTP]).Port);
+                    options.Listen(IPAddress.IPv6Any, new Uri(BaseAddresses[ServiceSchema.HTTPS]).Port, listenOptions =>
+                    {
+                        X509Certificate2 cert = TestHost.CertificateFromFriendlyName(StoreName.My, StoreLocation.LocalMachine, "WCF Bridge - Machine certificate generated by the CertificateManager");
+                        Debug.Assert(cert != null, "couldn't find the server certificate");
+
+                        listenOptions.UseHttps(cert);
+
+                        if (Debugger.IsAttached)
+                        {
+                            listenOptions.UseConnectionLogging();
+                        }
+                    });
+                }
+            });
+
+            if (!useWebSocket)
+            {
+                builder.WebHost.UseNetTcp(IPAddress.IPv6Any, new Uri(BaseAddresses[ServiceSchema.NETTCP]).Port);
+            }
+
+            builder.Services.AddAuthentication()
+                .AddDigest()
+                .AddBasic(options =>
+                {
+                    options.Realm = "Basic Authentication";
+                    options.Events = new BasicAuthenticationEvents
+                    {
+                        OnValidateCredentials = context =>
+                        {
+                            if (context.Username == context.Password)
+                            {
+                                Claim[] claims = new[]
+                                {
+                                    new Claim(ClaimTypes.NameIdentifier, context.Username, ClaimValueTypes.String, context.Options.ClaimsIssuer),
+                                    new Claim(ClaimTypes.Name, context.Username, ClaimValueTypes.String, context.Options.ClaimsIssuer)
+                                };
+
+                                context.Principal = new ClaimsPrincipal(new ClaimsIdentity(claims, context.Scheme.Name));
+                                context.Success();
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
+            builder.Services.AddServiceModelServices();
+            if (!useWebSocket)
+            {
+                builder.Services.AddServiceModelMetadata();
+            }
+            builder.Services.AddServiceModelWebServices()
+                .AddRouting()
+                .AddAuthorization();
+
+            WebApplication app = builder.Build();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+            ((IApplicationBuilder)app).UseServiceModel(serviceBuilder =>
+            {
+                foreach (Type serviceTestHost in GetAttributedServiceHostTypes())
+                {
+                    ServiceTestHostOptions serviceTestHostOptions = new ServiceTestHostOptions();
+                    foreach (TestServiceDefinitionAttribute attr in serviceTestHost.GetCustomAttributes(typeof(TestServiceDefinitionAttribute), false))
+                    {
+                        Uri serviceBaseAddress = null;
+                        try
+                        {
+                            foreach (Enum schema in Enum.GetValues(typeof(ServiceSchema)))
+                            {
+                                if (useWebSocket && !((ServiceSchema)schema == ServiceSchema.WS || (ServiceSchema)schema == ServiceSchema.WSS)) continue;
+                                if (!useWebSocket && ((ServiceSchema)schema == ServiceSchema.WS || (ServiceSchema)schema == ServiceSchema.WSS)) continue;
+
+                                if (attr.Schema.HasFlag(schema))
+                                {
+                                    serviceTestHostOptions.endpointBasePath.Add(schema, attr.BasePath);
+                                    serviceBaseAddress = new Uri(BaseAddresses[(ServiceSchema)schema]);
+                                    serviceTestHostOptions.serviceBaseAddresses.Add(serviceBaseAddress);
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            ConsoleColor bg = Console.BackgroundColor;
+                            ConsoleColor fg = Console.ForegroundColor;
+                            Console.BackgroundColor = ConsoleColor.Black;
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("Problem creating base address for servicehost type " + serviceTestHost.Name + " with schema " + attr.Schema + " and address " + (serviceBaseAddress == null ? string.Empty : serviceBaseAddress.ToString()));
+                            Console.WriteLine(e);
+                            Console.BackgroundColor = bg;
+                            Console.ForegroundColor = fg;
+                            success = false;
+                            break;
+                        }
+                    }
+
+                    serviceTestHostOptionsDict.Add(serviceTestHost.Name, serviceTestHostOptions);
+                    try
+                    {
+                        if (success)
+                        {
+                            string serviceHostTypeName = serviceTestHost.Name;
+                            if (serviceTestHostOptionsDict[serviceHostTypeName].serviceBaseAddresses.Count == 0)
+                                continue;
+
+                            ServiceHost serviceHost = (ServiceHost)Activator.CreateInstance(serviceTestHost, serviceTestHostOptionsDict[serviceHostTypeName].serviceBaseAddresses.ToArray());
+                            serviceBuilder.AddService(serviceHost.ServiceType, options =>
+                            {
+                                options.BaseAddresses.Clear();
+                                options.DebugBehavior.IncludeExceptionDetailInFaults = true;
+
+                                foreach (KeyValuePair<ServiceSchema, string> baseAddress in BaseAddresses)
+                                {
+                                    if (useWebSocket && !(baseAddress.Key == ServiceSchema.WS || baseAddress.Key == ServiceSchema.WSS)) continue;
+                                    if (!useWebSocket && (baseAddress.Key == ServiceSchema.WS || baseAddress.Key == ServiceSchema.WSS)) continue;
+
+                                    options.BaseAddresses.Add(new Uri(baseAddress.Value));
+                                }
+                            });
+
+                            foreach (var endpoint in serviceHost.Endpoints)
+                            {
+                                CustomBinding customBinding = new CustomBinding(endpoint.Binding);
+                                HttpTransportBindingElement htbe = customBinding.Elements.Find<HttpTransportBindingElement>();
+                                bool isWebsockets = htbe != null && htbe.WebSocketSettings.TransportUsage == WebSocketTransportUsage.Always;
+
+                                if (!useWebSocket && isWebsockets) continue;
+
+                                ServiceSchema schema = ServiceHostHelper.ToServiceSchema(endpoint.Binding.Scheme, useWebSocket);
+
+                                if (useWebSocket && !(schema == ServiceSchema.WS || schema == ServiceSchema.WSS)) continue;
+                                if (!useWebSocket && (schema == ServiceSchema.WS || schema == ServiceSchema.WSS)) continue;
+
+                                string basePath = serviceTestHostOptionsDict[serviceHostTypeName].endpointBasePath[schema];
+                                string endpointAddress = string.Format("{0}/{1}", basePath, endpoint.Address);
+                                serviceBuilder.AddServiceEndpoint(serviceHost.ServiceType, endpoint.ContractType, endpoint.Binding, new Uri(endpointAddress, UriKind.RelativeOrAbsolute), null);
+                            }
+
+                            serviceBuilder.ConfigureServiceHostBase(serviceHost.ServiceType, serviceHostBase =>
+                            {
+                                if (!useWebSocket)
+                                {
+                                    string localHostTypeName = serviceHostTypeName;
+                                    ServiceMetadataBehavior smb = serviceHostBase.Description.Behaviors.Find<ServiceMetadataBehavior>();
+                                    if (serviceTestHostOptionsDict[localHostTypeName].serviceBaseAddresses.Where(uri => uri.Scheme == Uri.UriSchemeHttps).Any())
+                                    {
+                                        smb.HttpsGetEnabled = true;
+                                    }
+
+                                    smb.HttpGetEnabled = true;
+                                }
+
+                                ServiceCredentials creds = serviceHostBase.Description.Behaviors.Find<ServiceCredentials>();
+                                if (creds != null)
+                                {
+                                    serviceHostBase.Description.Behaviors.Remove(creds);
+                                }
+                                serviceHostBase.Description.Behaviors.Add(multiCreds);
+                                serviceHost.ApplyConfig(serviceHostBase);
+                            });
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        ConsoleColor bg = Console.BackgroundColor;
+                        ConsoleColor fg = Console.ForegroundColor;
+                        Console.BackgroundColor = ConsoleColor.Black;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Problem starting servicehost type " + serviceTestHost.Name);
+                        Console.WriteLine(e);
+                        Console.BackgroundColor = bg;
+                        Console.ForegroundColor = fg;
+                    }
+                }
+            });
+
+            await app.StartAsync();
+            return app;
+        }
+        internal static IEnumerable<Type> GetAttributedServiceHostTypes()
+        {
+            var allTypes = typeof(TestDefinitionHelper).Assembly.GetTypes();
+            var serviceHostTypes = from t in allTypes where (typeof(ServiceHost).IsAssignableFrom(t)) select t;
+            return from sht in serviceHostTypes where (sht.GetCustomAttributes(typeof(TestServiceDefinitionAttribute), false).Length > 0) select sht;
+        }
+#else
+        internal static void StartHosts()
+        {
+            foreach (var sht in GetAttributedServiceHostTypes())
+            {
+                var serviceBaseAddresses = new List<Uri>();
+                bool success = true;
+                foreach(TestServiceDefinitionAttribute attr in sht.GetCustomAttributes(typeof(TestServiceDefinitionAttribute), false))
+                {
+                    Uri serviceBaseAddress = null;
+                    try
+                    {
+                        foreach (Enum schema in Enum.GetValues(typeof(ServiceSchema)))
+                        {
+                            if (attr.Schema.HasFlag(schema))
+                            {
+                                serviceBaseAddress = new Uri(string.Format("{0}/{1}", BaseAddresses[(ServiceSchema)schema], attr.BasePath));
+                                serviceBaseAddresses.Add(serviceBaseAddress);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        ConsoleColor bg = Console.BackgroundColor;
+                        ConsoleColor fg = Console.ForegroundColor;
+                        Console.BackgroundColor = ConsoleColor.Black;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Problem creating base address for servicehost type " + sht.Name + " with schema " + attr.Schema + " and address " + serviceBaseAddress == null ? string.Empty : serviceBaseAddress.ToString());
+                        Console.WriteLine(e);
+                        Console.BackgroundColor = bg;
+                        Console.ForegroundColor = fg;
+                        success = false;
+                        break;
+                    }
+                }
+
+                try
+                {
+                    if (success)
+                    {
+                        var serviceHost = (ServiceHostBase)Activator.CreateInstance(sht, serviceBaseAddresses.ToArray());
+                        serviceHost.Open();
+                        Console.Write("  {0} at ", sht.Name);
+                        bool first = true;
+                        foreach (var endpoint in serviceHost.Description.Endpoints)
+                        {
+                            if (endpoint.IsSystemEndpoint)
+                                continue;
+                            if(first)
+                                first = false;
+                            else
+                                Console.Write(", ");
+
+                            Console.Write(endpoint.Address);
+                        }
+                        Console.WriteLine();
+                    }
+                }
+                catch (Exception e)
+                {
+                    ConsoleColor bg = Console.BackgroundColor;
+                    ConsoleColor fg = Console.ForegroundColor;
+                    Console.BackgroundColor = ConsoleColor.Black;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Problem starting servicehost type " + sht.Name);
+                    Console.WriteLine(e);
+                    Console.BackgroundColor = bg;
+                    Console.ForegroundColor = fg;
+                }
+            }
+        }
+
+        internal static IEnumerable<Type> GetAttributedServiceHostTypes()
+        {
+            var allTypes = typeof(TestDefinitionHelper).Assembly.GetTypes();
+            var serviceHostTypes = from t in allTypes where (typeof(ServiceHostBase).IsAssignableFrom(t)) select t;
+            return from sht in serviceHostTypes where (sht.GetCustomAttributes(typeof(TestServiceDefinitionAttribute), false).Length > 0) select sht;
+        }
+#endif
+
+    }
+}

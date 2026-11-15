@@ -80,5 +80,17 @@
     "path": "release-sources/aspnetcore-2.3-servicing",
     "regular_files": 9398,
     "archive_sha256": "8cfb9c504f402b4fd9dc0db0ca80e77947e75c7ea9a1392045690533fc086e35"
+  },
+  {
+    "name": "wcf",
+    "kind": "release",
+    "ref": "v10.1.0-rtm",
+    "commit": "12702d51d9758687726bc4056729aeb58fbbf717",
+    "path": "supplemental-targets/dotnet--wcf--v10.1.0-rtm--release",
+    "files": 4163,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 4163,
+    "archive_sha256": "d934de1e08964d206baa55319cff2e644e298283519786bbaf8b08d951f0a73a"
   }
 ]

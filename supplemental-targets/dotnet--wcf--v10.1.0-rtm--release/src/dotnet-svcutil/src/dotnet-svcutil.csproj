@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyVersionFile>$(IntermediateOutputPath)\$(TargetFramework)\$(MSBuildProjectName).$(TargetFramework).version.cs</AssemblyVersionFile>
+  </PropertyGroup>
+
+  <!--Package Properties-->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IsShipping>$(Ship_SvcUtilPackages)</IsShipping>
+    <MajorVersion>8</MajorVersion>
+    <MinorVersion>0</MinorVersion>
+    <PatchVersion>0</PatchVersion>
+    <PreReleaseVersionLabel>rtm</PreReleaseVersionLabel>
+    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
+    <DotNetUseShippingVersions>true</DotNetUseShippingVersions>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <EnableXlfLocalization>true</EnableXlfLocalization>
+    <PackageReadmeFile>README-nuget.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <RootNamespace>Microsoft.Tools.ServiceModel.Svcutil</RootNamespace>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dotnet-svcutil</ToolCommandName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <Target Name="PackAdditonalDlls" AfterTargets="build">
+    <ItemGroup>
+      <TargetFrameworkItems Include="$(TargetFrameworks)" />
+    </ItemGroup>
+    <ItemGroup>
+      <TargetFrameworkItem Include="%(TargetFrameworkItems.Identity)">
+        <Tfx>%(TargetFrameworkItems.Identity)</Tfx>
+      </TargetFrameworkItem>
+    </ItemGroup>
+    <ItemGroup>      
+      <None Include="$([System.IO.Path]::GetFullPath('$(ArtifactsBinDir)\'))\Microsoft.Svcutil.NamedPipeMetadataImporter\$(Configuration)\net6.0\*.dll" Pack="true" PackagePath="tools\%(TargetFrameworkItem.Tfx)\any\net6.0"/>
+      <None Include="$([System.IO.Path]::GetFullPath('$(ArtifactsBinDir)\'))\Microsoft.Svcutil.NamedPipeMetadataImporter\$(Configuration)\net8.0\*.dll" Pack="true" PackagePath="tools\%(TargetFrameworkItem.Tfx)\any\net8.0"/>
+      <None Include="$([System.IO.Path]::GetFullPath('$(ArtifactsBinDir)\'))\Microsoft.Svcutil.NamedPipeMetadataImporter\$(Configuration)\net462\*.dll" Pack="true" PackagePath="tools\%(TargetFrameworkItem.Tfx)\any\net462"/>
+    </ItemGroup>
+  </Target>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\lib\src\dotnet-svcutil-lib.csproj" />
+    <None Include="README-nuget.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+</Project>

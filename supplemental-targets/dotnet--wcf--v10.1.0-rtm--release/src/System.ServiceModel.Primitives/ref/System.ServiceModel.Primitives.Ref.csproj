@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyVersion>$(WcfAssemblyVersion)</AssemblyVersion>
+    <StrongNameKeyId>Microsoft</StrongNameKeyId>
+    <TargetFrameworks>$(DotNetVersion);$(NetFrameworkVersion);netstandard2.0</TargetFrameworks>
+    <AssemblyName>System.ServiceModel.Primitives</AssemblyName>
+    <RootNamespace>System.ServiceModel</RootNamespace>
+    <CLSCompliant>true</CLSCompliant>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsShipping>$(Ship_WcfPackages)</IsShipping>
+    <IsShippingPackage>false</IsShippingPackage>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != '$(NetFrameworkVersion)'">
+    <Compile Include="System.ServiceModel.Primitives.netstandard.cs" />
+    <Compile Include="System.ServiceModel.Security.cs" />
+    <Compile Include="System.ServiceModel.Duplex.cs" />
+    <Compile Condition="'$(TargetFramework)' != 'netstandard2.0'" Include="System.ServiceModel.Primitives.Netcoreapp.cs" />
+    <None Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="System.ServiceModel.Primitives.Netcoreapp.cs" />
+    <None Include="NetFxTypeForwards.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != '$(NetFrameworkVersion)'">
+    <None Include="System.ServiceModel.Primitives.netstandard.cs" />
+    <None Include="System.ServiceModel.Security.cs" />
+    <None Include="System.ServiceModel.Duplex.cs" />
+    <None Include="System.ServiceModel.Primitives.Netcoreapp.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="System.Security.Principal.Windows" Version="$(SystemSecurityPrincipalWindowsPackageVersion)" />
+  </ItemGroup>
+</Project>

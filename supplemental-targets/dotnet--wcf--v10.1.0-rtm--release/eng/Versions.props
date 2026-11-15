@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Versioning specifications:  https://github.com/dotnet/arcade/blob/master/Documentation/CorePackages/Versioning.md -->
+  <PropertyGroup>
+    <ProductVersion>10.1.0</ProductVersion>
+    <MajorVersion>10</MajorVersion>
+    <MinorVersion>1</MinorVersion>
+    <PatchVersion>0</PatchVersion>
+    <WcfAssemblyVersion>10.1.0.0</WcfAssemblyVersion>
+    <PackageValidationBaselineVersion>10.0.652802</PackageValidationBaselineVersion>
+    <!-- To produce shipping versions in non-official builds, instead of default fixed dummy version number (42.42.42.42). -->
+    <DotNetUseShippingVersions>true</DotNetUseShippingVersions>
+    <!-- Keep a label for fixed patch versions; official releases use DotNetFinalVersionKind=release. -->
+    <PreReleaseVersionLabel>rtm</PreReleaseVersionLabel>
+    <PreReleaseVersionIteration>
+    </PreReleaseVersionIteration>
+    <!-- Opt-in repo features -->
+    <UsingToolIbcOptimization>true</UsingToolIbcOptimization>
+    <!-- Enabling this rule will cause build failures on undocumented public APIs. -->
+    <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
+  </PropertyGroup>
+  <!-- Arcade dependencies -->
+  <PropertyGroup>
+    <MicrosoftDotNetGenFacadesPackageVersion>12.0.0-beta.26505.2</MicrosoftDotNetGenFacadesPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>12.0.0-beta.26505.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetGenAPIPackageVersion>12.0.0-beta.26505.2</MicrosoftDotNetGenAPIPackageVersion>
+  </PropertyGroup>
+  <!-- Additional dependencies -->
+  <PropertyGroup>
+    <MicrosoftTargetingPackNETFrameworkv472PackageVersion>1.0.0</MicrosoftTargetingPackNETFrameworkv472PackageVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DotNetRuntimeRcVersion>10.0.0</DotNetRuntimeRcVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Needed by Infrastructure.Common.csproj -->
+    <MicrosoftDotNetPlatformAbstractionsPackageVersion>3.1.6</MicrosoftDotNetPlatformAbstractionsPackageVersion>
+    <!-- Used by System.ServiceModel.* projects -->
+    <SystemSecurityPrincipalWindowsPackageVersion>5.0.0</SystemSecurityPrincipalWindowsPackageVersion>
+    <MicrosoftExtensionsObjectPoolPackageVersion>10.0.13</MicrosoftExtensionsObjectPoolPackageVersion>
+    <SystemSecurityCryptographyXmlPackageVersion>10.0.13</SystemSecurityCryptographyXmlPackageVersion>
+    <MicrosoftIdentityModelProtocolsWsTrustPackageVersion>8.23.0</MicrosoftIdentityModelProtocolsWsTrustPackageVersion>
+    <XunitStaFactPackageVersion>1.2.46-alpha</XunitStaFactPackageVersion>
+    <BouncyCastleCryptodllPackageVersion>1.8.1</BouncyCastleCryptodllPackageVersion>
+    <MicrosoftCrankEventSourcesPackageVersion>0.1.0-alpha.20501.1</MicrosoftCrankEventSourcesPackageVersion>
+    <SystemRuntimeSerializationPrimitivesPackageVersion>4.3.0</SystemRuntimeSerializationPrimitivesPackageVersion>
+    <NewtonsoftJsonPackageVersion>13.0.3</NewtonsoftJsonPackageVersion>
+    <SystemReflectionDispatchProxyPackageVersion>4.7.1</SystemReflectionDispatchProxyPackageVersion>
+    <!-- Used by System.ServiceModel.Shim to add the Syndication api's to the shim -->
+    <SystemServiceModelSyndicationPackageVersion>$(DotNetRuntimeRcVersion)</SystemServiceModelSyndicationPackageVersion>
+    <!-- Keep IdentityModel dependencies aligned with WsTrust. -->
+    <MicrosoftIdentityModelTokensSamlPackageVersion>8.23.0</MicrosoftIdentityModelTokensSamlPackageVersion>
+    <MicrosoftIdentityModelXmlPackageVersion>8.23.0</MicrosoftIdentityModelXmlPackageVersion>
+  </PropertyGroup>
+  <!-- dotnet-svcutil-lib packages -->
+  <PropertyGroup>
+    <MicrosoftApplicationInsightsPackageVersion>2.20.0</MicrosoftApplicationInsightsPackageVersion>
+    <MicrosoftExtensionsDependencyModelPackageVersion>$(DotNetRuntimeRcVersion)</MicrosoftExtensionsDependencyModelPackageVersion>
+    <NuGetProjectModelPackageVersion>6.14.0</NuGetProjectModelPackageVersion>
+    <NuGetVersioningPackageVersion>6.14.0</NuGetVersioningPackageVersion>
+    <SystemReflectionEmitPackageVersion>4.7.0</SystemReflectionEmitPackageVersion>
+    <SystemReflectionEmitLightweightPackageVersion>4.7.0</SystemReflectionEmitLightweightPackageVersion>
+    <SystemRuntimeLoaderPackageVersion>4.3.0</SystemRuntimeLoaderPackageVersion>
+    <WCFClientPackageVersion Condition="'$(TargetFramework)' == 'net6.0'">6.2.0</WCFClientPackageVersion>
+    <WCFClientPackageVersion Condition="'$(TargetFramework)' == 'net8.0'">8.1.2</WCFClientPackageVersion>
+    <WCFClientPackageVersion Condition="'$(TargetFramework)' == 'net9.0'">8.1.2</WCFClientPackageVersion>
+    <!-- Change net10.0, netstandard2.0, and net462 to 10.0.0 once it's released -->
+    <WCFClientPackageVersion Condition="'$(TargetFramework)' == 'net10.0'">8.1.2</WCFClientPackageVersion>
+    <WCFClientPackageVersion Condition="'$(TargetFramework)' == 'netstandard2.0'">4.10.3</WCFClientPackageVersion>
+    <WCFClientPackageVersion Condition="'$(TargetFramework)' == 'net462'">4.10.3</WCFClientPackageVersion>
+    <SystemServiceModelNetTcpPackageVersion>$(WCFClientPackageVersion)</SystemServiceModelNetTcpPackageVersion>
+    <SystemServiceModelHttpPackageVersion>$(WCFClientPackageVersion)</SystemServiceModelHttpPackageVersion>
+    <SystemServiceModelPrimitivesPackageVersion>$(WCFClientPackageVersion)</SystemServiceModelPrimitivesPackageVersion>
+    <SystemServiceModelNetNamedPipePackageVersion>$(WCFClientPackageVersion)</SystemServiceModelNetNamedPipePackageVersion>
+    <SystemServiceModelUnixDomainSocketPackageVersion>$(WCFClientPackageVersion)</SystemServiceModelUnixDomainSocketPackageVersion>
+    <SystemServiceModelFederationPackageVersion>$(WCFClientPackageVersion)</SystemServiceModelFederationPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SystemFormatsAsn1PackageVersion>$(DotNetRuntimeRcVersion)</SystemFormatsAsn1PackageVersion>
+    <SystemTextJsonPackageVersion>$(DotNetRuntimeRcVersion)</SystemTextJsonPackageVersion>
+    <SystemTextEncodingsWebPackageVersion>$(DotNetRuntimeRcVersion)</SystemTextEncodingsWebPackageVersion>
+    <CoreWCFHttpPackageVersion>1.8.1</CoreWCFHttpPackageVersion>
+    <CoreWCFPrimitivesPackageVersion>1.8.1</CoreWCFPrimitivesPackageVersion>
+    <CoreWCFUnixDomainSocketPackageVersion>1.8.1</CoreWCFUnixDomainSocketPackageVersion>
+    <CoreWCFNetFramingBasePackageVersion>1.8.1</CoreWCFNetFramingBasePackageVersion>
+    <CoreWCFNetNamedPipePackageVersion>1.9.1</CoreWCFNetNamedPipePackageVersion>
+    <CoreWCFNetTcpPackageVersion>1.8.1</CoreWCFNetTcpPackageVersion>
+    <CoreWCFWebHttpPackageVersion>1.8.1</CoreWCFWebHttpPackageVersion>
+  </PropertyGroup>
+</Project>
