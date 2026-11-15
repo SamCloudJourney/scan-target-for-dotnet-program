@@ -1,0 +1,6 @@
+tools/net10.0/linux-musl-arm64/libsqlite3mc.so
+tools/net11.0/linux-musl-arm64/libsqlite3mc.so
+tools/net10.0/linux-musl-arm/libsqlite3mc.so
+tools/net11.0/linux-musl-arm/libsqlite3mc.so
+tools/net10.0/linux-musl-x64/libsqlite3mc.so
+tools/net11.0/linux-musl-x64/libsqlite3mc.so

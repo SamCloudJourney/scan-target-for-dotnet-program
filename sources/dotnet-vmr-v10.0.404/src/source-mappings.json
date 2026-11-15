@@ -1,0 +1,65 @@
+{
+  "defaults": {
+    "defaultRef": "main"
+  },
+  "thirdPartyNoticesTemplatePath": "eng/THIRD-PARTY-NOTICES.template.txt",
+  "mappings": [
+    {
+      "name": "arcade",
+      "defaultRemote": "https://github.com/dotnet/arcade"
+    },
+    {
+      "name": "diagnostics",
+      "defaultRemote": "https://github.com/dotnet/diagnostics"
+    },
+    {
+      "name": "fsharp",
+      "defaultRemote": "https://github.com/dotnet/fsharp"
+    },
+    {
+      "name": "msbuild",
+      "defaultRemote": "https://github.com/dotnet/msbuild"
+    },
+    {
+      "name": "nuget-client",
+      "defaultRemote": "https://github.com/NuGet/NuGet.Client",
+      "defaultRef": "dev"
+    },
+    {
+      "name": "roslyn",
+      "defaultRemote": "https://github.com/dotnet/roslyn",
+      "exclude": [
+        "src/Compilers/Test/Resources/Core/MetadataTests/Invalid/Obfuscated*.dll",
+        "src/Compilers/Test/Resources/Core/MetadataTests/Invalid/Signatures/SignatureCycle2.exe"
+      ]
+    },
+    {
+      "name": "scenario-tests",
+      "defaultRemote": "https://github.com/dotnet/scenario-tests"
+    },
+    {
+      "name": "sdk",
+      "defaultRemote": "https://github.com/dotnet/sdk"
+    },
+    {
+      "name": "source-build-assets",
+      "defaultRemote": "https://github.com/dotnet/source-build-assets"
+    },
+    {
+      "name": "sourcelink",
+      "defaultRemote": "https://github.com/dotnet/sourcelink"
+    },
+    {
+      "name": "templating",
+      "defaultRemote": "https://github.com/dotnet/templating"
+    },
+    {
+      "name": "vstest",
+      "defaultRemote": "https://github.com/microsoft/vstest",
+      "exclude": [
+        "src/package/licenses/LICENSE_VS.txt",
+        "test/Microsoft.TestPlatform.CoreUtilities.UnitTests/TestAssets/dotnetWinX86.exe"
+      ]
+    }
+  ]
+}

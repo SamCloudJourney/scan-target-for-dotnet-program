@@ -1,0 +1,2339 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../CliCommandStrings.resx">
+    <body>
+      <trans-unit id="Aborted">
+        <source>Aborted</source>
+        <target state="translated">Abandonné</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_FullTestsCount">
+        <source>{0} tests running</source>
+        <target state="translated">{0} tests en cours d’exécution</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_MoreTestsCount">
+        <source>and {0} more</source>
+        <target state="translated">et {0} de plus</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Actual">
+        <source>Actual</source>
+        <target state="translated">Réel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestPackageDoesNotExist">
+        <source>Advertising manifest not updated. Manifest package for {0} doesn't exist.</source>
+        <target state="translated">Manifeste de publicité non mis à jour. Le package de manifeste pour {0} n’existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestUpdated">
+        <source>Updated advertising manifest {0}.</source>
+        <target state="translated">{0} manifeste de publicité mis à jour.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalDeps">
+        <source>Path to additional deps.json file.</source>
+        <target state="translated">Chemin du fichier deps.json supplémentaire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalProbingPathDefinition">
+        <source>Path containing probing policy and assemblies to probe for.</source>
+        <target state="translated">Chemin contenant la stratégie de collecte et les assemblys à collecter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalTools">
+        <source>Additional commands from bundled tools:</source>
+        <target state="translated">Commandes supplémentaires d'outils groupés :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireWorkloadDeprecated">
+        <source>The Aspire workload is deprecated and no longer necessary. Aspire is now available as NuGet packages that you can add directly to your projects. For more information, see https://aka.ms/aspire/support-policy</source>
+        <target state="translated">La charge de travail Aspire est dépréciée et n’est plus nécessaire. Aspire est désormais disponible sous forme de packages NuGet que vous pouvez ajouter directement à vos projets. Pour plus d’informations, consultez https://aka.ms/aspire/support-policy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Authors">
+        <source>Authors</source>
+        <target state="translated">Auteurs</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="CmdTestNoTestProjectsFound">
+        <source>No test projects were found.</source>
+        <target state="translated">Désolé, aucun projet de test n’a été trouvé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceDescription">
+        <source>The device identifier to use for running the application.</source>
+        <target state="translated">L’identifiant de l’appareil à utiliser pour exécuter l’application.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceHelpName">
+        <source>DEVICE</source>
+        <target state="translated">APPAREIL</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionListDevicesDescription">
+        <source>List available devices for running the application.</source>
+        <target state="translated">Lister les appareils disponibles pour exécuter l’application.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildDefinition">
+        <source>Build a .NET project.</source>
+        <target state="translated">Générez un projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildRuntimeOptionDescription">
+        <source>The target runtime to build for.</source>
+        <target state="translated">Runtime cible pour lequel la génération est effectuée.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildServerDefinition">
+        <source>Interact with servers started by a build.</source>
+        <target state="translated">Interagissez avec les serveurs démarrés par une build.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BundleUpToDateMessage">
+        <source>Up to date.</source>
+        <target state="translated">À jour.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CacheMissingPackage">
+        <source>Package {0} version {1} doesn't exist in offline cache {2}.</source>
+        <target state="translated">La version du {0} de package {1} n’existe pas dans le cache hors connexion {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancelledLowercase">
+        <source>canceled</source>
+        <target state="translated">annulé</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancellingTestSession">
+        <source>Canceling the test session...</source>
+        <target state="translated">Annulation en cours de la session de test... Merci de patienter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotAnalyzeVSWorkloadBand">
+        <source>Workloads managed by Visual Studio must be uninstalled using the Visual Studio Installer. For the version of Visual Studio managing the SDK '{0}', we could not display workloads to uninstall. This is likely because '{0}' uses a different dotnet root path or custom user profile directory from the current running SDK.
+Paths searched: '{1}', '{2}'.</source>
+        <target state="translated">Les charges de travail gérées par Visual Studio doivent être désinstallées à l’aide du Visual Studio Installer. Pour la version de Visual Studio la gestion du SDK «{0}», nous n’avons pas pu afficher les charges de travail à désinstaller. Cela est probablement dû au fait que «{0}» utilise un chemin racine dotnet différent ou un répertoire de profil utilisateur personnalisé du Kit de développement logiciel (SDK) en cours d’exécution.
+Les chemins d’accès ont recherché : « {1} », « {2} ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineOptions">
+        <source>Cannot use the {0} and {1} options together.</source>
+        <target state="translated">Désolé, impossible d’utiliser les options {0} et {1} ensemble.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndRollback">
+        <source>Cannot use the {0} and {1} options together. If installing from a rollback file, remove {0}. Otherwise, remove {1}</source>
+        <target state="translated">Impossible d’utiliser les options {0} et {1} ensemble. Si vous installez à partir d’un fichier de restauration, supprimez {0}. Sinon, supprimez {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndVersion">
+        <source>Cannot use the {0} and {1} options together.  Remove one of the options.</source>
+        <target state="translated">Impossible d’utiliser les options {0} et {1} ensemble.  Supprimez l’une des options.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotFindCommandName">
+        <source>Cannot find a tool in the manifest file that has a command named '{0}'.</source>
+        <target state="translated">Outil introuvable dans le fichier manifeste comportant une commande nommée '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotMigrateSlnx">
+        <source>Only .sln files can be migrated to .slnx format.</source>
+        <target state="translated">Seuls les fichiers .sln peuvent être migrés vers le format .slnx.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionAndWorkloadIdsByComponent">
+        <source>Cannot specify a workload version using the --version option while also specifying versions to install using workload@version syntax.</source>
+        <target state="translated">Impossible de spécifier une version de charge de travail à l’aide de l’option --version tout en spécifiant également les versions à installer à l’aide de la syntaxe workload@version.</target>
+        <note>{Locked="--version"}</note>
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionOnCommandLineAndInGlobalJson">
+        <source>Cannot specify a particular workload version on the command line via --version or --from-history when there is already a version specified in global.json file {0}. To update the globally installed workload version, run the command outside of the path containing that global.json file or update the version specified in the global.json file and run "dotnet workload update."</source>
+        <target state="translated">Impossible de spécifier une version de charge de travail particulière sur la ligne de commande via --version ou --from-history lorsqu’une version est déjà spécifiée dans global.json fichier {0}. Pour mettre à jour la version de la charge de travail installée globalement, exécutez la commande en dehors du chemin contenant ce fichier global.json ou mettez à jour la version spécifiée dans le fichier global.json et exécutez « dotnet workload update »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotUseSkipManifestWithGlobalJsonWorkloadVersion">
+        <source>Cannot use the {0} option when workload version is specified in global.json.  Remove the {0} option, or remove the 'workloadVersion' element from {1}.</source>
+        <target state="translated">Impossible d’utiliser l’option {0} lorsque la version de la charge de travail est spécifiée dans global.json.  Supprimez l’option {0} ou supprimez l’élément « workloadVersion » de {1}.</target>
+        <note>{Locked="workloadVersion"} Locked={"global.json"}</note>
+      </trans-unit>
+      <trans-unit id="CapabilityExpressionEvaluator_Exception_InvalidExpression">
+        <source>Invalid expression, position: {0}.</source>
+        <target state="translated">Expression non valide, position : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckForUpdatedWorkloadManifests">
+        <source>Checking for updated workload version.</source>
+        <target state="translated">Vérification de la version mise à jour de la charge de travail.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanDefinition">
+        <source>Clean build outputs of a .NET project.</source>
+        <target state="translated">Nettoyez les sorties de build d'un projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsDirectoryNotFound">
+        <source>Warning: Artifacts directory does not exist: {0}</source>
+        <target state="translated">Avertissement – le répertoire d’artefacts n’existe pas : {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsErrorRemovingFolder">
+        <source>Error removing folder '{0}': {1}</source>
+        <target state="translated">Erreur lors de la suppression du dossier « {0} » : {1}</target>
+        <note>{0} is folder path. {1} is inner error message.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsScanning">
+        <source>Scanning for folders to remove in: {0}</source>
+        <target state="translated">Recherche des dossiers à supprimer dans : {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsTotalFoldersRemoved">
+        <source>Total folders removed: {0}</source>
+        <target state="translated">Nombre total de dossiers supprimés : {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsWouldRemoveFolders">
+        <source>Would remove folders: {0}</source>
+        <target state="translated">Supprimerait les dossiers : {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CmdDGFileException">
+        <source>Unable to create dependency graph file for project '{0}'. Cannot add package reference.</source>
+        <target state="translated">Impossible de créer le fichier de graphique de dépendance pour le projet '{0}'. Impossible d'ajouter la référence du package.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdDGFileIOException">
+        <source>Unable to generate a temporary file for project '{0}'. Cannot add package reference. Clear the temp directory and try again.</source>
+        <target state="translated">Impossible de générer un fichier temporaire pour le projet '{0}'. Impossible d'ajouter une référence de package. Effacez le répertoire temporaire et réessayez.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdHelpUsageTitle">
+        <source>Usage:</source>
+        <target state="translated">Utilisation :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidProjectFileExtensionErrorDescription">
+        <source>The provided project file has an invalid extension: {0}.</source>
+        <target state="translated">Le fichier de projet fourni a une extension non valide : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidSolutionFileExtensionErrorDescription">
+        <source>The provided solution file has an invalid extension: {0}.</source>
+        <target state="translated">Le fichier solution fourni a une extension non valide : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMSBuildProjectsPropertiesErrorDescription">
+        <source>Build failed with exit code: {0}.</source>
+        <target state="translated">Échec de la build avec le code de sortie : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleBuildPathOptionsErrorDescription">
+        <source>Specify either the project, solution, directory, or test modules option.</source>
+        <target state="translated">Spécifiez l'option des modules de projet, de solution, de répertoire ou de test.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleProjectOrSolutionFilesErrorDescription">
+        <source>Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
+        <target state="translated">Spécifiez le fichier projet ou le fichier solution à utiliser, car ce dossier en contient plusieurs.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoProjectOrSolutionFileErrorDescription">
+        <source>Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
+        <target state="translated">Spécifiez un fichier projet ou un fichier solution. Le répertoire de travail actuel ne contient aucun fichier projet ou fichier solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoTestModulesErrorDescription">
+        <source>No test modules found for the given test module pattern: {0} with root directory: {1}</source>
+        <target state="translated">Modules de test introuvables pour le modèle de module de test donné : {0} avec le répertoire racine : {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentDirectoryErrorDescription">
+        <source>The provided directory path does not exist: {0}.</source>
+        <target state="translated">Le chemin d’accès du répertoire fourni n’existe pas : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentFileErrorDescription">
+        <source>The provided file path does not exist: {0}.</source>
+        <target state="translated">Le chemin d’accès au fichier fourni n’existe pas : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentRootDirectoryErrorDescription">
+        <source>The provided root directory does not exist: {0}.</source>
+        <target state="translated">Le répertoire racine fourni n’existe pas : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdOptionCannotBeUsedWithTestModulesDescription">
+        <source>The options architecture, configuration, framework, operating system, and runtime cannot be used with '--test-modules' option.</source>
+        <target state="translated">L’architecture, la configuration, le framework, le système d’exploitation et le runtime des options ne peuvent pas être utilisés avec l’option « --test-modules ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedMessageRequestTypeException">
+        <source>Message Request type '{0}' is unsupported.</source>
+        <target state="translated">Le type de requête de message « {0} » n’est pas pris en charge.</target>
+        <note>{0} - message request type</note>
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedVSTestTestApplicationsDescription">
+        <source>global.json defines test runner to be Microsoft.Testing.Platform. All projects must use that test runner.
+The following test projects are using VSTest test runner:
+{0}
+
+See https://aka.ms/dotnet-test/mtp for more information.</source>
+        <target state="translated">global.json définit le test runner en tant que Microsoft.Testing.Platform. Tous les projets doivent utiliser ce test runner.
+Les projets de test suivants utilisent le test runner VSTest :
+{0}
+
+Pour découvrir plus d’informations, consultez https://aka.ms/dotnet-test/mtp.</target>
+        <note>{Locked="global.json"}{Locked="Microsoft.Testing.Platform"}
+{0} is one or more project names.</note>
+      </trans-unit>
+      <trans-unit id="Command">
+        <source>Command</source>
+        <target state="translated">Commande</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandDoesNotExist">
+        <source>Specified command '{0}' is not a valid SDK command. Specify a valid SDK command. For more information, run dotnet help.</source>
+        <target state="translated">La commande spécifiée '{0}' n'est pas une commande SDK valide. Spécifiez une commande SDK valide. Pour plus d'informations, exécutez dotnet help.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandFooter">
+        <source>The latest versions of .NET can be installed from https://aka.ms/dotnet-core-download. For more information about .NET lifecycles, see https://aka.ms/dotnet-core-support.</source>
+        <target state="translated">Les dernières versions de .NET peuvent être installées à partir de https://aka.ms/dotnet-core-download. Pour plus d'informations sur les cycles de vie de .NET, consultez https://aka.ms/dotnet-core-support.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Commands">
+        <source>SDK commands</source>
+        <target state="translated">Commandes du SDK</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandsMismatch">
+        <source>The command {0} specified in the tool manifest file is not contained in the package with Package Id {1}. The commands contained in the package are {2}.</source>
+        <target state="translated">La commande {0} spécifiée dans le fichier manifeste d'outils n'est pas contenue dans le package ayant l'ID de package {1}. Les commandes contenues dans le package sont {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptInvalidChoiceMessage">
+        <source>Please type '{0}' for yes or '{1}' for no.</source>
+        <target state="translated">Tapez « {0} » pour Oui ou « {1} » pour non.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptNoValue">
+        <source>n</source>
+        <target state="translated">n</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "no", ie to cancel the operation.</note>
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptYesValue">
+        <source>y</source>
+        <target state="translated">o</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "yes", ie to agree.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleIsAlreadyInBatchingMode">
+        <source>Console is already in batching mode.</source>
+        <target state="translated">La console est déjà en mode de traitement par lot.</target>
+        <note>Exception that is thrown when console is already collecting input into a batch (into a string builder), and code asks to enable batching mode again.</note>
+      </trans-unit>
+      <trans-unit id="CouldNotFindAProject">
+        <source>Couldn't find a project. Ensure that a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">Il n'existe aucun projet. Vérifiez qu'il existe un projet dans {0} ou passez le chemin au projet via {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Date">
+        <source>Date</source>
+        <target state="translated">Date</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadManifest">
+        <source>Uninstalling workload manifest {0} version {1}...</source>
+        <target state="translated">Désinstallation du manifeste de charge de travail {0} version {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadPack">
+        <source>Uninstalling workload pack {0} version {1}...</source>
+        <target state="translated">Désinstallation de la version {1} du pack {0} de charge de travail...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadSet">
+        <source>Deleting workload version {0}.</source>
+        <target state="translated">Suppression de la version de la charge de travail {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DepsFileDefinition">
+        <source>Path to &lt;application&gt;.deps.json file.</source>
+        <target state="translated">Chemin du fichier &lt;application&gt;.deps.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Description</source>
+        <target state="translated">Description</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DescriptionColumnName">
+        <source>Description</source>
+        <target state="translated">Description</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsDefinition">
+        <source>Create and manage development certificates.</source>
+        <target state="translated">Créez et gérez des certificats de développement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectoryAlreadyExists">
+        <source>The target directory already exists: '{0}'</source>
+        <target state="translated">Le répertoire cible existe déjà : « {0} »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DiscoveredTestsInAssembly">
+        <source>Discovered {0} tests in assembly</source>
+        <target state="translated">{0} tests découverts dans l’assembly</target>
+        <note>0 is count, the sentence is followed by the path of the assebly</note>
+      </trans-unit>
+      <trans-unit id="DiscoveringTestsFrom">
+        <source>Discovering tests from</source>
+        <target state="translated">Découverte des tests à partir de</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestIncompatibleHandshakeVersion">
+        <source>Supported protocol versions sent by Microsoft.Testing.Platform are '{0}'. The SDK supports '{1}', which is incompatible.</source>
+        <target state="translated">Les versions de protocole prises en charge envoyées par Microsoft.Testing.Platform sont « {0} ». Le Kit de développement logiciel (SDK) prend en charge « {1} », ce qui est incompatible.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestMismatchingExecutionId">
+        <source>Received 'ExecutionId' of value '{0}' for message '{1}' while the 'ExecutionId' received of the handshake message was '{2}'.</source>
+        <target state="translated">Réception d’un « ExecutionId » de valeur « {0} » pour le message « {1} », alors que « l’ExecutionId » reçu dans le message d’établissement d’une liaison était « {2} ».</target>
+        <note>{Locked="ExecutionId"}</note>
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureHasHandshake">
+        <source>Error disposing 'NamedPipeServer' corresponding to handshake:</source>
+        <target state="translated">Erreur lors de la suppression de « NamedPipeServer » correspondant à l’établissement d’une liaison :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureWithoutHandshake">
+        <source>Error disposing 'NamedPipeServer', and no handshake was found.</source>
+        <target state="translated">Erreur lors de la suppression de « NamedPipeServer » et aucun établissement d’une liaison n’a été trouvé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeOverlapping">
+        <source>'dotnet' unexpectedly received overlapping messages from the 'dotnet test' named pipe.</source>
+        <target state="translated">« dotnet » a reçu de manière inattendue des messages qui se chevauchent du canal nommé « dotnet test ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadingPackToCacheMessage">
+        <source>Downloading pack {0} version {1} to offline cache {2}...</source>
+        <target state="translated">Téléchargement de la version du pack d' {0} de la {1} sur le cache hors connexion {2}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Downloads">
+        <source>Downloads</source>
+        <target state="translated">Téléchargements</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DurationColon">
+        <source>duration:</source>
+        <target state="translated">durée :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorColon">
+        <source>error:</source>
+        <target state="translated">erreur :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorRunningTestModule">
+        <source>The following exception occurred when running the test module with RunCommand '{0}' and RunArguments '{1}':
+
+{2}</source>
+        <target state="translated">L’exception suivante s’est produite lors de l’exécution du module de test avec la commande RunCommand « {0} » et les arguments RunArguments « {1} » :
+
+{2}</target>
+        <note>{Locked="RunCommand"}{Locked="RunArguments"}
+{2} is the exception that occurred.</note>
+      </trans-unit>
+      <trans-unit id="Error_restore">
+        <source>Restore failed. Run `dotnet restore` for more details on the issue.</source>
+        <target state="translated">Échec de la restauration. Exécutez « dotnet restore » pour plus de détails sur le problème.</target>
+        <note>{Locked="dotnet restore"}</note>
+      </trans-unit>
+      <trans-unit id="ExecutionUsageDescription">
+        <source>Execute a .NET application.</source>
+        <target state="translated">Exécutez une application .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExitCode">
+        <source>Exit code</source>
+        <target state="translated">Code de sortie</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Expected">
+        <source>Expected</source>
+        <target state="translated">Attendu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedSingleManifest">
+        <source>Expected single manifest feature band and manifest folder in MSI from package {0}</source>
+        <target state="translated">Bande de fonctionnalités de manifeste unique et dossier manifeste attendus dans MSI à partir du package {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed">
+        <source>Failed</source>
+        <target state="translated">Échec</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedAdManifestUpdate">
+        <source>Failed to update the advertising manifest {0}: {1}.</source>
+        <target state="translated">Échec de la mise à jour du manifeste de publicité {0} : {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedColon">
+        <source>failed:</source>
+        <target state="translated">échec :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedLowercase">
+        <source>failed</source>
+        <target state="translated">échec</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToCreateToolShim">
+        <source>Failed to create shell shim for tool '{0}': {1}</source>
+        <target state="translated">Échec de création d'un shim d'environnement pour l'outil '{0}' : {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToExtractMsi">
+        <source>Failed to extract information from MSI: {0}</source>
+        <target state="translated">Échec de l’extraction des informations de MSI : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadManifest">
+        <source>Failed to install manifest {0} version {1}: {2}.</source>
+        <target state="translated">Impossible d'installer la {0} version de manifeste {1}: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadSet">
+        <source>Failed to install workload version {0}: {1}</source>
+        <target state="translated">Échec de l’installation de la version de charge de travail {0}: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRunTarget">
+        <source>Failed to restore workload for project {0}: Failed to run MSBuild Target _GetRequiredWorkloads.</source>
+        <target state="translated">Échec de la restauration de la charge de travail pour le projet {0} : échec de l’exécution du _GetRequiredWorkloads cible MSBuild.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToUninstallTool">
+        <source>Failed to uninstall tool '{0}': {1}</source>
+        <target state="translated">Échec de désinstallation de l'outil '{0}' : {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedWithErrors">
+        <source>failed with {0} error(s)</source>
+        <target state="translated">a échoué avec {0} erreur(s)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForTest">
+        <source>For test</source>
+        <target state="translated">Pour le test</target>
+        <note>is followed by test name</note>
+      </trans-unit>
+      <trans-unit id="FormatDefinition">
+        <source>Apply style preferences to a project or solution.</source>
+        <target state="translated">Appliquez les préférences de style à un projet ou une solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FromFile">
+        <source>from</source>
+        <target state="translated">à partir de</target>
+        <note>from followed by a file name to point to the file from which test is originating</note>
+      </trans-unit>
+      <trans-unit id="FsiDefinition">
+        <source>Start F# Interactive / execute F# scripts.</source>
+        <target state="translated">Démarrer F# Interactive / exécuter les scripts F#.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FxVersionDefinition">
+        <source>Version of the installed Shared Framework to use to run the application.</source>
+        <target state="translated">Version du framework partagé installé à utiliser pour exécuter l'application.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectingSdkFeatureBandsMessage">
+        <source>Garbage collecting for SDK feature band(s) {0}...</source>
+        <target state="translated">Nettoyage de la mémoire pour les bandes de fonctionnalités SDK {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectionFailed">
+        <source>Warning: Workload garbage collection failed with error: {0}.</source>
+        <target state="translated">AVERTISSEMENT : la charge de travail garbage collection a échoué avec l’erreur : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GlobalJsonVersion">
+        <source>Global.json Version</source>
+        <target state="translated">Global.json Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HandshakeFailuresHeader">
+        <source>Handshake failures:</source>
+        <target state="new">Handshake failures:</target>
+        <note>Section header printed at the end of a 'dotnet test' run when one or more test hosts failed to hand-shake with the SDK. Followed by per-assembly exit code, stdout and stderr.</note>
+      </trans-unit>
+      <trans-unit id="HelpDefinition">
+        <source>Opens the reference page in a browser for the specified command.</source>
+        <target state="translated">Ouvre la page de référence dans un navigateur pour la commande spécifiée.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpExtensionOptions">
+        <source>Extension Options:</source>
+        <target state="translated">Options d’extension :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionBelow">
+        <source>{0} is missing the option below</source>
+        <target state="translated">{0} n’a pas l’option ci-dessous</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionsBelow">
+        <source>{0} is missing the options below</source>
+        <target state="translated">{0} n’a pas les options ci-dessous</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionBelow">
+        <source>{0} are missing the option below</source>
+        <target state="translated">{0} n’ont pas l’option ci-dessous</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionsBelow">
+        <source>{0} are missing the options below</source>
+        <target state="translated">{0} n’ont pas les options ci-dessous</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpOptions">
+        <source>Options:</source>
+        <target state="translated">Options :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpPlatformOptions">
+        <source>Platform Options:</source>
+        <target state="translated">Options de plateforme :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableExtensionOptions">
+        <source>Unavailable extension options:</source>
+        <target state="translated">Options d’extension non disponibles :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableOptions">
+        <source>Unavailable options:</source>
+        <target state="translated">Options non disponibles :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpWaitingForOptionsAndExtensions">
+        <source>Waiting for options and extensions...</source>
+        <target state="translated">En attente d’options et d’extensions...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HostFxrCouldNotBeLoaded">
+        <source>Could not load hostfxr from '{0}'.</source>
+        <target state="translated">Impossible de charger hostfxr depuis '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Id">
+        <source>Id</source>
+        <target state="translated">ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IgnoredArgumentsMessage">
+        <source>The following arguments have been ignored : "{0}"</source>
+        <target state="translated">Les arguments suivants ont été ignorés : "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InProcessArtifactsProduced">
+        <source>In process file artifacts produced:</source>
+        <target state="translated">Artéfacts produits dans les dossiers en cours de traitement :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InadequatePermissions">
+        <source>Inadequate permissions. Run the command with elevated privileges.</source>
+        <target state="translated">Autorisations insuffisantes. Exécutez la commande avec des privilèges élevés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">L'option locale (--local), l'option globale (--global) et l'option de chemin d'outil (--tool-path) ne peuvent pas être utilisées simultanément. Spécifiez une seule des options : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingPackVersionMessage">
+        <source>Installing pack {0} version {1}...</source>
+        <target state="translated">Installation de la version {1} du pack {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloadManifest">
+        <source>Installing workload manifest {0} version {1}...</source>
+        <target state="translated">Installation de la version {1} du manifeste {0} de charge de travail...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloads">
+        <source>Installing workloads: {0}</source>
+        <target state="translated">Installation de la charge de travail : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InsufficientPrivilegeToStartServer">
+        <source>Insufficient privilege to start the server.</source>
+        <target state="translated">Privilèges insuffisants pour démarrer le serveur</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InternalLoopAsyncDidNotExitSuccessfullyErrorMessage">
+        <source>Method '{0}' did not exit successfully</source>
+        <target state="translated">La méthode « {0} » ne s’est pas arrêtée correctement</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidFilePath">
+        <source>The specified file must exist and have '.cs' file extension: '{0}'</source>
+        <target state="translated">Le fichier spécifié doit exister et avoir l'extension « .cs » : « {0} »</target>
+        <note>{Locked=".cs"}</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForFileBasedApp">
+        <source>Cannot specify option '{0}' when operating on a file-based app.</source>
+        <target state="translated">Nous ne pouvons pas spécifier l’option « {0} » lors de l’utilisation d’une application basée sur des fichiers.</target>
+        <note>{0} is an option name like '--source'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForStdin">
+        <source>Cannot specify option '{0}' when also using '-' to read the file from standard input.</source>
+        <target state="translated">Impossible de spécifier l’option « {0} » lorsque vous utilisez également '-' pour lire le fichier à partir de l’entrée standard.</target>
+        <note>{0} is an option name like '--no-build'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidToolConfiguration">
+        <source>The settings file in the tool's NuGet package is invalid: {0}</source>
+        <target state="translated">Le fichier de paramètres dans le package NuGet de l'outil n'est pas valide : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidVersionForWorkload">
+        <source>Error parsing version '{1}' for workload manifest ID '{0}'</source>
+        <target state="translated">Erreur lors de l’analyse de la version «{1}» pour l’ID de manifeste de charge de travail «{0}»</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LatestVersion">
+        <source>Latest Version</source>
+        <target state="translated">Dernière version</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="ListToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">L'option locale (--local), l'option globale (--global) et l'option de chemin d'outil (--tool-path) ne peuvent pas être utilisées simultanément. Spécifiez une seule des options : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalOptionDoesNotSupportFrameworkOption">
+        <source>The local option(--local) does not support the framework option (--framework).</source>
+        <target state="translated">L'option locale (--local) ne prend pas en charge l'option de framework (--framework).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolInstallationSucceeded">
+        <source>You can invoke the tool from this directory using the following commands: 'dotnet tool run {0}' or 'dotnet {0}'.
+Tool '{1}' (version '{2}') was successfully installed. Entry is added to the manifest file {3}.</source>
+        <target state="translated">Vous pouvez appeler l'outil à partir de ce répertoire à l'aide des commandes suivantes : 'dotnet tool run {0}' ou 'dotnet {0}'.
+L'outil '{1}' (version '{2}') a été correctement installé. L'entrée est ajoutée au fichier manifeste {3}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolsRestoreWasSuccessful">
+        <source>Restore was successful.</source>
+        <target state="translated">La restauration a réussi.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NoProjectFound">
+        <source>No project was found at the path: {0}.</source>
+        <target state="translated">Aucun projet n’a été trouvé dans le chemin d’accès : {0}.</target>
+        <note>{0} - the file path where project was expected to be found.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NotRestored">
+        <source>{0} is not restored.</source>
+        <target state="translated">{0} n’est pas restauré.</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluator_Error_NoTargetFramework">
+        <source>Project '{0}' is a SDK-style project, but does not specify the framework.</source>
+        <target state="translated">Project '{0}' est un projet de style de Kit de développement logiciel (SDK), mais ne spécifie pas le cadre.</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MaintenanceMessage">
+        <source>.NET {0} is going out of support soon.</source>
+        <target state="translated">.NET {0} ne sera bientôt plus pris en charge.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestFileColumn">
+        <source>Manifest</source>
+        <target state="translated">Manifeste</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestMsiNotFoundInNuGetPackage">
+        <source>Manifest MSI not found in NuGet package {0}</source>
+        <target state="translated">MSI de manifeste introuvable dans le package NuGet {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestPackageUrlNotResolved">
+        <source>Manifest package not resolved. Manifest package or URL for {0} doesn't exist.</source>
+        <target state="translated">Package de manifeste non résolu. Le package ou l’URL du manifeste pour {0} n’existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MinimumExpectedTestsPolicyViolation">
+        <source>Minimum expected tests policy violation, tests ran {0}, minimum expected {1}</source>
+        <target state="translated">Violation de stratégie de tests minimale attendue, tests exécutés {0}, minimum attendu {1}</target>
+        <note>{0}, {1} number of tests</note>
+      </trans-unit>
+      <trans-unit id="MismatchingHandshakeInfo">
+        <source>A new handshake '{0}' was received for the test application that doesn't match the previous handshake '{1}'.</source>
+        <target state="translated">Une nouvelle négociation « {0} » a été reçue pour l’application de test, qui ne correspond pas à l’établissement d’une liaison précédente « {1} ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingTestSessionEnd">
+        <source>A test session start event was received without a corresponding test session end.</source>
+        <target state="translated">Un événement de début de session de test a été reçu sans fin d’une session de test correspondante.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsBuildDefinition">
+        <source>Run Microsoft Build Engine (MSBuild) commands.</source>
+        <target state="translated">Exécutez des commandes MSBuild (Microsoft Build Engine).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressInstall">
+        <source>Installing {0} </source>
+        <target state="translated">Installation en cours de {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressRepair">
+        <source>Repairing {0} </source>
+        <target state="translated">Réparation de {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressUninstall">
+        <source>Removing {0} </source>
+        <target state="translated">Suppression de {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleProjectsEvaluationResult_Error">
+        <source>Multiple projects found: {0}.</source>
+        <target state="translated">Plusieurs projets trouvés : {0}</target>
+        <note>{0} - semi-colon separated list of path to projects found.</note>
+      </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="translated">Nom</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NeedNuGetInConfig">
+        <source>The 'dotnet tool search' command unconditionally accesses nuget.org to find tools, but it is not present in your nuget.config. Add it to run this command.
+    This can be done with this command:
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</source>
+        <target state="translated">La commande « dotnet tool search » accède de manière inconditionnelle à nuget.org pour trouver des outils, mais il n'est pas présent dans votre nuget.config. Ajoutez-le pour exécuter cette commande.
+    Cette opération peut être effectuée avec cette commande :
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</target>
+        <note>Do not translate 'dotnet tool search' or 'nuget.config'. Do not localize the last line at all.</note>
+      </trans-unit>
+      <trans-unit id="NewDefinition">
+        <source>Create a new .NET project or file.</source>
+        <target state="translated">Créez un fichier ou projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewFeatureBandMessage">
+        <source>Try out the newest .NET SDK features with .NET {0}.</source>
+        <target state="translated">Essayez les dernières fonctionnalités du kit SDK .NET avec .NET {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewPatchAvailableMessage">
+        <source>Patch {0} is available.</source>
+        <target state="translated">Le patch {0} est disponible.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewWorkloadSet">
+        <source>Installing workload version {0}.</source>
+        <target state="translated">Installation de la charge de travail {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseRunningJustCsc">
+        <source>Warning: Binary log option was specified but MSBuild will be skipped because running just csc is enough. Specify '--no-cache' to force full build.</source>
+        <target state="translated">Avertissement : l’option de journal binaire a été spécifiée, mais MSBuild sera ignoré, car l’exécution de csc est suffisante. Spécifiez « --no-cache » pour forcer le build complet.</target>
+        <note>{Locked="--no-cache"}{Locked="MSBuild"}{Locked="csc"}</note>
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseUpToDate">
+        <source>Warning: Binary log option was specified but build will be skipped because output is up to date. Specify '--no-cache' to force build.</source>
+        <target state="translated">Avertissement : l’option de journal binaire a été spécifiée, mais le build sera ignoré, car la sortie est à jour. Spécifiez « --no-cache » pour forcer le build.</target>
+        <note>{Locked="--no-cache"}</note>
+      </trans-unit>
+      <trans-unit id="NoHistoryFound">
+        <source>No workload history found</source>
+        <target state="translated">Aucun historique de charge de travail trouvé</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoManifestFileContainPackageId">
+        <source>Cannot find a manifest file that contains package id '{0}'.</source>
+        <target state="translated">Fichier manifeste contenant l'ID de package « {0} » introuvable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectsOrSolutions">
+        <source>A project or solution file could not be found in {0}. Specify a project or solution file to use.</source>
+        <target state="translated">Fichier projet ou solution introuvable dans {0}. Spécifiez un fichier projet ou solution à utiliser.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResult">
+        <source>Could not find any results.</source>
+        <target state="translated">Résultats introuvables.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithIdErrorMessage">
+        <source>No serializer registered with ID '{0}'</source>
+        <target state="translated">Aucun sérialiseur inscrit avec l’ID « {0} »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithTypeErrorMessage">
+        <source>No serializer registered with type '{0}'</source>
+        <target state="translated">Aucun sérialiseur inscrit avec le type « {0} »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoServersToShutdown">
+        <source>No build servers are running.</source>
+        <target state="translated">Aucun serveur de builds n'est en cours d'exécution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoToolsWereRestored">
+        <source>No tools were restored.</source>
+        <target state="translated">Aucun outil n'a été restauré.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTrustWithParentPID">
+        <source>Failed to establish a trust relationship with parent process ({0}).</source>
+        <target state="translated">Impossible d’établir une relation de confiance avec le processus parent ({0}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadHistoryRecords">
+        <source>Workload history records are created when when running an operation that modifies workloads like update or install. Cannot update from history until workload history records exist.</source>
+        <target state="translated">Les enregistrements d’historique des charges de travail sont créés lors de l’exécution d’une opération qui modifie des charges de travail telles que la mise à jour ou l’installation. Impossible de mettre à jour à partir de l’historique tant que les enregistrements d’historique de charge de travail n’existent pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadUpdateFound">
+        <source>No workload update found.</source>
+        <target state="translated">Aucune mise à jour de charge de travail trouvée.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadVersionsFound">
+        <source>No workload versions found for SDK feature band {0}.</source>
+        <target state="translated">Aucune version de charge de travail trouvée pour la bande de fonctionnalités du Kit de développement logiciel (SDK) {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsInstalledInfoWarning">
+        <source>There are no installed workloads to display.</source>
+        <target state="translated">Il n'y a aucune charge de travail installée à afficher.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToRepair">
+        <source>No workloads are installed, nothing to repair. Run `dotnet workload search` to find workloads to install.</source>
+        <target state="translated">Aucune charge de travail n’est installée, rien à réparer. Exécutez « recherche de charge de travail dotnet » pour trouver les charges de travail à installer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToUpdate">
+        <source>No workloads installed for this feature band. To update workloads installed with earlier SDK versions, include the --from-previous-sdk option.</source>
+        <target state="translated">Aucune charge de travail installée pour cette bande de fonctionnalités. Pour mettre à jour les charges de travail installées avec des versions antérieures du SDK, incluez l'option --from-previous-sdk.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NugetDefinition">
+        <source>Provides additional NuGet commands.</source>
+        <target state="translated">Fournit des commandes NuGet supplémentaires.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OSDoesNotSupportMsi">
+        <source>MSI installations are only supported on Windows.</source>
+        <target state="translated">Les installations MSI sont prises en charge uniquement sur Windows.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OnlyLocalOptionSupportManifestFileOption">
+        <source>Specifying the tool manifest option (--tool-manifest) is only valid with the local option (--local or the default).</source>
+        <target state="translated">La spécification de l'option de manifeste d'outils (--tool-manifest) est valide uniquement avec l'option locale (--local ou la valeur par défaut).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfProcessArtifactsProduced">
+        <source>Out of process file artifacts produced:</source>
+        <target state="translated">Artefacts de fichier hors processus produits :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfSupportMessage">
+        <source>.NET {0} is out of support.</source>
+        <target state="translated">.NET {0} n'est plus pris en charge.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackDefinition">
+        <source>Create a NuGet package.</source>
+        <target state="translated">Créez un package NuGet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageDefinition">
+        <source>Search for, add, remove, or list PackageReferences for a .NET project.</source>
+        <target state="translated">Recherchez, ajoutez, supprimez ou répertoriez des PackageReferences pour un projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageFailedToRestore">
+        <source>Package "{0}" failed to restore, due to {1}</source>
+        <target state="translated">Échec de la restauration du package "{0}". Raison : {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageId">
+        <source>Package ID</source>
+        <target state="translated">ID du package</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="PackageListFileNotFound">
+        <source>Could not find file or directory '{0}'.</source>
+        <target state="translated">Fichier ou répertoire '{0}' introuvable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageRemoveSpecifyExactlyOnePackageReference">
+        <source>Specify only one package reference to remove.</source>
+        <target state="translated">Spécifiez une seule référence de package à supprimer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionConclusion">
+        <source>Command names conflict. Command names are case insensitive.
+{0}</source>
+        <target state="translated">Conflit de noms de commandes. Les noms de commandes ne respectent pas la casse.
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionForOnePackage">
+        <source>A command "{0}" in package "{1}"</source>
+        <target state="translated">Une commande "{0}" dans le package "{1}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Passed">
+        <source>Passed</source>
+        <target state="translated">Réussite</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PassedLowercase">
+        <source>passed</source>
+        <target state="translated">réussite</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PathToApplicationDefinition">
+        <source>The path to an application .dll file to execute.</source>
+        <target state="translated">Chemin d'un fichier .dll d'application à exécuter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PendingReboot">
+        <source>The machine has a pending reboot. The workload operation will continue, but you may need to restart.</source>
+        <target state="translated">La machine a un redémarrage en attente. L'opération de charge de travail se poursuivra, mais vous devrez peut-être redémarrer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_BothInRootAndSolutionFolderSpecified">
+        <source>Add project reference to solution action is not configured correctly in the template.
+    The 'solutionFolder' and 'inRoot' cannot be used together; use only one of the options.</source>
+        <target state="translated">L’ajout d’une référence de projet à l’action de solution n’est pas configuré correctement dans le modèle.
+    « solutionFolder » et « inRoot » ne peuvent pas être utilisés ensemble; utilisez une seule des options.</target>
+        <note>do not translate: 'solutionFolder', 'inRoot'</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoProjectsToAdd">
+        <source>Add project reference to solution action is not configured correctly in the template. Unable to determine the project files to add.</source>
+        <target state="translated">L’ajout d’une référence de projet à l’action de solution n’est pas configuré correctement dans le modèle. Impossible de déterminer les fichiers de projet à ajouter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoSolutionFile">
+        <source>Unable to determine which solution file to add the reference to.</source>
+        <target state="translated">Impossible de déterminer le fichier solution auquel ajouter la référence.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed">
+        <source>Failed to add project(s) to the solution: {0}</source>
+        <target state="translated">Échec de l'ajout de projet(s) à la solution : {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed_NoReason">
+        <source>Failed to add project(s) to a solution file.</source>
+        <target state="translated">Échec de l’ajout du ou des projets à un fichier solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_InRoot_Running">
+        <source>Adding
+    project(s): {0}
+    in the root of solution file: {1}</source>
+        <target state="translated">Ajout de
+    un ou des projets :{0}
+    à la racine du fichier solution : {1}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Running">
+        <source>Adding
+    project(s): {0}
+    to solution file: {1}
+    solution folder: {2}</source>
+        <target state="translated">Ajout de
+    un ou des projets :{0}
+    au fichier de solution : {1}
+    Dossier de solution :{2}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file,
+{2} - the solution folder inside solution to add the projects to.</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Succeeded">
+        <source>Successfully added project(s) to a solution file.</source>
+        <target state="translated">Projet(s) ajouté(s) à un fichier solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference">
+        <source>Adding a package reference {0} to project file {1}:</source>
+        <target state="translated">Ajout d’une référence de package {0} au fichier projet {1} :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_Failed">
+        <source>Failed to add package reference: {0}</source>
+        <target state="translated">Échec de l'ajout de la référence du package : {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_WithVersion">
+        <source>Adding a package reference {0} (version: {1}) to project file {2}:</source>
+        <target state="translated">Ajout d’une référence de package {0} (version : {1}) au fichier projet {2} :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference">
+        <source>Adding a project reference {0} to project file {1}:</source>
+        <target state="translated">Ajout d’une référence de projet {0} au fichier projet {1} :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference_Failed">
+        <source>Failed to add project reference: {0}</source>
+        <target state="translated">Échec de l'ajout de la référence du projet : {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ActionMisconfigured">
+        <source>Add reference action is not configured correctly in the template.</source>
+        <target state="translated">L'action d'ajout d'une référence n'est pas configurée correctement dans le modèle.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_FrameworkNotSupported">
+        <source>Unable to automatically add the framework reference {0} to the project. Manually edit the project file to add it.</source>
+        <target state="translated">Impossible d’ajouter automatiquement la référence d’infrastructure {0} au projet. Modifiez manuellement le fichier projet pour l’ajouter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ProjFileListHeader">
+        <source>Project files found:</source>
+        <target state="translated">Fichiers projet trouvés :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnresolvedProjFile">
+        <source>Unable to determine which project file to add the reference to.</source>
+        <target state="translated">Impossible de déterminer le fichier projet auquel ajouter la référence.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnsupportedRefType">
+        <source>Adding reference type {0} is not supported.</source>
+        <target state="translated">L'ajout du type de référence {0} n'est pas pris en charge.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Failed">
+        <source>Failed to add a reference to the project file.</source>
+        <target state="translated">Échec de l’ajout d’une référence au fichier projet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Succeeded">
+        <source>Successfully added a reference to the project file.</source>
+        <target state="translated">Une référence au fichier projet a été ajoutée.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_FailedToDetermineProjectToRestore">
+        <source>Couldn't determine files to restore.</source>
+        <target state="translated">Impossible de déterminer les fichiers à restaurer.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_NoProjectsToRestore">
+        <source>No projects are configured to restore. Check primary outputs configuration in template.json.</source>
+        <target state="translated">Aucun projet n’est configuré pour la restauration. Vérifiez la configuration des sorties principales dans template.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Failed">
+        <source>Restore failed.</source>
+        <target state="translated">Échec de la restauration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_RestoreFailed">
+        <source>Failed to perform restore: {0}</source>
+        <target state="translated">Échec de la restauration : {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Running">
+        <source>Restoring {0}:</source>
+        <target state="translated">Restauration de {0} :</target>
+        <note>{0} - path to a project to restore</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Succeeded">
+        <source>Restore succeeded.</source>
+        <target state="translated">Restauration réussie.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PrereleaseAndVersionAreNotSupportedAtTheSameTime">
+        <source>The --prerelease and --version options are not supported in the same command</source>
+        <target state="translated">Les options --prerelease et --version ne sont pas prises en charge dans la même commande.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_EvaluationFailed">
+        <source>Failed to create constraint '{0}': failed to evaluate the project: {1}</source>
+        <target state="translated">Nous n’avons pas pu créer la contrainte '{0}' : échec de l’évaluation du projet : {1}.</target>
+        <note>{0} - type of constraint (non-localizable), {1} - localized reason why evaluation failed, ends with period.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_NoEvaluator">
+        <source>Failed to create constraint '{0}': {1} component is not available.</source>
+        <target state="translated">Nous n’avons pas pu créer la '{0}' de contrainte : {1} le composant n’est pas disponible.</target>
+        <note>{0} - type of constraint (non-localizable), {1} - name of required component (non-localizable).</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_DisplayName">
+        <source>Project capabilities</source>
+        <target state="translated">Fonctionnalités de projet</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldBeString">
+        <source>argument should be a string</source>
+        <target state="translated">l’argument doit être une chaîne.</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldNotBeEmpty">
+        <source>arguments should not contain empty values</source>
+        <target state="translated">les arguments ne doivent pas contenir de valeurs vides.</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidConstraintConfiguration">
+        <source>Invalid constraint configuration</source>
+        <target state="translated">Configuration de contrainte non valide</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidJson">
+        <source>invalid JSON</source>
+        <target state="translated">JSON non valide</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_EvaluationFailed_Message">
+        <source>Failed to evaluate project context: {0}</source>
+        <target state="translated">Nous n’avons pas pu évaluer le contexte du projet : {0}.</target>
+        <note>{0} - failure reason</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_Message">
+        <source>The template needs project capability '{0}', and current project ({1}) does not satisfy it.</source>
+        <target state="translated">Le modèle a besoin d’une fonctionnalité de projet '{0}', et le projet actuel ({1}) ne le satisfait pas.</target>
+        <note>{0} - project capability expression (non-localizable), {1} - path to the project.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_MultipleProjectsFound_CTA">
+        <source>Specify the project to use using {0} option.</source>
+        <target state="translated">Spécifiez le projet à utiliser à l’aide de {0} option.</target>
+        <note>{0} - option to use - non localizable</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NoProjectFound_CTA">
+        <source>This template can only be created inside the project.</source>
+        <target state="translated">Ce modèle ne peut être créé qu’à l’intérieur du projet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NonSDKStyle_Message">
+        <source>The project {0} is not an SDK style project, and is not supported for evaluation. It is only possible to use this template with SDK-style projects.</source>
+        <target state="translated">Le projet {0} n’est pas un projet de style SDK et n’est pas pris en charge pour l’évaluation. Ce modèle ne peut être utilisé qu’avec des projets de style SDK.</target>
+        <note>{0} - path to the project</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NotRestored_CTA">
+        <source>Run 'dotnet restore {0}' to restore the project.</source>
+        <target state="translated">Exécutez « dotnet restore {0} » pour restaurer le projet.</target>
+        <note>{Locked="dotnet restore {0}"}</note>
+      </trans-unit>
+      <trans-unit id="ProjectContextSymbolSource_DisplayName">
+        <source>Project context</source>
+        <target state="translated">Contexte du projet</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskDeleteSource">
+        <source>Delete all source files after conversion?</source>
+        <target state="translated">Supprimer tous les fichiers sources après la conversion ?</target>
+        <note>Asking whether to irreversibly delete the entry point file and all files included via #:include directives and default item globbing.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskForOutputDirectory">
+        <source>Specify the output directory (press Enter for default: '{0}', directory must not exist):</source>
+        <target state="translated">Spécifiez le répertoire de sortie (appuyez sur Entrée pour utiliser la valeur par défaut : « {0} », le répertoire ne doit pas exister) :</target>
+        <note>{0} is the default value</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceNo">
+        <source>No - keep all source files</source>
+        <target state="translated">Non - conservez tous les fichiers sources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceYes">
+        <source>Yes - delete all source files</source>
+        <target state="translated">Oui - supprimer tous les fichiers sources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeletedSourceFile">
+        <source>Deleted source file: {0}</source>
+        <target state="translated">Fichier source supprimé : {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDuplicateRefFolderName">
+        <source>Multiple referenced files would be converted into the same directory: '{0}'</source>
+        <target state="translated">Plusieurs fichiers référencés seraient convertis dans le même dossier : « {0} »</target>
+        <note>{0} is the target directory path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldConvertFile">
+        <source>Dry run: would remove file-level directives from file: {0}</source>
+        <target state="translated">Test à blanc : supprimerait les directives de niveau fichier du fichier : {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCopyFile">
+        <source>Dry run: would copy file '{0}' to '{1}'.</source>
+        <target state="translated">Test à blanc : copierait le fichier « {0} » vers « {1} ».</target>
+        <note>{0} and {1} are file full paths.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateDirectory">
+        <source>Dry run: would create directory: {0}</source>
+        <target state="translated">Test à blanc : création du répertoire : {0}</target>
+        <note>{0} is the directory full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateFile">
+        <source>Dry run: would create file: {0}</source>
+        <target state="translated">Test à blanc : création du fichier : {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldDeleteSourceFile">
+        <source>Dry run: would delete source file: {0}</source>
+        <target state="translated">Simulation : supprimerait le fichier source : {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectsHeader">
+        <source>Project(s)</source>
+        <target state="translated">Projet(s)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishDefinition">
+        <source>Publish a .NET project for deployment.</source>
+        <target state="translated">Publiez un projet .NET à des fins de déploiement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReferenceDefinition">
+        <source>Add, remove, or list ProjectReferences for a .NET project.</source>
+        <target state="translated">Ajoutez, supprimez ou répertoriez des ProjectReferences pour un projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReleasesLibraryFailed">
+        <source>Unable to get releases information: {0}</source>
+        <target state="translated">Impossible d'obtenir les informations sur les versions : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovingWorkloadInstallationRecord">
+        <source>Removing workload installation record for {0}...</source>
+        <target state="translated">Suppression de l’enregistrement d’installation de charge de travail pour {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairSucceeded">
+        <source>Successfully repaired workloads: {0}</source>
+        <target state="translated">Les charges de travail ont été réparés : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairingWorkloads">
+        <source>Repairing workload installation for workloads: {0}</source>
+        <target state="translated">Réparation de l’installation de la charge de travail pour les charges de travail : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiresWindows">
+        <source>This command can only be run on Windows</source>
+        <target state="translated">Cette commande ne peut être exécutée que sur Windows.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreDefinition">
+        <source>Restore dependencies specified in a .NET project.</source>
+        <target state="translated">Restaurez les dépendances spécifiées dans un projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreFailed">
+        <source>Restore failed.</source>
+        <target state="translated">Échec de la restauration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreNewVersionAvailable">
+        <source>A newer version of tool '{0}' is available (version '{1}'). Consider updating your manifest file.</source>
+        <target state="translated">Une version plus récente de l’outil « {0} » est disponible (version « {1} »). Pensez à mettre à jour votre fichier manifeste.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestorePartiallyFailed">
+        <source>Restore partially failed.</source>
+        <target state="translated">Échec partiel de la restauration.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreSuccessful">
+        <source>Tool '{0}' (version '{1}') was restored. Available commands: {2}</source>
+        <target state="translated">L'outil '{0}' (version '{1}') a été restauré. Commandes disponibles : {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Retried">
+        <source>retried</source>
+        <target state="translated">réessayé</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollForwardDefinition">
+        <source>Roll forward to framework version  (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).</source>
+        <target state="translated">Restaurer par progression la version du framework (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionContainsExtraneousManifestIds">
+        <source>Invalid rollback definition. The manifest IDs in rollback definition {0} do not match installed manifest IDs {1}.</source>
+        <target state="translated">Définition de restauration non valide. Les ID de manifeste dans la définition de restauration {0} ne correspondent pas aux ID de manifeste installés {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionFileDoesNotExist">
+        <source>Provided rollback definition file {0} doesn't exist.</source>
+        <target state="translated">Le {0} du fichier de définition de restauration fourni n’existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollingBackPackInstall">
+        <source>Rolling back pack {0} installation...</source>
+        <target state="translated">Annulation de l'installation {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableDevices">
+        <source>Available devices:</source>
+        <target state="translated">Appareils disponibles :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableTargetFrameworks">
+        <source>Available target frameworks:</source>
+        <target state="translated">Frameworks cibles disponibles :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandBuilding">
+        <source>Building...</source>
+        <target state="translated">Génération...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandDeployFailed">
+        <source>Deployment to device failed. Fix any deployment errors and run again.</source>
+        <target state="translated">Désolé... Nous n’avons pas pu procéder au déploiement de l’appareil. Corrigez les erreurs de déploiement et relancez l’exécution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandEvaluationExceptionBuildFailed">
+        <source>Running the {0} target to discover run commands failed for this project. Fix the errors and warnings and run again.</source>
+        <target state="translated">L’exécution de la {0} cible pour découvrir les commandes d’exécution a échoué pour ce projet. Corrigez les erreurs et les avertissements, puis réexécutez.</target>
+        <note>{0} is the name of an MSBuild target</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExampleText">
+        <source>Example</source>
+        <target state="translated">Exemple</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandException">
+        <source>The build failed. Fix the build errors and run again.</source>
+        <target state="translated">La build a échoué. Corrigez les erreurs de la build et réexécutez-la.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotApplyLaunchSettings">
+        <source>The launch profile "{0}" could not be applied.
+{1}</source>
+        <target state="translated">Impossible d'appliquer le profil de lancement "{0}".
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">Impossible d’utiliser le profil de lancement « {0} », car le fichier de paramètres de lancement est introuvable. Emplacements essayés : 
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionMultipleProjects">
+        <source>Specify which project file to use because {0} contains more than one project file.</source>
+        <target state="translated">Spécifiez le fichier projet à utiliser, car {0} contient plusieurs fichiers projet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionNoProjects">
+        <source>Couldn't find a project to run. Ensure a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">Il n'existe aucun projet à exécuter. Vérifiez qu'il existe un projet dans {0} ou passez le chemin au projet via {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRun">
+        <source>Unable to proceed with project '{0}'.
+Ensure you have a runnable project type.
+A runnable project should target a runnable TFM (for instance, net{1}) and have OutputType 'Exe'.
+The current OutputType is '{2}'.</source>
+        <target state="translated">Impossible de continuer avec le projet « {0} ».
+Vérifiez que vous avez un type de projet exécutable.
+Un projet exécutable doit cibler un TFM exécutable (par exemple, net{1}) et avoir OutputType « Exe ».
+Le type de sortie actuel (OutputType) est « {2} ».</target>
+        <note>{0} is project file path. {1} is dotnet framework version. {2} is the project output type.{Locked="OutputType"}{Locked="Exe"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyDevice">
+        <source>Unable to run this project because multiple devices are available. Please specify which device to use by passing the {0} argument with one of the following values:</source>
+        <target state="translated">Impossible d’exécuter ce projet, car plusieurs appareils sont disponibles. Veuillez spécifier l’appareil à utiliser en passant l’argument {0} avec l’une des valeurs suivantes :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyFramework">
+        <source>Unable to run your project
+Your project targets multiple frameworks. Specify which framework to run using '{0}'.</source>
+        <target state="translated">Impossible d'exécuter votre projet
+Votre projet cible plusieurs frameworks. Spécifiez le framework à exécuter à l'aide de '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreDevicesText">
+        <source>Move up and down to reveal more devices</source>
+        <target state="translated">Montez et descendez pour afficher plus d’appareils</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreFrameworksText">
+        <source>Move up and down to reveal more frameworks</source>
+        <target state="translated">Montez et descendez pour afficher plus de frameworks</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandNoDevicesAvailable">
+        <source>No devices are available for this project.</source>
+        <target state="translated">Désolé, aucun appareil n’est disponible pour ce projet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandProjectAbbreviationDeprecated">
+        <source>Warning NETSDK1174: The abbreviation of -p for --project is deprecated. Please use --project.</source>
+        <target state="translated">AVERTISSEMENT NETSDK1174 : l’abréviation de-p pour--project est déconseillée. Veuillez utiliser--project.</target>
+        <note>{Locked="--project"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandSearchPlaceholderText">
+        <source>Type to search</source>
+        <target state="translated">Entrer le texte à rechercher</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectDevicePrompt">
+        <source>Select a device to run on:</source>
+        <target state="translated">Sélectionnez un appareil sur lequel exécuter :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectTargetFrameworkPrompt">
+        <source>Select the target framework to run:</source>
+        <target state="translated">Sélectionner le framework cible pour exécuter :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSpecifiedFileIsNotAValidProject">
+        <source>'{0}' is not a valid project file.</source>
+        <target state="translated">'{0}' n'est pas un fichier projet valide.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningCsFileArgumentPassedToProject">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was passed as an argument to the project '{1}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">Avertissement : « {0} » ressemble à une application basée sur un fichier, mais le fichier est introuvable et il a été passé en tant qu’argument au projet « {1} ». Pour le passer en tant qu’argument d’application, utilisez « dotnet run -- {0} » afin de supprimer cet avertissement.</target>
+        <note>{0} is the .cs file path argument. {1} is the project file path.{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningFileArgumentPassedToProject">
+        <source>Warning: '{0}' appears to be a file-based app but was passed as an argument to the project '{1}'. To run it as a file-based app, use 'dotnet run --file {0}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">Avertissement : « {0} » semble être une application basée sur un fichier, mais elle a été transmise en tant qu’argument au projet « {1} ». Pour l’exécuter en tant qu’application basée sur un fichier, utilisez « dotnet run --file {0} ». Pour le passer en tant qu’argument d’application, utilisez « dotnet run -- {0} » afin de supprimer cet avertissement.</target>
+        <note>{0} is the file path argument. {1} is the project file path.{Locked="dotnet run --file"}{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">Avertissement : les paramètres de « {0} » ne sont pas utilisés, car « {1} » a la priorité.</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningUnableToDetermineLoggerArguments">
+        <source>Warning: Could not determine which application arguments appeared after '--'. All application arguments will be passed to the application without treating logger arguments specially.</source>
+        <target state="translated">Avertissement : impossible de déterminer quels arguments d’application sont apparus après « -- ». Tous les arguments d’application sont passés à l’application sans traiter spécialement les arguments d’enregistreur d’événements.</target>
+        <note>{Locked="--"}</note>
+      </trans-unit>
+      <trans-unit id="RunDefinition">
+        <source>Build and run a .NET project output.</source>
+        <target state="translated">Générez et exécutez une sortie de projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunDotnetCommandHelpForMore">
+        <source>Run 'dotnet [command] --help' for more information on a command.</source>
+        <target state="translated">Pour plus d'informations sur une commande, exécutez 'dotnet [commande] --help'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunRuntimeOptionDescription">
+        <source>The target runtime to run for.</source>
+        <target state="translated">Runtime cible à exécuter.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningTestsFrom">
+        <source>Running tests from</source>
+        <target state="translated">Exécuter des tests à partir de</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeConfigDefinition">
+        <source>Path to &lt;application&gt;.runtimeconfig.json file.</source>
+        <target state="translated">Chemin du fichier &lt;application&gt;.runtimeconfig.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimePropertyNotFound">
+        <source>Runtime property 'HOSTFXR_PATH' was not set or empty.</source>
+        <target state="translated">La propriété de Runtime’HOSTFXR_PATH’n’est pas définie ou vide.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeSectionHeader">
+        <source>.NET Runtimes:</source>
+        <target state="translated">Runtimes .NET :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKCommandUsageDescription">
+        <source>Execute a .NET SDK command.</source>
+        <target state="translated">Exécutez une commande du kit SDK .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKInfoCommandDefinition">
+        <source>Display .NET information.</source>
+        <target state="translated">Affichez les informations sur .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListRuntimesCommandDefinition">
+        <source>Display the installed runtimes.</source>
+        <target state="translated">Affichez les runtimes installés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListSdksCommandDefinition">
+        <source>Display the installed SDKs.</source>
+        <target state="translated">Affichez les SDK installés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKOptionsHelpDefinition">
+        <source>Show command line help.</source>
+        <target state="translated">Affichez l'aide de la ligne de commande.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKVersionCommandDefinition">
+        <source>Display .NET SDK version in use.</source>
+        <target state="translated">Affichez la version utilisée du kit SDK .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SamePackageIdInOtherManifestFile">
+        <source>Warning: There are other manifest files in the directory hierarchy that will affect this local tool. The following files have not been changed:
+{0}</source>
+        <target state="translated">Avertissement : Il existe d'autres fichiers manifeste dans la hiérarchie du répertoire qui vont affecter cet outil local. Aucun changement n'a été apporté aux fichiers suivants :
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkDefinition">
+        <source>Manage .NET SDK installation.</source>
+        <target state="translated">Gérer l'installation du kit SDK .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_InstallSdk">
+        <source>Go to aka.ms/get-dotnet and install any of the supported SDK versions: '{0}'.</source>
+        <target state="translated">Accédez à aka.ms/get-dotnet et installez l'une des versions de SDK prises en charge : '{0}'.</target>
+        <note>{0} is the list of supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_SwitchSdk">
+        <source>You have other SDK version(s) installed that can be used to run this template. Switch to any of the following SDK(s) on your system to run this template: '{0}'. Details on selecting SDK version to run: https://docs.microsoft.com/dotnet/core/tools/global-json.</source>
+        <target state="translated">Vous avez d'autres versions du SDK installées qui peuvent être utilisées pour exécuter ce modèle. Basculez vers l'un des SDK suivants sur votre système pour exécuter ce modèle : '{0}'. Détails sur la sélection de la version du SDK à exécuter : https://docs.microsoft.com/dotnet/core/tools/global-json.</target>
+        <note>{0} is the list of installed and supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkSectionHeader">
+        <source>.NET SDKs:</source>
+        <target state="translated">Kits SDK .NET :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkVersionOptionNotSupported">
+        <source>The --sdk-version option is no longer supported for this command.</source>
+        <target state="translated">L’option --sdk-version n’est plus prise en charge pour cette commande.</target>
+        <note>{Locked="--sdk-version"}</note>
+      </trans-unit>
+      <trans-unit id="ShouldInstallAWorkloadSet">
+        <source>No workload sets are installed. Run "dotnet workload restore" to install a workload set.</source>
+        <target state="translated">Aucun ensemble de charges de travail n’est installé. Exécutez « dotnet workload restore » pour installer un ensemble de charge de travail.</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="ShutDownFailed">
+        <source>{0} failed to shut down: {1}</source>
+        <target state="translated">Échec de l'arrêt de {0} : {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownFailedWithPid">
+        <source>{0} (process {1}) failed to shut down: {2}</source>
+        <target state="translated">Échec de l'arrêt de {0} (processus {1}) : {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceeded">
+        <source>{0} shut down successfully.</source>
+        <target state="translated">{0} s'est arrêté correctement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceededWithPid">
+        <source>{0} (process {1}) shut down successfully.</source>
+        <target state="translated">{0} (processus {1}) s'est arrêté correctement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServer">
+        <source>Shutting down {0}...</source>
+        <target state="translated">Arrêt de {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServerWithPid">
+        <source>Shutting down {0} (process {1})...</source>
+        <target state="translated">Arrêt de {0} (processus {1})...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkipSignCheckInvalidOption">
+        <source>Unable to bypass signature verification. The specified option conflicts with a global policy.</source>
+        <target state="translated">Impossible de contourner la vérification de signature. L’option spécifiée est en conflit avec une stratégie globale.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedColon">
+        <source>skipped:</source>
+        <target state="translated">ignoré :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedLowercase">
+        <source>skipped</source>
+        <target state="translated">ignoré</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippingManifestUpdate">
+        <source>Manifest packages were not found. Skipping manifest update...</source>
+        <target state="translated">Les packages de manifestes sont introuvables, mise à jour du manifeste ignorée...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnDefinition">
+        <source>Modify Visual Studio solution files.</source>
+        <target state="translated">Modifiez les fichiers solution Visual Studio.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnxGenerated">
+        <source>.slnx file {0} generated.</source>
+        <target state="translated">Fichier .slnx {0} généré.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFilterDoesNotSupportFolderOptions">
+        <source>Solution filter files (.slnf) do not support the --in-root or --solution-folder options.</source>
+        <target state="translated">Les fichiers de filtre de solution (.slnf) ne prennent pas en charge les options --in-root ou --solution-folder.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderAndInRootMutuallyExclusive">
+        <source>The --solution-folder and --in-root options cannot be used together; use only one of the options.</source>
+        <target state="translated">N'utilisez pas en même temps les options --solution-folder et --in-root. Utilisez uniquement l'une des deux options.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderHeader">
+        <source>Solution Folder(s)</source>
+        <target state="translated">Dossier(s) de solutions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedNoWorkloadVersionAndSpecificWorkloadVersion">
+        <source>'useWorkloadVersions' specified to not use a workload version. This is not compatible with updating or installing with a specified workload version from the command line, global.json, or from a history record with a workload version.</source>
+        <target state="translated">« useWorkloadVersions » spécifié pour ne pas utiliser de version de charge de travail. Ceci n’est pas compatible avec la mise à jour ou l’installation d’une version de charge de travail spécifiée à partir de la ligne de commande, de global.json ou d’un enregistrement d’historique avec une version de charge de travail.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedWorkloadVersionAndSpecificNonWorkloadVersion">
+        <source>'useWorkloadVersions' specified to use a workload version. This option is not compatible with updating from a rollback file or from history using a set of manifests.</source>
+        <target state="translated">« useWorkloadVersions » spécifié pour utiliser de version de charge de travail. Cette option n’est pas compatible avec la mise à jour à partir d’un fichier de restauration ou de l’historique à l’aide d’un ensemble de manifestes.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifyManifests">
+        <source>Specify at least one manifest with --manifest.</source>
+        <target state="translated">Spécifiez au moins un manifeste avec --manifest.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StackFrameAt">
+        <source>at</source>
+        <target state="translated">sur</target>
+        <note>at that is used for a stack frame location in a stack trace, is followed by a class and method name</note>
+      </trans-unit>
+      <trans-unit id="StackFrameIn">
+        <source>in</source>
+        <target state="translated">dans</target>
+        <note>in that is used in stack frame it is followed by file name</note>
+      </trans-unit>
+      <trans-unit id="StandardError">
+        <source>Error output</source>
+        <target state="translated">Sortie d’erreur</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StandardOutput">
+        <source>Standard output</source>
+        <target state="translated">Sortie standard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StatusColumnHeader">
+        <source>Status</source>
+        <target state="translated">État</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoreDefinition">
+        <source>Store the specified assemblies in the runtime package store.</source>
+        <target state="translated">Stockez les assemblys spécifiés dans le magasin de packages de runtime.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SucceededColon">
+        <source>succeeded:</source>
+        <target state="translated">réussie :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Summary">
+        <source>Summary</source>
+        <target state="translated">Récapitulatif</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="Tags">
+        <source>Tags</source>
+        <target state="translated">Balises</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="TestCommandUseDirectoryWithSwitch">
+        <source>Specifying a directory for 'dotnet test' should be via '--project' or '--solution'.</source>
+        <target state="translated">La spécification d’un répertoire pour « dotnet test » doit se faire via « --project » ou « --solution ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseProject">
+        <source>Specifying a project for 'dotnet test' should be via '--project'.</source>
+        <target state="translated">La spécification d’un projet pour « dotnet test » doit se faire via « --project ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseSolution">
+        <source>Specifying a solution for 'dotnet test' should be via '--solution'.</source>
+        <target state="translated">La spécification d’une solution pour « dotnet test » doit se faire via « --solution ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseTestModules">
+        <source>Specifying dlls or executables for 'dotnet test' should be via '--test-modules'.</source>
+        <target state="translated">La spécification de DLL ou d’exécutables pour « dotnet test » doit se faire via « --test-modules ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDefinition">
+        <source>Run unit tests using the test runner specified in a .NET project.</source>
+        <target state="translated">Exécutez des tests unitaires à l'aide du programme Test Runner spécifié dans un projet .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDiscoveryExitCode">
+        <source>Test discovery completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">La découverte de tests s’est terminée avec un code de sortie non réussi : {0} (voir : https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummary">
+        <source>Discovered {0} tests in {1} assemblies.</source>
+        <target state="translated">{0} tests découverts dans {1} assemblys.</target>
+        <note>0 is number of tests, 1 is count of assemblies</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummarySingular">
+        <source>Discovered {0} tests.</source>
+        <target state="translated">{0} tests découverts.</target>
+        <note>0 is number of tests</note>
+      </trans-unit>
+      <trans-unit id="TestRunExitCode">
+        <source>Test run completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">L’exécution de tests s’est terminée avec un code de sortie non réussi : {0} (voir : https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestRunSummary">
+        <source>Test run summary:</source>
+        <target state="translated">Résumé de série de tests :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolAlreadyInstalled">
+        <source>Tool '{0}' (version '{1}') is already installed.</source>
+        <target state="translated">L'outil '{0}' (version '{1}') est déjà installé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolCommonNoManifestGuide">
+        <source>If you intended to perform the action on a global tool, use the `--global` option for the command.</source>
+        <target state="translated">Si vous avez l'intention d'effectuer l'action sur un outil global, utilisez l'option '--global' avec la commande.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolDefinition">
+        <source>Install or manage tools that extend the .NET experience.</source>
+        <target state="translated">Installez ou gérez les outils qui étendent l'expérience .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInstallationSucceeded">
+        <source>You can invoke the tool using the following command: {0}
+Tool '{1}' (version '{2}') was successfully installed.</source>
+        <target state="translated">Vous pouvez appeler l'outil à l'aide de la commande suivante : {0}
+L'outil '{1}' (version '{2}') a été installé correctement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInvalidNuGetVersionRange">
+        <source>Specified version '{0}' is not a valid NuGet version range.</source>
+        <target state="translated">La version spécifiée '{0}' n'est pas une plage de versions NuGet valide.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallNuGetConfigurationFileDoesNotExist">
+        <source>NuGet configuration file '{0}' does not exist.</source>
+        <target state="translated">Le fichier config NuGet '{0}' n'existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailed">
+        <source>Tool '{0}' failed to install.</source>
+        <target state="translated">Impossible d'installer l'outil '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailedContactAuthor">
+        <source>Tool '{0}' failed to install. Contact the tool author for assistance.</source>
+        <target state="translated">Impossible d'installer l'outil '{0}'. Contactez le créateur de l'outil pour obtenir de l'aide.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationRestoreFailed">
+        <source>The tool package could not be restored.</source>
+        <target state="translated">Impossible de restaurer le package de l'outil.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListCommandsColumn">
+        <source>Commands</source>
+        <target state="translated">Commandes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidPackageWarning">
+        <source>Warning: tool package '{0}' is invalid, contact tool author:
+{1}</source>
+        <target state="translated">Avertissement : Le package d'outils '{0}' n'est pas valide. Contactez l'auteur de l'outil :
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">Le chemin d'outil '{0}' n'existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListPackageIdColumn">
+        <source>Package Id</source>
+        <target state="translated">ID du package</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListVersionColumn">
+        <source>Version</source>
+        <target state="translated">Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">Le chemin d'outil '{0}' n'existe pas.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be uninstalled.</source>
+        <target state="translated">L'outil '{0}' a plusieurs versions installées et ne peut pas être désinstallé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolNotInstalled">
+        <source>A tool with the package Id '{0}' could not be found.
+
+Tools are uninstalled using their package Id which may be different
+from the tool name you use when calling the tool. You can find the tool names
+and the corresponding package Ids for installed tools using the command
+'dotnet tool list'.</source>
+        <target state="translated">L'outil ayant l'ID de package « {0} » est introuvable.
+
+Les outils sont désinstallés via leur ID de package, lequel peut être différent
+du nom d'outil que vous utilisez quand vous appelez ce dernier. Pour trouver les noms d'outils
+et les ID de package correspondants aux outils installés, utilisez la commande
+« dotnet tool list ».</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallUninstallSucceeded">
+        <source>Tool '{0}' (version '{1}') was successfully uninstalled.</source>
+        <target state="translated">L'outil '{0}' (version '{1}') a été désinstallé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be updated.</source>
+        <target state="translated">Dans la mesure où plusieurs versions de l'outil '{0}' sont installées, il ne peut pas être mis à jour.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateUpdateSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}'.</source>
+        <target state="translated">L'outil '{0}' a été correctement mis à jour de la version '{1}' à la version '{2}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalColon">
+        <source>total:</source>
+        <target state="translated">total :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Try">
+        <source>try {0}</source>
+        <target state="translated">essayer {0}</target>
+        <note>number or tries of the current test assembly when test assembly is being retried. {0} is number that starts at 1</note>
+      </trans-unit>
+      <trans-unit id="UnexpectedHelpMessage">
+        <source>An unexpected help-related message was received when `--help` wasn't used.</source>
+        <target state="translated">Un message d’aide inattendu a été reçu alors que `--help` n’a pas été utilisé.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageInHelpMode">
+        <source>A message of type '{0}' was received in help mode, which is not expected.</source>
+        <target state="translated">Un message de type « {0} » a été reçu en mode d’aide, ce qui n’est pas prévu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageWithoutHandshake">
+        <source>A message of type '{0}' was received before we got any handshakes, which is unexpected.</source>
+        <target state="translated">Un message de type « {0} » a été reçu avant tout établissement d’une liaison, ce qui est inattendu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedTestSessionEnd">
+        <source>A test session end event was received without a corresponding test session start.</source>
+        <target state="translated">Un événement de fin de session de test a été reçu sans démarrage d’une session de test correspondante.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallLocalToolSucceeded">
+        <source>Tool '{0}' was successfully uninstalled and removed from manifest file {1}.</source>
+        <target state="translated">L'outil '{0}' a été désinstallé et supprimé correctement du fichier manifeste {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">L'option locale (--local), l'option globale (--global) et l'option de chemin d'outil (--tool-path) ne peuvent pas être utilisées simultanément. Spécifiez une seule des options : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownRecordsInformationalMessage">
+        <source>Rows with Unlogged changes represent changes from actions other than .NET CLI workload commands. Usually this represents an update to the .NET SDK or to Visual Studio.</source>
+        <target state="translated">Les lignes avec des modifications non enregistrées représentent les modifications des actions autres que les commandes de charge de travail CLI .NET. Il s’agit généralement d’une mise à jour du Kit de développement logiciel (SDK) .NET ou de Visual Studio.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateFromRollbackSwitchesModeToLooseManifests">
+        <source>Updating to a rollback file is not compatible with workload sets. Install and Update will now use loose manifests. To update to a specific workload version, use --version.</source>
+        <target state="translated">La mise à jour vers un fichier de restauration n’est pas compatible avec les jeux de charge de travail. L’installation et la mise à jour utiliseront désormais des manifestes libres. Pour effectuer une mise à jour vers une version de charge de travail spécifique, utilisez --version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocaToolSucceededVersionNoChange">
+        <source>Tool '{0}' is up to date (version '{1}' manifest file {2}) .</source>
+        <target state="translated">L'outil '{0}' est à jour (version '{1}', fichier manifeste {2}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}' (manifest file {3}).</source>
+        <target state="translated">L'outil '{0}' a été correctement mis à jour de la version '{1}' à la version '{2}' (fichier manifeste {3}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1} (manifest file {2}). Use the --allow-downgrade option to allow this update.</source>
+        <target state="translated">La version demandée {0} est inférieure à la version existante{1} (fichier manifeste {2}). Utilisez l’option --allow-downgrade pour autoriser cette mise à jour.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateModeDoesNotMatchGlobalJson">
+        <source>Specified to update workloads using {0} from the command line, but global.json file at {1} specified to use {2}.</source>
+        <target state="translated">Spécifié pour mettre à jour les charges de travail à l’aide de {0} à partir de la ligne de commande, mais le fichier global.json à {1} spécifie d’utiliser {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1}.</source>
+        <target state="translated">La version demandée {0} est inférieure à la version existante {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndPackageId">
+        <source>One must specify either package ID or use the update all option (--all).</source>
+        <target state="translated">Vous devez spécifier l’ID de package ou utiliser l’option Mettre à jour tout (--all).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndVersion">
+        <source>The version option (--version) and the update all option (--all) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">L’option de version (--version) et l’option mettre à jour toutes (--all) ne peuvent pas être utilisées ensemble. Spécifiez une seule des options :{0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option (--local), the global option (--global), and the tool path option (--tool-path) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">N'utilisez pas en même temps l'option locale (--local), l'option globale (--global) et l'option de chemin d'outil (--tool-path). Spécifiez uniquement l'une de ces options : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolFailed">
+        <source>Tool '{0}' failed to update due to the following:</source>
+        <target state="translated">Échec de la mise à jour de l'outil '{0}' pour la ou les raisons suivantes :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedWorkloadMode">
+        <source>Successfully updated workload install mode to use {0}.</source>
+        <target state="translated">Le mode d’installation de la charge de travail a été mis à jour pour utiliser {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Usage">
+        <source>Usage</source>
+        <target state="translated">Utilisation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserJwtsDefinition">
+        <source>Manage JSON Web Tokens in development.</source>
+        <target state="translated">Gérer les jetons Web JSON en développement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserSecretsDefinition">
+        <source>Manage development user secrets.</source>
+        <target state="translated">Gérez les secrets d'utilisateur de développement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingCacheForPackInstall">
+        <source>Installing package {0} version {1} from offline cache {2}.</source>
+        <target state="translated">Installation du {0} de {1} la version du package à partir du {2} de cache hors connexion.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingLaunchSettingsFromMessage">
+        <source>Using launch settings from {0}...</source>
+        <target state="translated">Utilisation des paramètres de lancement à partir de {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VSWorkloadNotRemoved">
+        <source>Workload '{0}' was not removed because it is installed and managed by Visual Studio: '{1}'. Please uninstall this workload using the Visual Studio Installer to fully remove it.</source>
+        <target state="translated">La charge de travail «{0}» n’a pas été supprimée, car elle est installée et gérée par Visual Studio : «{1}». Désinstallez cette charge de travail à l’aide de Visual Studio Installer pour la supprimer complètement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Verified">
+        <source>Verified</source>
+        <target state="translated">Vérifié</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VersionCheckFailure">
+        <source>No version found to check if this is up to date. Please check for updates manually.</source>
+        <target state="translated">Version introuvable pour vérifier si elle est à jour. Recherchez les mises à jour manuellement.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionColumnHeader">
+        <source>Version</source>
+        <target state="translated">Version</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Versions">
+        <source>Versions</source>
+        <target state="translated">Versions</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VsTestDefinition">
+        <source>Run Microsoft Test Engine (VSTest) commands.</source>
+        <target state="translated">Exécutez des commandes VSTest (Microsoft Test Engine).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WarningCsFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was treated as an MSBuild argument. Unrecognized arguments: {1}.</source>
+        <target state="translated">Avertissement : « {0} » ressemble à une application basée sur un fichier, mais le fichier est introuvable et il a été traité en tant qu’argument MSBuild. Arguments non reconnus : {1}.</target>
+        <note>{0} is the .cs file path argument. {1} is the list of unrecognized arguments.</note>
+      </trans-unit>
+      <trans-unit id="WarningFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' appears to be a file-based app but was treated as an MSBuild argument. To treat it as a file-based app, use 'dotnet {1} {0}' and remove unsupported arguments {2}.</source>
+        <target state="translated">Avertissement : « {0} » semble être une application basée sur un fichier, mais a été traitée comme un argument MSBuild. Pour le traiter comme une application basée sur des fichiers, utilisez 'dotnet {1} {0}' et supprimez les arguments non pris en charge {2}.</target>
+        <note>{0} is the file path argument. {1} is the command name (e.g. build, clean, publish). {2} is the list of unsupported arguments.{Locked="dotnet"}</note>
+      </trans-unit>
+      <trans-unit id="WatchDefinition">
+        <source>Start a file watcher that runs a command when files change.</source>
+        <target state="translated">Démarrez un observateur de fichier qui exécute une commande quand les fichiers changent.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadAlreadyInstalled">
+        <source>Workload(s) '{0}' are already installed.</source>
+        <target state="translated">La ou les charges de travail '{0}' sont déjà installées.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadDefinition">
+        <source>Manage optional workloads.</source>
+        <target state="translated">Gérez les charges de travail facultatives.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryRecordInvalidIdValue">
+        <source>The ID of a workload history record should be between 1 and the number of workload history records, inclusive.</source>
+        <target state="translated">L’ID d’un enregistrement d’historique de charge de travail doit être compris entre 1 et le nombre d’enregistrements d’historique de charge de travail, inclus.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryWorkloadSetVersion">
+        <source>Workload Version</source>
+        <target state="translated">Version de la charge de travail</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumn">
+        <source>Installed Workload Id</source>
+        <target state="translated">ID de la charge de travail installée</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumnName">
+        <source>Workload ID</source>
+        <target state="translated">ID de charge de travail</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInfoProvider_Message_AddWorkloads">
+        <source>Run 'dotnet workload search' to search workloads available to be installed on your SDK.</source>
+        <target state="translated">Exécutez 'dotnet workload search' pour rechercher les charges de travail disponibles à installer sur votre SDK.</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadInstallInstallationSucceeded">
+        <source>Successfully installed workload(s) {0}.</source>
+        <target state="translated">Installation réussie de la ou des charges de travail {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">Échec de la restauration de l'installation : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">Échec de l’installation de la charge de travail, restauration des packs installés...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallTypeColumn">
+        <source>Install Type</source>
+        <target state="translated">Type d'installation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadCacheDownloadFailed">
+        <source>Download of workload packs to offline cache failed: {0}</source>
+        <target state="translated">Échec du téléchargement des packs de charge de travail dans le cache hors connexion : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadUpdatesAvailable">
+        <source>Workload updates are available. Run `dotnet workload list` for more information.</source>
+        <target state="translated">Des mises à jour de la charge de travail sont disponibles. Exécutez `dotnet workload list` pour plus d’informations.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallationFailed">
+        <source>Workload installation failed: {0}</source>
+        <target state="translated">Échec de l’installation de la charge de travail : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIntegrityCheck">
+        <source>Checking the state of installed workloads...</source>
+        <target state="translated">Vérification de l’état des charges de travail installées...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListFooter">
+        <source>Use `dotnet workload search` to find additional workloads to install.</source>
+        <target state="translated">Utilisez `dotnet workload search` pour rechercher d’autres charges de travail à installer.</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadSetVersion">
+        <source>Workload version: {0}</source>
+        <target state="translated">Version de la charge de travail : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadUpdatesAvailable">
+        <source>Updates are available for the following workload(s): {0}. Run `dotnet workload update` to get the latest.</source>
+        <target state="translated">Des mises à jour sont disponibles pour les charges de travail suivantes : {0}. Exécutez `dotnet workload update` pour obtenir la dernière version.</target>
+        <note>{Locked="dotnet workload update"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestFeatureBandColumn">
+        <source>Manifest feature band</source>
+        <target state="translated">Bande de fonctionnalités du manifeste</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestIdColumn">
+        <source>Workload manifest ID</source>
+        <target state="translated">ID du manifeste de charge de travail</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationLooseManifests">
+        <source>Configured to use loose manifests when installing new manifests.</source>
+        <target state="translated">Configuré pour utiliser des manifestes non liés lors de l’installation de nouveaux manifestes.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationWorkloadSets">
+        <source>Configured to use workload sets when installing new manifests.</source>
+        <target state="translated">Configuré pour utiliser desworkload sets lors de l’installation de nouveaux manifestes.</target>
+        <note>{Locked="workload sets"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestPathColumn">
+        <source>Manifest Path</source>
+        <target state="translated">Chemin d'accès au Manifeste</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestVersionColumn">
+        <source>Manifest Version</source>
+        <target state="translated">Version de manifeste</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotInstalled">
+        <source>Couldn't find workload ID(s): {0}</source>
+        <target state="translated">Impossible de trouver le ou les ID de la charge de travail : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotRecognized">
+        <source>Workload ID {0} is not recognized.</source>
+        <target state="translated">La charge de travail avec l’ID {0} n’est pas reconnue.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotSupportedOnPlatform">
+        <source>Workload ID {0} isn't supported on this platform.</source>
+        <target state="translated">L’ID de charge de travail {0} n’est pas pris en charge sur cette plateforme.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadPackAlreadyInstalledMessage">
+        <source>Pack {0} version {1} is already installed.</source>
+        <target state="translated">La version {1} du pack {0} est déjà installée.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadRepairFailed">
+        <source>Workload repair failed: {0}</source>
+        <target state="translated">Échec de la réparation de la charge de travail : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonInstalled">
+        <source>Using workload version {0}, which was specified in the global.json file at {1}.</source>
+        <target state="translated">Utilisation de la version de charge de travail {0}, qui a été spécifiée dans le fichier global.json à {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonNotInstalled">
+        <source>Workload version {0}, which was specified in {1}, was not found. Run "dotnet workload restore" to install this workload version.</source>
+        <target state="translated">La version de charge de travail {0}, qui a été spécifiée dans {1}, est introuvable. Exécutez « dotnet workload restore » pour installer cette version de charge de travail.</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSetHasMissingManifests">
+        <source>Workload set version {0} has missing manifests likely removed by package management. Run "dotnet workload repair" to fix this.</source>
+        <target state="translated">La version {0} de l’ensemble de la charge de travail comporte des manifestes manquants qui ont probablement été supprimés par Package Management. Exécutez « dotnet workload repair » pour corriger ce problème.</target>
+        <note>{0} is the workload set version. {Locked="dotnet workload repair"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSourceColumn">
+        <source>Installation Source</source>
+        <target state="translated">Source de l’installation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallFailed">
+        <source>Workload uninstallation failed: {0}</source>
+        <target state="translated">La désinstallation de la charge de travail a échoué : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallUninstallSucceeded">
+        <source>Successfully uninstalled workload(s): {0}</source>
+        <target state="translated">Désinstallation réussie de la ou des charges de travail {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateAdManifestsSucceeded">
+        <source>Successfully updated advertising manifests.</source>
+        <target state="translated">Les manifestes de publicité ont été mis à jour.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateFailed">
+        <source>Workload update failed: {0}</source>
+        <target state="translated">Échec de la mise à jour du chargement vers le serveur : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">Échec de la restauration de l'installation : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">Échec de l’installation de la charge de travail, restauration des packs installés...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateUpdateSucceeded">
+        <source>Successfully updated workload(s): {0}.</source>
+        <target state="translated">Mise à jour réussie du charge de travail : {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateWorkloadCacheDownloadFailed">
+        <source>Failed to download workload update packages to cache: {0}</source>
+        <target state="translated">Échec du téléchargement des packages de mise à jour de charge de travail dans le cache : {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionNotInstalledShort">
+        <source>(not installed)</source>
+        <target state="translated">(non installé)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionRequestedNotFound">
+        <source>Workload version {0} not found.</source>
+        <target state="translated">Nous n’avons pas pu trouver la version de la charge de travail {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionWithSpecifiedManifestNotFound">
+        <source>No workload version matching {0} was found.</source>
+        <target state="translated">Aucune version de charge de travail correspondant à {0} n’a été trouvée.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Workloads">
+        <source>Workloads</source>
+        <target state="translated">Charges de travail</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCLIRecordForVisualStudioWorkloadMessage">
+        <source>Writing install records for Visual Studio workloads: '{0}'</source>
+        <target state="translated">Écriture des enregistrements d'installation pour les charges de travail Visual Studio : « {0} »</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WritingPackInstallRecordMessage">
+        <source>Writing workload pack installation record for {0} version {1}...</source>
+        <target state="translated">Écriture de l’enregistrement d’installation du pack de charge de travail pour {0} version {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ZeroTestsRan">
+        <source>Zero tests ran</source>
+        <target state="translated">Zéro tests exécutés</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

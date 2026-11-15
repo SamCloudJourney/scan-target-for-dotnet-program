@@ -1,0 +1,2339 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../CliCommandStrings.resx">
+    <body>
+      <trans-unit id="Aborted">
+        <source>Aborted</source>
+        <target state="translated">中止されました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_FullTestsCount">
+        <source>{0} tests running</source>
+        <target state="translated">{0} 個のテストが実行中</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_MoreTestsCount">
+        <source>and {0} more</source>
+        <target state="translated">その他 {0} 件</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Actual">
+        <source>Actual</source>
+        <target state="translated">実際</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestPackageDoesNotExist">
+        <source>Advertising manifest not updated. Manifest package for {0} doesn't exist.</source>
+        <target state="translated">広告マニフェストが更新されません。{0} 向けマニフェスト パッケージが存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestUpdated">
+        <source>Updated advertising manifest {0}.</source>
+        <target state="translated">広告マニフェスト {0} を更新しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalDeps">
+        <source>Path to additional deps.json file.</source>
+        <target state="translated">追加の deps.json ファイルへのパス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalProbingPathDefinition">
+        <source>Path containing probing policy and assemblies to probe for.</source>
+        <target state="translated">調査ポリシーと調査対象アセンブリを含むパス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalTools">
+        <source>Additional commands from bundled tools:</source>
+        <target state="translated">バンドルされたツールからの追加コマンド:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireWorkloadDeprecated">
+        <source>The Aspire workload is deprecated and no longer necessary. Aspire is now available as NuGet packages that you can add directly to your projects. For more information, see https://aka.ms/aspire/support-policy</source>
+        <target state="translated">Aspire ワークロードは非推奨となり、不要になりました。Aspire は現在、プロジェクトに直接追加できる NuGet パッケージとして利用可能です。詳細情報については、https://aka.ms/aspire/support-policy をご覧ください</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Authors">
+        <source>Authors</source>
+        <target state="translated">作成者</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="CmdTestNoTestProjectsFound">
+        <source>No test projects were found.</source>
+        <target state="translated">テスト プロジェクトが見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceDescription">
+        <source>The device identifier to use for running the application.</source>
+        <target state="translated">アプリケーション実行のために使用するデバイスの識別子です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceHelpName">
+        <source>DEVICE</source>
+        <target state="translated">デバイス</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionListDevicesDescription">
+        <source>List available devices for running the application.</source>
+        <target state="translated">アプリケーションの実行について使用可能なデバイスを一覧表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildDefinition">
+        <source>Build a .NET project.</source>
+        <target state="translated">.NET プロジェクトをビルドします。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildRuntimeOptionDescription">
+        <source>The target runtime to build for.</source>
+        <target state="translated">ビルドする対象のターゲット ランタイム。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildServerDefinition">
+        <source>Interact with servers started by a build.</source>
+        <target state="translated">ビルドによって開始されたサーバーとやり取りします。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BundleUpToDateMessage">
+        <source>Up to date.</source>
+        <target state="translated">最新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CacheMissingPackage">
+        <source>Package {0} version {1} doesn't exist in offline cache {2}.</source>
+        <target state="translated">パッケージ {0} バージョン {1} がオフラインキャッシュ {2} に存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancelledLowercase">
+        <source>canceled</source>
+        <target state="translated">キャンセルされました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancellingTestSession">
+        <source>Canceling the test session...</source>
+        <target state="translated">テスト セッションを取り消しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotAnalyzeVSWorkloadBand">
+        <source>Workloads managed by Visual Studio must be uninstalled using the Visual Studio Installer. For the version of Visual Studio managing the SDK '{0}', we could not display workloads to uninstall. This is likely because '{0}' uses a different dotnet root path or custom user profile directory from the current running SDK.
+Paths searched: '{1}', '{2}'.</source>
+        <target state="translated">Visual Studio によって管理されているワークロードは、Visual Studio Installer を使用してアンインストールする必要があります。SDK '{0}' を管理している Visual Studio のバージョンでは、アンインストールするワークロードを表示できませんでした。これは、'{0}' が現在実行中の SDK とは異なる dotnet ルート パスまたはカスタム ユーザー プロファイル ディレクトリを使用していることが原因である可能性があります。
+検索されたパス: '{1}'、'{2}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineOptions">
+        <source>Cannot use the {0} and {1} options together.</source>
+        <target state="translated">{0} オプションと {1} オプションを同時に使用することはできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndRollback">
+        <source>Cannot use the {0} and {1} options together. If installing from a rollback file, remove {0}. Otherwise, remove {1}</source>
+        <target state="translated">{0} オプションと {1} オプションを併用することはできません。ロールバック ファイルからインストールする場合、{0} を削除してください。その他の場合には、{1} を削除します</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndVersion">
+        <source>Cannot use the {0} and {1} options together.  Remove one of the options.</source>
+        <target state="translated">{0} オプションと {1} オプションを同時に使用することはできません。いずれかのオプションを削除してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotFindCommandName">
+        <source>Cannot find a tool in the manifest file that has a command named '{0}'.</source>
+        <target state="translated">'{0}' という名前のコマンドを持つマニフェスト ファイルでツールが見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotMigrateSlnx">
+        <source>Only .sln files can be migrated to .slnx format.</source>
+        <target state="translated">.slnx 形式に移行できるのは、.sln ファイルのみです。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionAndWorkloadIdsByComponent">
+        <source>Cannot specify a workload version using the --version option while also specifying versions to install using workload@version syntax.</source>
+        <target state="translated">workload@version 構文を使用してインストールするバージョンを指定しているときに、--version オプションを使用してワークロードのバージョンも指定することはできません。</target>
+        <note>{Locked="--version"}</note>
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionOnCommandLineAndInGlobalJson">
+        <source>Cannot specify a particular workload version on the command line via --version or --from-history when there is already a version specified in global.json file {0}. To update the globally installed workload version, run the command outside of the path containing that global.json file or update the version specified in the global.json file and run "dotnet workload update."</source>
+        <target state="translated">global.json ファイル {0} に既にバージョンが指定されている場合は、コマンド ラインで --version または --from-history を使用して特定のワークロード バージョンを指定することはできません。グローバルにインストールされたワークロード バージョンを更新するには、その global.json ファイルを含むパスの外部でコマンドを実行するか、global.json ファイルで指定されたバージョンを更新して、"dotnet workload update" を実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotUseSkipManifestWithGlobalJsonWorkloadVersion">
+        <source>Cannot use the {0} option when workload version is specified in global.json.  Remove the {0} option, or remove the 'workloadVersion' element from {1}.</source>
+        <target state="translated">ワークロードのバージョンが global.json で指定されている場合、{0} オプションは使用できません。{0} オプションを削除するか、{1} から 'workloadVersion' 要素を削除してください。</target>
+        <note>{Locked="workloadVersion"} Locked={"global.json"}</note>
+      </trans-unit>
+      <trans-unit id="CapabilityExpressionEvaluator_Exception_InvalidExpression">
+        <source>Invalid expression, position: {0}.</source>
+        <target state="translated">式が無効です、位置: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckForUpdatedWorkloadManifests">
+        <source>Checking for updated workload version.</source>
+        <target state="translated">更新されたワークロード バージョンを確認しています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanDefinition">
+        <source>Clean build outputs of a .NET project.</source>
+        <target state="translated">.NET プロジェクトのビルド出力をクリーンします。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsDirectoryNotFound">
+        <source>Warning: Artifacts directory does not exist: {0}</source>
+        <target state="translated">警告: 成果物ディレクトリが存在しません: {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsErrorRemovingFolder">
+        <source>Error removing folder '{0}': {1}</source>
+        <target state="translated">フォルダー '{0}' の削除中にエラーが発生しました: {1}</target>
+        <note>{0} is folder path. {1} is inner error message.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsScanning">
+        <source>Scanning for folders to remove in: {0}</source>
+        <target state="translated">削除するフォルダーをスキャンしています: {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsTotalFoldersRemoved">
+        <source>Total folders removed: {0}</source>
+        <target state="translated">削除されたフォルダーの合計: {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsWouldRemoveFolders">
+        <source>Would remove folders: {0}</source>
+        <target state="translated">フォルダーを削除しますか: {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CmdDGFileException">
+        <source>Unable to create dependency graph file for project '{0}'. Cannot add package reference.</source>
+        <target state="translated">プロジェクト '{0}' の依存関係グラフ ファイルを作成できません。パッケージ参照を追加できません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdDGFileIOException">
+        <source>Unable to generate a temporary file for project '{0}'. Cannot add package reference. Clear the temp directory and try again.</source>
+        <target state="translated">プロジェクト '{0}' の一時ファイルを生成できません。パッケージ参照を追加できません。一時ディレクトリをクリアして、もう一度お試しください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdHelpUsageTitle">
+        <source>Usage:</source>
+        <target state="translated">使用法:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidProjectFileExtensionErrorDescription">
+        <source>The provided project file has an invalid extension: {0}.</source>
+        <target state="translated">指定されたプロジェクト ファイルの拡張子が無効です: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidSolutionFileExtensionErrorDescription">
+        <source>The provided solution file has an invalid extension: {0}.</source>
+        <target state="translated">指定されたソリューション ファイルの拡張子が無効です: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMSBuildProjectsPropertiesErrorDescription">
+        <source>Build failed with exit code: {0}.</source>
+        <target state="translated">ビルドが次の終了コードで失敗しました: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleBuildPathOptionsErrorDescription">
+        <source>Specify either the project, solution, directory, or test modules option.</source>
+        <target state="translated">プロジェクト、ソリューション、ディレクトリ、またはテスト モジュールのオプションを指定してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleProjectOrSolutionFilesErrorDescription">
+        <source>Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
+        <target state="translated">このフォルダーは 2 つ以上のプロジェクト ファイルまたはソリューション ファイルを含んでいるため、使用するプロジェクト ファイルまたはソリューション ファイルを指定してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoProjectOrSolutionFileErrorDescription">
+        <source>Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
+        <target state="translated">プロジェクト ファイルまたはソリューション ファイルを指定してください。現在の作業ディレクトリにはプロジェクト ファイルまたはソリューション ファイルが含まれていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoTestModulesErrorDescription">
+        <source>No test modules found for the given test module pattern: {0} with root directory: {1}</source>
+        <target state="translated">ルート ディレクトリが {1} で、指定されたテスト モジュール パターン {0} のテスト モジュールが見つかりませんでした:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentDirectoryErrorDescription">
+        <source>The provided directory path does not exist: {0}.</source>
+        <target state="translated">指定されたディレクトリ パスが存在しません: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentFileErrorDescription">
+        <source>The provided file path does not exist: {0}.</source>
+        <target state="translated">指定されたファイル パスが存在しません: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentRootDirectoryErrorDescription">
+        <source>The provided root directory does not exist: {0}.</source>
+        <target state="translated">指定されたルート ディレクトリが存在しません: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdOptionCannotBeUsedWithTestModulesDescription">
+        <source>The options architecture, configuration, framework, operating system, and runtime cannot be used with '--test-modules' option.</source>
+        <target state="translated">オプションのアーキテクチャ、構成、フレームワーク、オペレーティング システム、ランタイムと '--test-modules' オプションは同時に使用できません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedMessageRequestTypeException">
+        <source>Message Request type '{0}' is unsupported.</source>
+        <target state="translated">メッセージ要求の種類 '{0}' はサポートされていません。</target>
+        <note>{0} - message request type</note>
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedVSTestTestApplicationsDescription">
+        <source>global.json defines test runner to be Microsoft.Testing.Platform. All projects must use that test runner.
+The following test projects are using VSTest test runner:
+{0}
+
+See https://aka.ms/dotnet-test/mtp for more information.</source>
+        <target state="translated">global.json では、テスト ランナーを Microsoft.Testing.Platform と定義します。すべてのプロジェクトで、そのテスト ランナーを使用する必要があります。
+次のテスト プロジェクトでは、VSTest テスト ランナーを使用しています:
+{0}
+
+詳細については、https://aka.ms/dotnet-test/mtp を参照してください。</target>
+        <note>{Locked="global.json"}{Locked="Microsoft.Testing.Platform"}
+{0} is one or more project names.</note>
+      </trans-unit>
+      <trans-unit id="Command">
+        <source>Command</source>
+        <target state="translated">コマンド</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandDoesNotExist">
+        <source>Specified command '{0}' is not a valid SDK command. Specify a valid SDK command. For more information, run dotnet help.</source>
+        <target state="translated">指定されたコマンド '{0}' は、有効な SDK コマンドではありません。有効な SDK コマンドを指定してください。詳細については、dotnet のヘルプを実行してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandFooter">
+        <source>The latest versions of .NET can be installed from https://aka.ms/dotnet-core-download. For more information about .NET lifecycles, see https://aka.ms/dotnet-core-support.</source>
+        <target state="translated">.Net の最新バージョンは https://aka.ms/dotnet-core-download からインストールできます。.NET ライフサイクルの詳細については、https://aka.ms/dotnet-core-support を参照してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Commands">
+        <source>SDK commands</source>
+        <target state="translated">SDK コマンド</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandsMismatch">
+        <source>The command {0} specified in the tool manifest file is not contained in the package with Package Id {1}. The commands contained in the package are {2}.</source>
+        <target state="translated">ツール マニフェスト ファイルで指定されているコマンド {0} は、パッケージ ID {1} のパッケージに含まれていません。パッケージに含まれているコマンドは {2} です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptInvalidChoiceMessage">
+        <source>Please type '{0}' for yes or '{1}' for no.</source>
+        <target state="translated">はいの場合は「{0}」、いいえの場合は「{1}」と入力してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptNoValue">
+        <source>n</source>
+        <target state="translated">n</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "no", ie to cancel the operation.</note>
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptYesValue">
+        <source>y</source>
+        <target state="translated">y</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "yes", ie to agree.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleIsAlreadyInBatchingMode">
+        <source>Console is already in batching mode.</source>
+        <target state="translated">コンソールは既にバッチ 処理モードです。</target>
+        <note>Exception that is thrown when console is already collecting input into a batch (into a string builder), and code asks to enable batching mode again.</note>
+      </trans-unit>
+      <trans-unit id="CouldNotFindAProject">
+        <source>Couldn't find a project. Ensure that a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">プロジェクトが見つかりませんでした。プロジェクトが {0} に存在することを確認するか、{1} を使用してパスをプロジェクトに渡してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Date">
+        <source>Date</source>
+        <target state="translated">日付</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadManifest">
+        <source>Uninstalling workload manifest {0} version {1}...</source>
+        <target state="translated">ワークロード マニフェスト {0} のバージョン {1} をアンインストールしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadPack">
+        <source>Uninstalling workload pack {0} version {1}...</source>
+        <target state="translated">ワークロード パック {0} バージョン {1} をアンインストールしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadSet">
+        <source>Deleting workload version {0}.</source>
+        <target state="translated">ワークロード バージョン {0} を削除しています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DepsFileDefinition">
+        <source>Path to &lt;application&gt;.deps.json file.</source>
+        <target state="translated">&lt;application&gt;.deps.json ファイルへのパス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Description</source>
+        <target state="translated">説明</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DescriptionColumnName">
+        <source>Description</source>
+        <target state="translated">説明</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsDefinition">
+        <source>Create and manage development certificates.</source>
+        <target state="translated">開発証明書を作成し、管理します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectoryAlreadyExists">
+        <source>The target directory already exists: '{0}'</source>
+        <target state="translated">ターゲット ディレクトリは既に存在します: '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DiscoveredTestsInAssembly">
+        <source>Discovered {0} tests in assembly</source>
+        <target state="translated">アセンブリで {0} つのテストを検出しました。</target>
+        <note>0 is count, the sentence is followed by the path of the assebly</note>
+      </trans-unit>
+      <trans-unit id="DiscoveringTestsFrom">
+        <source>Discovering tests from</source>
+        <target state="translated">からテストを検出しています</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestIncompatibleHandshakeVersion">
+        <source>Supported protocol versions sent by Microsoft.Testing.Platform are '{0}'. The SDK supports '{1}', which is incompatible.</source>
+        <target state="translated">Microsoft.Testing.Platform から送信されたサポートされているプロトコル バージョンは '{0}' です。SDK は互換性のない '{1}' をサポートしています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestMismatchingExecutionId">
+        <source>Received 'ExecutionId' of value '{0}' for message '{1}' while the 'ExecutionId' received of the handshake message was '{2}'.</source>
+        <target state="translated">ハンドシェイク メッセージで受信した 'ExecutionId' が '{0}' のときに、メッセージ '{1}' の 'ExecutionId' 値 '{2}' を受信しました。</target>
+        <note>{Locked="ExecutionId"}</note>
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureHasHandshake">
+        <source>Error disposing 'NamedPipeServer' corresponding to handshake:</source>
+        <target state="translated">ハンドシェイクに対応する 'NamedPipeServer' の破棄中にエラーが発生しました: </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureWithoutHandshake">
+        <source>Error disposing 'NamedPipeServer', and no handshake was found.</source>
+        <target state="translated">'NamedPipeServer' の破棄中にエラーが発生し、ハンドシェイクが見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeOverlapping">
+        <source>'dotnet' unexpectedly received overlapping messages from the 'dotnet test' named pipe.</source>
+        <target state="translated">'dotnet' は 'dotnet test' 名前付きパイプから予期せず重複するメッセージを受信しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadingPackToCacheMessage">
+        <source>Downloading pack {0} version {1} to offline cache {2}...</source>
+        <target state="translated">パック {0} のバージョン {1} をオフライン キャッシュ {2} にダウンロードしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Downloads">
+        <source>Downloads</source>
+        <target state="translated">ダウンロード</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DurationColon">
+        <source>duration:</source>
+        <target state="translated">期間:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorColon">
+        <source>error:</source>
+        <target state="translated">エラー:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorRunningTestModule">
+        <source>The following exception occurred when running the test module with RunCommand '{0}' and RunArguments '{1}':
+
+{2}</source>
+        <target state="translated">RunCommand '{0}' および RunArguments '{1}' でテスト モジュールを実行中に、次の例外が発生しました:
+
+{2}</target>
+        <note>{Locked="RunCommand"}{Locked="RunArguments"}
+{2} is the exception that occurred.</note>
+      </trans-unit>
+      <trans-unit id="Error_restore">
+        <source>Restore failed. Run `dotnet restore` for more details on the issue.</source>
+        <target state="translated">復元に失敗しました。問題の詳細については、'dotnet restore' を実行してください。</target>
+        <note>{Locked="dotnet restore"}</note>
+      </trans-unit>
+      <trans-unit id="ExecutionUsageDescription">
+        <source>Execute a .NET application.</source>
+        <target state="translated">.NET アプリケーションを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExitCode">
+        <source>Exit code</source>
+        <target state="translated">終了コード</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Expected">
+        <source>Expected</source>
+        <target state="translated">予想</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedSingleManifest">
+        <source>Expected single manifest feature band and manifest folder in MSI from package {0}</source>
+        <target state="translated">パッケージ {0} からの MSI に 1 つのマニフェスト機能バンドとマニフェスト フォルダーが必要です</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed">
+        <source>Failed</source>
+        <target state="translated">失敗</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedAdManifestUpdate">
+        <source>Failed to update the advertising manifest {0}: {1}.</source>
+        <target state="translated">広告マニフェスト {0} を更新できませんでした: {1}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedColon">
+        <source>failed:</source>
+        <target state="translated">失敗:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedLowercase">
+        <source>failed</source>
+        <target state="translated">失敗</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToCreateToolShim">
+        <source>Failed to create shell shim for tool '{0}': {1}</source>
+        <target state="translated">ツール '{0}' でシェル shim を作成できませんでした: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToExtractMsi">
+        <source>Failed to extract information from MSI: {0}</source>
+        <target state="translated">MSI から情報を抽出できませんでした: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadManifest">
+        <source>Failed to install manifest {0} version {1}: {2}.</source>
+        <target state="translated">マニフェスト {0} のバージョン {1} をインストールできませんでした: {2}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadSet">
+        <source>Failed to install workload version {0}: {1}</source>
+        <target state="translated">ワークロード バージョン {0} をインストールできませんでした: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRunTarget">
+        <source>Failed to restore workload for project {0}: Failed to run MSBuild Target _GetRequiredWorkloads.</source>
+        <target state="translated">プロジェクト {0} のワークロードを復元できませんでした。MSBuild Target _GetRequiredWorkloads の実行に失敗しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToUninstallTool">
+        <source>Failed to uninstall tool '{0}': {1}</source>
+        <target state="translated">ツール '{0}' をアンインストールできませんでした: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedWithErrors">
+        <source>failed with {0} error(s)</source>
+        <target state="translated">{0} 件のエラーで失敗しました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForTest">
+        <source>For test</source>
+        <target state="translated">テスト用</target>
+        <note>is followed by test name</note>
+      </trans-unit>
+      <trans-unit id="FormatDefinition">
+        <source>Apply style preferences to a project or solution.</source>
+        <target state="translated">プロジェクトやソリューションにスタイルのユーザー設定を適用します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FromFile">
+        <source>from</source>
+        <target state="translated">参照元:</target>
+        <note>from followed by a file name to point to the file from which test is originating</note>
+      </trans-unit>
+      <trans-unit id="FsiDefinition">
+        <source>Start F# Interactive / execute F# scripts.</source>
+        <target state="translated">F# Interactive を開始するか、F# スクリプトを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FxVersionDefinition">
+        <source>Version of the installed Shared Framework to use to run the application.</source>
+        <target state="translated">アプリケーションを実行するために使用するインストール済み Shared Framework のバージョン。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectingSdkFeatureBandsMessage">
+        <source>Garbage collecting for SDK feature band(s) {0}...</source>
+        <target state="translated">SDK 機能バンド {0} のガベージ コレクトを行っています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectionFailed">
+        <source>Warning: Workload garbage collection failed with error: {0}.</source>
+        <target state="translated">警告: ワークロードのガベージ コレクションでエラーが発生しました: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GlobalJsonVersion">
+        <source>Global.json Version</source>
+        <target state="translated">Global.json のバージョン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HandshakeFailuresHeader">
+        <source>Handshake failures:</source>
+        <target state="new">Handshake failures:</target>
+        <note>Section header printed at the end of a 'dotnet test' run when one or more test hosts failed to hand-shake with the SDK. Followed by per-assembly exit code, stdout and stderr.</note>
+      </trans-unit>
+      <trans-unit id="HelpDefinition">
+        <source>Opens the reference page in a browser for the specified command.</source>
+        <target state="translated">指定されたコマンドの参照ページをブラウザーで開きます。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpExtensionOptions">
+        <source>Extension Options:</source>
+        <target state="translated">拡張機能オプション:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionBelow">
+        <source>{0} is missing the option below</source>
+        <target state="translated">{0} には以下のオプションがありません</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionsBelow">
+        <source>{0} is missing the options below</source>
+        <target state="translated">{0} には以下のオプションがありません</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionBelow">
+        <source>{0} are missing the option below</source>
+        <target state="translated">{0} には以下のオプションがありません</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionsBelow">
+        <source>{0} are missing the options below</source>
+        <target state="translated">{0} には以下のオプションがありません</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpOptions">
+        <source>Options:</source>
+        <target state="translated">オプション:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpPlatformOptions">
+        <source>Platform Options:</source>
+        <target state="translated">プラットフォーム オプション:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableExtensionOptions">
+        <source>Unavailable extension options:</source>
+        <target state="translated">利用できない拡張機能のオプション:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableOptions">
+        <source>Unavailable options:</source>
+        <target state="translated">利用できないオプション:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpWaitingForOptionsAndExtensions">
+        <source>Waiting for options and extensions...</source>
+        <target state="translated">オプションと拡張機能を待機しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HostFxrCouldNotBeLoaded">
+        <source>Could not load hostfxr from '{0}'.</source>
+        <target state="translated">'{0}' で hostfxr を読み込めませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Id">
+        <source>Id</source>
+        <target state="translated">ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IgnoredArgumentsMessage">
+        <source>The following arguments have been ignored : "{0}"</source>
+        <target state="translated">次の引数は無視されました: "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InProcessArtifactsProduced">
+        <source>In process file artifacts produced:</source>
+        <target state="translated">インプロセスのファイル成果物が生成されました:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InadequatePermissions">
+        <source>Inadequate permissions. Run the command with elevated privileges.</source>
+        <target state="translated">十分なアクセス許可がありません。昇格された特権を使用してコマンドを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">ローカル オプション (--local)、グローバル オプション (--global)、ツール パス オプション (--tool-path) は、一度に 1 つだけ指定できます。オプションを 1 つだけ指定します: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingPackVersionMessage">
+        <source>Installing pack {0} version {1}...</source>
+        <target state="translated">Pack {0} バージョン {1} をインストールしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloadManifest">
+        <source>Installing workload manifest {0} version {1}...</source>
+        <target state="translated">ワークロード マニフェスト {0} のバージョン {1} をインストールしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloads">
+        <source>Installing workloads: {0}</source>
+        <target state="translated">ワークロードをインストールしています: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InsufficientPrivilegeToStartServer">
+        <source>Insufficient privilege to start the server.</source>
+        <target state="translated">サーバーを起動するための十分な特権がありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InternalLoopAsyncDidNotExitSuccessfullyErrorMessage">
+        <source>Method '{0}' did not exit successfully</source>
+        <target state="translated">メソッド '{0}' が正常に終了しませんでした</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidFilePath">
+        <source>The specified file must exist and have '.cs' file extension: '{0}'</source>
+        <target state="translated">指定されたファイルが存在し、ファイル拡張子が '.cs' である必要があります: '{0}'</target>
+        <note>{Locked=".cs"}</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForFileBasedApp">
+        <source>Cannot specify option '{0}' when operating on a file-based app.</source>
+        <target state="translated">ファイル ベースのアプリで操作する場合は、オプション '{0}' を指定できません。</target>
+        <note>{0} is an option name like '--source'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForStdin">
+        <source>Cannot specify option '{0}' when also using '-' to read the file from standard input.</source>
+        <target state="translated">標準入力からファイルを読み取るために '-' も使用している場合は、オプション '{0}' を指定できません。</target>
+        <note>{0} is an option name like '--no-build'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidToolConfiguration">
+        <source>The settings file in the tool's NuGet package is invalid: {0}</source>
+        <target state="translated">ツールの NuGet パッケージ内の設定ファイルが無効です: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidVersionForWorkload">
+        <source>Error parsing version '{1}' for workload manifest ID '{0}'</source>
+        <target state="translated">ワークロード マニフェスト ID '{0}' のバージョン '{1}' の解析でエラーが発生しました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LatestVersion">
+        <source>Latest Version</source>
+        <target state="translated">最新バージョン</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="ListToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">ローカル オプション (--local)、グローバル オプション (--global)、ツール パス オプション (--tool-path) は、一度に 1 つだけ指定できます。オプションを 1 つだけ指定します: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalOptionDoesNotSupportFrameworkOption">
+        <source>The local option(--local) does not support the framework option (--framework).</source>
+        <target state="translated">ローカル オプション (--local) は、フレームワーク オプション (--framework) をサポートしていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolInstallationSucceeded">
+        <source>You can invoke the tool from this directory using the following commands: 'dotnet tool run {0}' or 'dotnet {0}'.
+Tool '{1}' (version '{2}') was successfully installed. Entry is added to the manifest file {3}.</source>
+        <target state="translated">次のコマンドを使用してこのディレクトリからツールを呼び出すことができます: 'dotnet tool run {0}' または 'dotnet {0}'。
+ツール '{1}' (バージョン '{2}') が正常にインストールされました。マニフェスト ファイル {3} にエントリが追加されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolsRestoreWasSuccessful">
+        <source>Restore was successful.</source>
+        <target state="translated">正常に復元されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NoProjectFound">
+        <source>No project was found at the path: {0}.</source>
+        <target state="translated">パスにプロジェクトが見つかりませんでした: {0}。</target>
+        <note>{0} - the file path where project was expected to be found.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NotRestored">
+        <source>{0} is not restored.</source>
+        <target state="translated">{0} は復元されません。</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluator_Error_NoTargetFramework">
+        <source>Project '{0}' is a SDK-style project, but does not specify the framework.</source>
+        <target state="translated">プロジェクト '{0}' は SDK スタイルのプロジェクトですが、フレームワークが指定されていません。</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MaintenanceMessage">
+        <source>.NET {0} is going out of support soon.</source>
+        <target state="translated">.NET {0} のサポートは間もなく終了します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestFileColumn">
+        <source>Manifest</source>
+        <target state="translated">マニフェスト</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestMsiNotFoundInNuGetPackage">
+        <source>Manifest MSI not found in NuGet package {0}</source>
+        <target state="translated">NuGet パッケージ {0} にマニフェスト MSI が見つかりません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestPackageUrlNotResolved">
+        <source>Manifest package not resolved. Manifest package or URL for {0} doesn't exist.</source>
+        <target state="translated">マニフェスト パッケージが解決されていません。{0} のマニフェスト パッケージまたは URL が存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MinimumExpectedTestsPolicyViolation">
+        <source>Minimum expected tests policy violation, tests ran {0}, minimum expected {1}</source>
+        <target state="translated">予想されるテストの最小ポリシー違反、テストの実行数 {0} 件、予想される最小数 {1} 件</target>
+        <note>{0}, {1} number of tests</note>
+      </trans-unit>
+      <trans-unit id="MismatchingHandshakeInfo">
+        <source>A new handshake '{0}' was received for the test application that doesn't match the previous handshake '{1}'.</source>
+        <target state="translated">テスト アプリケーションに対して、前回のハンドシェイク '{0}' と一致しない新しいハンドシェイク '{1}' を受信しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingTestSessionEnd">
+        <source>A test session start event was received without a corresponding test session end.</source>
+        <target state="translated">対応するテスト セッションの終了がないまま、テスト セッション開始イベントを受信しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsBuildDefinition">
+        <source>Run Microsoft Build Engine (MSBuild) commands.</source>
+        <target state="translated">Microsoft Build Engine (MSBuild) コマンドを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressInstall">
+        <source>Installing {0} </source>
+        <target state="translated">{0} をインストールしています </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressRepair">
+        <source>Repairing {0} </source>
+        <target state="translated">{0} を修復しています </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressUninstall">
+        <source>Removing {0} </source>
+        <target state="translated">{0} を削除しています </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleProjectsEvaluationResult_Error">
+        <source>Multiple projects found: {0}.</source>
+        <target state="translated">複数のプロジェクトが見つかりました: {0}。</target>
+        <note>{0} - semi-colon separated list of path to projects found.</note>
+      </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="translated">名前</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NeedNuGetInConfig">
+        <source>The 'dotnet tool search' command unconditionally accesses nuget.org to find tools, but it is not present in your nuget.config. Add it to run this command.
+    This can be done with this command:
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</source>
+        <target state="translated">'dotnet tool search' コマンドは、nuget.org に無条件でアクセスしてツールを検索しますが、nuget.config に存在していません。このコマンドを実行するには、追加してください。
+    これは、次のコマンドで実行できます:
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</target>
+        <note>Do not translate 'dotnet tool search' or 'nuget.config'. Do not localize the last line at all.</note>
+      </trans-unit>
+      <trans-unit id="NewDefinition">
+        <source>Create a new .NET project or file.</source>
+        <target state="translated">新しい .NET プロジェクトまたはファイルを作成します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewFeatureBandMessage">
+        <source>Try out the newest .NET SDK features with .NET {0}.</source>
+        <target state="translated">.NET {0} を使用して、.NET SDK の最新機能をお試しください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewPatchAvailableMessage">
+        <source>Patch {0} is available.</source>
+        <target state="translated">パッチ {0} が利用可能です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewWorkloadSet">
+        <source>Installing workload version {0}.</source>
+        <target state="translated">ワークロードのバージョン {0} をインストールしています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseRunningJustCsc">
+        <source>Warning: Binary log option was specified but MSBuild will be skipped because running just csc is enough. Specify '--no-cache' to force full build.</source>
+        <target state="translated">警告: バイナリ ログ オプションが指定されましたが、csc の実行だけで十分であるため、MSBuild はスキップされます。完全なビルドを強制するには、'--no-cache' を指定してください。</target>
+        <note>{Locked="--no-cache"}{Locked="MSBuild"}{Locked="csc"}</note>
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseUpToDate">
+        <source>Warning: Binary log option was specified but build will be skipped because output is up to date. Specify '--no-cache' to force build.</source>
+        <target state="translated">警告: バイナリ ログ オプションが指定されましたが、出力が最新であるため、ビルドはスキップされます。ビルドを強制するには '--no-cache' を指定してください。</target>
+        <note>{Locked="--no-cache"}</note>
+      </trans-unit>
+      <trans-unit id="NoHistoryFound">
+        <source>No workload history found</source>
+        <target state="translated">ワークロード履歴が見つかりません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoManifestFileContainPackageId">
+        <source>Cannot find a manifest file that contains package id '{0}'.</source>
+        <target state="translated">パッケージ ID '{0}' が含まれているマニフェスト ファイルが見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectsOrSolutions">
+        <source>A project or solution file could not be found in {0}. Specify a project or solution file to use.</source>
+        <target state="translated">{0} でプロジェクトまたはソリューション ファイルが見つかりませんでした。使用するプロジェクトまたはソリューション ファイルを指定します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResult">
+        <source>Could not find any results.</source>
+        <target state="translated">結果が見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithIdErrorMessage">
+        <source>No serializer registered with ID '{0}'</source>
+        <target state="translated">ID '{0}' で登録されたシリアライザーがありません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithTypeErrorMessage">
+        <source>No serializer registered with type '{0}'</source>
+        <target state="translated">型 '{0}' で登録されたシリアライザーがありません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoServersToShutdown">
+        <source>No build servers are running.</source>
+        <target state="translated">実行中のビルド サーバーはありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoToolsWereRestored">
+        <source>No tools were restored.</source>
+        <target state="translated">復元されたツールはありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTrustWithParentPID">
+        <source>Failed to establish a trust relationship with parent process ({0}).</source>
+        <target state="translated">親プロセス ({0}) との信頼関係を確立できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadHistoryRecords">
+        <source>Workload history records are created when when running an operation that modifies workloads like update or install. Cannot update from history until workload history records exist.</source>
+        <target state="translated">ワークロード履歴レコードは、更新やインストールなど、ワークロードを変更する操作を実行するときに作成されます。ワークロード履歴レコードが作成されるまで、履歴から更新することはできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadUpdateFound">
+        <source>No workload update found.</source>
+        <target state="translated">ワークロードの更新が見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadVersionsFound">
+        <source>No workload versions found for SDK feature band {0}.</source>
+        <target state="translated">SDK 機能バンド {0} のワークロード バージョンが見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsInstalledInfoWarning">
+        <source>There are no installed workloads to display.</source>
+        <target state="translated">表示するインストール済みワークロードはありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToRepair">
+        <source>No workloads are installed, nothing to repair. Run `dotnet workload search` to find workloads to install.</source>
+        <target state="translated">ワークロードがインストールされていないため、修復するものがありません。`dotnet ワークロード検索` を実行してインストールするワークロードを検索します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToUpdate">
+        <source>No workloads installed for this feature band. To update workloads installed with earlier SDK versions, include the --from-previous-sdk option.</source>
+        <target state="translated">この機能バンドにはワークロードがインストールされていません。以前の SDK バージョンでインストールしたワークロードを更新するには、--from-previous-sdk オプションを含めます。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NugetDefinition">
+        <source>Provides additional NuGet commands.</source>
+        <target state="translated">追加の NuGet コマンドを提供します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OSDoesNotSupportMsi">
+        <source>MSI installations are only supported on Windows.</source>
+        <target state="translated">MSI のインストールは Windows でのみサポートされています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OnlyLocalOptionSupportManifestFileOption">
+        <source>Specifying the tool manifest option (--tool-manifest) is only valid with the local option (--local or the default).</source>
+        <target state="translated">ツール マニフェスト オプション (--tool-manifest) の指定は、ローカル オプション (--local または既定) でのみ有効です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfProcessArtifactsProduced">
+        <source>Out of process file artifacts produced:</source>
+        <target state="translated">アウトプロセスのファイル成果物が生成されました:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfSupportMessage">
+        <source>.NET {0} is out of support.</source>
+        <target state="translated">.NET {0} はサポートされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackDefinition">
+        <source>Create a NuGet package.</source>
+        <target state="translated">NuGet パッケージを作成します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageDefinition">
+        <source>Search for, add, remove, or list PackageReferences for a .NET project.</source>
+        <target state="translated">.NET プロジェクトの PackageReferences を検索、追加、削除、または一覧表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageFailedToRestore">
+        <source>Package "{0}" failed to restore, due to {1}</source>
+        <target state="translated">{1} が原因で、パッケージ "{0}" の復元が失敗しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageId">
+        <source>Package ID</source>
+        <target state="translated">パッケージ ID</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="PackageListFileNotFound">
+        <source>Could not find file or directory '{0}'.</source>
+        <target state="translated">ファイルまたはディレクトリ '{0}' が見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageRemoveSpecifyExactlyOnePackageReference">
+        <source>Specify only one package reference to remove.</source>
+        <target state="translated">削除するパッケージ参照を 1 つだけ指定してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionConclusion">
+        <source>Command names conflict. Command names are case insensitive.
+{0}</source>
+        <target state="translated">コマンド名が競合しています。コマンド名では大文字と小文字は区別されません。
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionForOnePackage">
+        <source>A command "{0}" in package "{1}"</source>
+        <target state="translated">パッケージ "{1}" のコマンド "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Passed">
+        <source>Passed</source>
+        <target state="translated">成功</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PassedLowercase">
+        <source>passed</source>
+        <target state="translated">合格しました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PathToApplicationDefinition">
+        <source>The path to an application .dll file to execute.</source>
+        <target state="translated">実行するアプリケーション .dll ファイルへのパス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PendingReboot">
+        <source>The machine has a pending reboot. The workload operation will continue, but you may need to restart.</source>
+        <target state="translated">マシンの再起動が保留中です。ワークロード操作は続行されますが、再起動が必要になる場合があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_BothInRootAndSolutionFolderSpecified">
+        <source>Add project reference to solution action is not configured correctly in the template.
+    The 'solutionFolder' and 'inRoot' cannot be used together; use only one of the options.</source>
+        <target state="translated">テンプレートでソリューションへのプロジェクト参照の追加アクションが正しく構成されていません。
+    'solutionFolder' と 'inRoot' を同時に使用することはできません。いずれか 1 つのオプションのみを使用してください。</target>
+        <note>do not translate: 'solutionFolder', 'inRoot'</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoProjectsToAdd">
+        <source>Add project reference to solution action is not configured correctly in the template. Unable to determine the project files to add.</source>
+        <target state="translated">ソリューションへのプロジェクト参照追加のアクションがテンプレートで正しく構成されていません。追加するプロジェクトファイルを特定できません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoSolutionFile">
+        <source>Unable to determine which solution file to add the reference to.</source>
+        <target state="translated">参照の追加先となるソリューション ファイルを特定できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed">
+        <source>Failed to add project(s) to the solution: {0}</source>
+        <target state="translated">ソリューションにプロジェクトを追加できませんでした: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed_NoReason">
+        <source>Failed to add project(s) to a solution file.</source>
+        <target state="translated">プロジェクトをソリューション ファイルに追加できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_InRoot_Running">
+        <source>Adding
+    project(s): {0}
+    in the root of solution file: {1}</source>
+        <target state="translated">以下を追加しています
+    プロジェクト: {0}
+    追加先のソリューション ファイルのルート: {1}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Running">
+        <source>Adding
+    project(s): {0}
+    to solution file: {1}
+    solution folder: {2}</source>
+        <target state="translated">以下を追加しています
+    プロジェクト: {0}
+    追加先のソリューション ファイル: {1}
+    ソリューション フォルダー: {2}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file,
+{2} - the solution folder inside solution to add the projects to.</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Succeeded">
+        <source>Successfully added project(s) to a solution file.</source>
+        <target state="translated">プロジェクトがソリューション ファイルに正常に追加されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference">
+        <source>Adding a package reference {0} to project file {1}:</source>
+        <target state="translated">パッケージ参照 {0} をプロジェクト ファイル {1} に追加しています:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_Failed">
+        <source>Failed to add package reference: {0}</source>
+        <target state="translated">パッケージ参照を追加できませんでした: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_WithVersion">
+        <source>Adding a package reference {0} (version: {1}) to project file {2}:</source>
+        <target state="translated">パッケージ参照 {0} (バージョン: {1}) をプロジェクト ファイル {2} に追加しています:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference">
+        <source>Adding a project reference {0} to project file {1}:</source>
+        <target state="translated">プロジェクト参照 {0} をプロジェクト ファイル {1} に追加しています:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference_Failed">
+        <source>Failed to add project reference: {0}</source>
+        <target state="translated">プロジェクト参照を追加できませんでした: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ActionMisconfigured">
+        <source>Add reference action is not configured correctly in the template.</source>
+        <target state="translated">参照の追加アクションがテンプレートに正しく構成されていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_FrameworkNotSupported">
+        <source>Unable to automatically add the framework reference {0} to the project. Manually edit the project file to add it.</source>
+        <target state="translated">フレームワーク参照 {0} をプロジェクトに自動的に追加できません。プロジェクト ファイルを手動で編集して追加します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ProjFileListHeader">
+        <source>Project files found:</source>
+        <target state="translated">見つかったプロジェクト ファイル:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnresolvedProjFile">
+        <source>Unable to determine which project file to add the reference to.</source>
+        <target state="translated">参照の追加先となるプロジェクト ファイルを特定できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnsupportedRefType">
+        <source>Adding reference type {0} is not supported.</source>
+        <target state="translated">参照型 {0} の追加はサポートされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Failed">
+        <source>Failed to add a reference to the project file.</source>
+        <target state="translated">参照をプロジェクト ファイルに追加できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Succeeded">
+        <source>Successfully added a reference to the project file.</source>
+        <target state="translated">参照がプロジェクトファイルに正常に追加されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_FailedToDetermineProjectToRestore">
+        <source>Couldn't determine files to restore.</source>
+        <target state="translated">復元するファイルを特定できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_NoProjectsToRestore">
+        <source>No projects are configured to restore. Check primary outputs configuration in template.json.</source>
+        <target state="translated">復元するように構成されているプロジェクトはありません。template.json のプライマリ出力構成を確認してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Failed">
+        <source>Restore failed.</source>
+        <target state="translated">復元に失敗しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_RestoreFailed">
+        <source>Failed to perform restore: {0}</source>
+        <target state="translated">復元を実行できませんでした: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Running">
+        <source>Restoring {0}:</source>
+        <target state="translated">{0} を復元しています:</target>
+        <note>{0} - path to a project to restore</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Succeeded">
+        <source>Restore succeeded.</source>
+        <target state="translated">正常に復元されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PrereleaseAndVersionAreNotSupportedAtTheSameTime">
+        <source>The --prerelease and --version options are not supported in the same command</source>
+        <target state="translated">--prerelease および --version オプションは同じコマンド内ではサポートされません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_EvaluationFailed">
+        <source>Failed to create constraint '{0}': failed to evaluate the project: {1}</source>
+        <target state="translated">制約 '{0}' を作成できませんでした: プロジェクトを評価できませんでした: {1}</target>
+        <note>{0} - type of constraint (non-localizable), {1} - localized reason why evaluation failed, ends with period.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_NoEvaluator">
+        <source>Failed to create constraint '{0}': {1} component is not available.</source>
+        <target state="translated">制約 '{0}' を作成できませんでした: {1} コンポーネントは使用できません。</target>
+        <note>{0} - type of constraint (non-localizable), {1} - name of required component (non-localizable).</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_DisplayName">
+        <source>Project capabilities</source>
+        <target state="translated">プロジェクトの機能</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldBeString">
+        <source>argument should be a string</source>
+        <target state="translated">引数を文字列にしなければなりません</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldNotBeEmpty">
+        <source>arguments should not contain empty values</source>
+        <target state="translated">引数に空の値を含めることはできません</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidConstraintConfiguration">
+        <source>Invalid constraint configuration</source>
+        <target state="translated">制約の構成が無効です</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidJson">
+        <source>invalid JSON</source>
+        <target state="translated">無効な JSON</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_EvaluationFailed_Message">
+        <source>Failed to evaluate project context: {0}</source>
+        <target state="translated">プロジェクト コンテキストを評価できませんでした: {0}</target>
+        <note>{0} - failure reason</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_Message">
+        <source>The template needs project capability '{0}', and current project ({1}) does not satisfy it.</source>
+        <target state="translated">テンプレートにはプロジェクト機能 '{0}' が必要ですが、現在のプロジェクト ({1}) はこの機能を満たしていません。</target>
+        <note>{0} - project capability expression (non-localizable), {1} - path to the project.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_MultipleProjectsFound_CTA">
+        <source>Specify the project to use using {0} option.</source>
+        <target state="translated">{0} オプションを使用して、使用するプロジェクトを指定してください。</target>
+        <note>{0} - option to use - non localizable</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NoProjectFound_CTA">
+        <source>This template can only be created inside the project.</source>
+        <target state="translated">このテンプレートはプロジェクト内でのみ作成できます。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NonSDKStyle_Message">
+        <source>The project {0} is not an SDK style project, and is not supported for evaluation. It is only possible to use this template with SDK-style projects.</source>
+        <target state="translated">プロジェクト {0}は SDK スタイルのプロジェクトではないため、評価の対象としてサポートされていません。このテンプレートは SDK スタイルのプロジェクトでのみ使用できます。</target>
+        <note>{0} - path to the project</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NotRestored_CTA">
+        <source>Run 'dotnet restore {0}' to restore the project.</source>
+        <target state="translated">'dotnet restore {0}' を実行してプロジェクトを復元します。</target>
+        <note>{Locked="dotnet restore {0}"}</note>
+      </trans-unit>
+      <trans-unit id="ProjectContextSymbolSource_DisplayName">
+        <source>Project context</source>
+        <target state="translated">プロジェクト コンテキスト</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskDeleteSource">
+        <source>Delete all source files after conversion?</source>
+        <target state="translated">変換後にすべてのソース ファイルを削除しますか?</target>
+        <note>Asking whether to irreversibly delete the entry point file and all files included via #:include directives and default item globbing.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskForOutputDirectory">
+        <source>Specify the output directory (press Enter for default: '{0}', directory must not exist):</source>
+        <target state="translated">出力ディレクトリを指定します (Enter キーを押すと既定値に設定されます: '{0}'、ディレクトリは存在してはなりません):</target>
+        <note>{0} is the default value</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceNo">
+        <source>No - keep all source files</source>
+        <target state="translated">いいえ - すべてのソース ファイルを保持する</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceYes">
+        <source>Yes - delete all source files</source>
+        <target state="translated">はい - すべてのソース ファイルを削除する</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeletedSourceFile">
+        <source>Deleted source file: {0}</source>
+        <target state="translated">削除されたソース ファイル: {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDuplicateRefFolderName">
+        <source>Multiple referenced files would be converted into the same directory: '{0}'</source>
+        <target state="translated">複数の参照ファイルが同じディレクトリに変換されます: '{0}'</target>
+        <note>{0} is the target directory path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldConvertFile">
+        <source>Dry run: would remove file-level directives from file: {0}</source>
+        <target state="translated">ドライ ラン: ファイルからファイル レベルのディレクティブを削除します: {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCopyFile">
+        <source>Dry run: would copy file '{0}' to '{1}'.</source>
+        <target state="translated">ドライ ラン: ファイル '{0}' を '{1}' にコピーします。</target>
+        <note>{0} and {1} are file full paths.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateDirectory">
+        <source>Dry run: would create directory: {0}</source>
+        <target state="translated">ドライ ラン: ディレクトリを作成します: {0}</target>
+        <note>{0} is the directory full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateFile">
+        <source>Dry run: would create file: {0}</source>
+        <target state="translated">ドライ ラン: ファイルを作成します: {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldDeleteSourceFile">
+        <source>Dry run: would delete source file: {0}</source>
+        <target state="translated">ドライ ラン: 次のソース ファイルを削除します: {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectsHeader">
+        <source>Project(s)</source>
+        <target state="translated">プロジェクト</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishDefinition">
+        <source>Publish a .NET project for deployment.</source>
+        <target state="translated">.NET プロジェクトを配置のために公開します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReferenceDefinition">
+        <source>Add, remove, or list ProjectReferences for a .NET project.</source>
+        <target state="translated">.NET プロジェクトの ProjectReferences を追加、削除、または一覧表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReleasesLibraryFailed">
+        <source>Unable to get releases information: {0}</source>
+        <target state="translated">リリース情報を取得できません: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovingWorkloadInstallationRecord">
+        <source>Removing workload installation record for {0}...</source>
+        <target state="translated">{0} のワークロード インストール レコードを削除しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairSucceeded">
+        <source>Successfully repaired workloads: {0}</source>
+        <target state="translated">正常に修復できたワークロード: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairingWorkloads">
+        <source>Repairing workload installation for workloads: {0}</source>
+        <target state="translated">ワークロードのワークロード インストールを修復しています: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiresWindows">
+        <source>This command can only be run on Windows</source>
+        <target state="translated">このコマンドは Windows でのみ実行できます</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreDefinition">
+        <source>Restore dependencies specified in a .NET project.</source>
+        <target state="translated">.NET プロジェクトに指定されている依存関係を復元します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreFailed">
+        <source>Restore failed.</source>
+        <target state="translated">復元に失敗しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreNewVersionAvailable">
+        <source>A newer version of tool '{0}' is available (version '{1}'). Consider updating your manifest file.</source>
+        <target state="translated">ツール '{0}' の新しいバージョン (バージョン '{1}') が使用可能です。マニフェスト ファイルの更新を検討してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestorePartiallyFailed">
+        <source>Restore partially failed.</source>
+        <target state="translated">復元が部分的に失敗しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreSuccessful">
+        <source>Tool '{0}' (version '{1}') was restored. Available commands: {2}</source>
+        <target state="translated">ツール '{0}' (バージョン '{1}') は復元されました。使用できるコマンド: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Retried">
+        <source>retried</source>
+        <target state="translated">再試行済み</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollForwardDefinition">
+        <source>Roll forward to framework version  (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).</source>
+        <target state="translated">フレームワーク バージョン (LatestPatch、Minor、LatestMinor、Major、LatestMajor、Disable) にロールフォワードします。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionContainsExtraneousManifestIds">
+        <source>Invalid rollback definition. The manifest IDs in rollback definition {0} do not match installed manifest IDs {1}.</source>
+        <target state="translated">無効なロールバック定義。ロールバック定義 {0} のマニフェスト ID が、インストール済みのマニフェスト ID {1} と一致しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionFileDoesNotExist">
+        <source>Provided rollback definition file {0} doesn't exist.</source>
+        <target state="translated">指定されたロールバック定義ファイル {0} が存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollingBackPackInstall">
+        <source>Rolling back pack {0} installation...</source>
+        <target state="translated">パック {0} のインストールをロールバックしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableDevices">
+        <source>Available devices:</source>
+        <target state="translated">使用可能なデバイス:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableTargetFrameworks">
+        <source>Available target frameworks:</source>
+        <target state="translated">使用可能なターゲット フレームワーク:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandBuilding">
+        <source>Building...</source>
+        <target state="translated">ビルドしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandDeployFailed">
+        <source>Deployment to device failed. Fix any deployment errors and run again.</source>
+        <target state="translated">デバイスへの展開に失敗しました。展開のエラーをすべて修正し、もう一度実行してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandEvaluationExceptionBuildFailed">
+        <source>Running the {0} target to discover run commands failed for this project. Fix the errors and warnings and run again.</source>
+        <target state="translated">このプロジェクトで実行コマンドを検出するための {0} ターゲットの実行に失敗しました。エラーと警告を修正して、もう一度実行してください。</target>
+        <note>{0} is the name of an MSBuild target</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExampleText">
+        <source>Example</source>
+        <target state="translated">例</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandException">
+        <source>The build failed. Fix the build errors and run again.</source>
+        <target state="translated">ビルドに失敗しました。ビルド エラーを修正して、もう一度実行してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotApplyLaunchSettings">
+        <source>The launch profile "{0}" could not be applied.
+{1}</source>
+        <target state="translated">起動プロファイル "{0}" を適用できませんでした。
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">起動設定ファイルが見つからないため、起動プロファイル '{0}' を使用できません。試行された場所: 
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionMultipleProjects">
+        <source>Specify which project file to use because {0} contains more than one project file.</source>
+        <target state="translated">{0} に複数のプロジェクト ファイルが含まれているため、使用するプロジェクト ファイルを指定してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionNoProjects">
+        <source>Couldn't find a project to run. Ensure a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">実行するプロジェクトが見つかりませんでした。プロジェクトが {0} に存在することを確認するか、{1} を使用してパスをプロジェクトに渡してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRun">
+        <source>Unable to proceed with project '{0}'.
+Ensure you have a runnable project type.
+A runnable project should target a runnable TFM (for instance, net{1}) and have OutputType 'Exe'.
+The current OutputType is '{2}'.</source>
+        <target state="translated">プロジェクト '{0}' を続行できません。
+実行可能なプロジェクト タイプがあることを確認します。
+実行可能なプロジェクトは実行可能な TFM (たとえば、net{1}) を対象としている必要があり、OutputType 'Exe' が必要です。
+現在の OutputType は '{2}' です。</target>
+        <note>{0} is project file path. {1} is dotnet framework version. {2} is the project output type.{Locked="OutputType"}{Locked="Exe"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyDevice">
+        <source>Unable to run this project because multiple devices are available. Please specify which device to use by passing the {0} argument with one of the following values:</source>
+        <target state="translated">複数のデバイスが使用可能になっているため、このプロジェクトを実行できません。次のいずれかの値を {0} 引数で渡して、どのデバイスを使用するか指定してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyFramework">
+        <source>Unable to run your project
+Your project targets multiple frameworks. Specify which framework to run using '{0}'.</source>
+        <target state="translated">プロジェクトを実行できません
+プロジェクトは複数のフレームワークを対象としています。'{0}' を使用して、実行するフレームワークを指定してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreDevicesText">
+        <source>Move up and down to reveal more devices</source>
+        <target state="translated">上下に移動すると、さらに多くのデバイスを表示できます</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreFrameworksText">
+        <source>Move up and down to reveal more frameworks</source>
+        <target state="translated">上下に移動して、さらに多くのフレームワークを表示</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandNoDevicesAvailable">
+        <source>No devices are available for this project.</source>
+        <target state="translated">このプロジェクトで使用可能なデバイスはありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandProjectAbbreviationDeprecated">
+        <source>Warning NETSDK1174: The abbreviation of -p for --project is deprecated. Please use --project.</source>
+        <target state="translated">警告 NETSDK1174: --project の省略形である -p は推奨されていません。--project を使用してください。</target>
+        <note>{Locked="--project"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandSearchPlaceholderText">
+        <source>Type to search</source>
+        <target state="translated">入力して検索します</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectDevicePrompt">
+        <source>Select a device to run on:</source>
+        <target state="translated">実行するデバイスを選択します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectTargetFrameworkPrompt">
+        <source>Select the target framework to run:</source>
+        <target state="translated">実行するターゲット フレームワークを選択してください:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSpecifiedFileIsNotAValidProject">
+        <source>'{0}' is not a valid project file.</source>
+        <target state="translated">'{0}' は有効なプロジェクト ファイルではありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningCsFileArgumentPassedToProject">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was passed as an argument to the project '{1}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">警告: '{0}' はファイルベースのアプリのように見えますが、ファイルが見つからず、プロジェクト '{1}' の引数として渡されました。アプリケーション引数として渡すには、'dotnet run -- {0}' を使用してこの警告を抑制してください。</target>
+        <note>{0} is the .cs file path argument. {1} is the project file path.{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningFileArgumentPassedToProject">
+        <source>Warning: '{0}' appears to be a file-based app but was passed as an argument to the project '{1}'. To run it as a file-based app, use 'dotnet run --file {0}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">警告: '{0}' はファイルベースのアプリのように見えますが、プロジェクト '{1}' への引数として渡されました。ファイルベースのアプリとして実行するには、'dotnet run --file {0}' を使用してください。アプリケーション引数として渡すには、'dotnet run -- {0}' を使用してこの警告を抑制してください。</target>
+        <note>{0} is the file path argument. {1} is the project file path.{Locked="dotnet run --file"}{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">警告: '{1}' が優先されるため、'{0}' の設定は使用されません。</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningUnableToDetermineLoggerArguments">
+        <source>Warning: Could not determine which application arguments appeared after '--'. All application arguments will be passed to the application without treating logger arguments specially.</source>
+        <target state="translated">警告: '--' の後に表示されるアプリケーション引数を特定できませんでした。すべてのアプリケーション引数は、ロガー引数を特別に処理せずにアプリケーションに渡されます。</target>
+        <note>{Locked="--"}</note>
+      </trans-unit>
+      <trans-unit id="RunDefinition">
+        <source>Build and run a .NET project output.</source>
+        <target state="translated">.NET プロジェクトの出力をビルドして実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunDotnetCommandHelpForMore">
+        <source>Run 'dotnet [command] --help' for more information on a command.</source>
+        <target state="translated">コマンドに関する詳細情報については、'dotnet [command] --help' を実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunRuntimeOptionDescription">
+        <source>The target runtime to run for.</source>
+        <target state="translated">実行対象のターゲット ランタイム。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningTestsFrom">
+        <source>Running tests from</source>
+        <target state="translated">次からテストを実行しています:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeConfigDefinition">
+        <source>Path to &lt;application&gt;.runtimeconfig.json file.</source>
+        <target state="translated">&lt;application&gt;.runtimeconfig.json ファイルへのパス。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimePropertyNotFound">
+        <source>Runtime property 'HOSTFXR_PATH' was not set or empty.</source>
+        <target state="translated">ランタイム プロパティ 'HOSTFXR_PATH' が設定されていないか、空です。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeSectionHeader">
+        <source>.NET Runtimes:</source>
+        <target state="translated">.NET ランタイム:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKCommandUsageDescription">
+        <source>Execute a .NET SDK command.</source>
+        <target state="translated">.NET SDK コマンドを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKInfoCommandDefinition">
+        <source>Display .NET information.</source>
+        <target state="translated">.NET 情報を表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListRuntimesCommandDefinition">
+        <source>Display the installed runtimes.</source>
+        <target state="translated">インストール済みランタイムを表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListSdksCommandDefinition">
+        <source>Display the installed SDKs.</source>
+        <target state="translated">インストール済み SDK を表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKOptionsHelpDefinition">
+        <source>Show command line help.</source>
+        <target state="translated">コマンド ラインのヘルプを表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKVersionCommandDefinition">
+        <source>Display .NET SDK version in use.</source>
+        <target state="translated">使用中の .NET SDK バージョンを表示します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SamePackageIdInOtherManifestFile">
+        <source>Warning: There are other manifest files in the directory hierarchy that will affect this local tool. The following files have not been changed:
+{0}</source>
+        <target state="translated">警告: このローカル ツールに影響を与えるその他のマニフェスト ファイルがディレクトリ階層内に存在します。次のファイルは変更されていません:
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkDefinition">
+        <source>Manage .NET SDK installation.</source>
+        <target state="translated">.NET SDK のインストールを管理します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_InstallSdk">
+        <source>Go to aka.ms/get-dotnet and install any of the supported SDK versions: '{0}'.</source>
+        <target state="translated">aka.ms/get-dotnet に移動し、サポートされている SDK バージョン '{0}' のいずれかをインストールします。</target>
+        <note>{0} is the list of supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_SwitchSdk">
+        <source>You have other SDK version(s) installed that can be used to run this template. Switch to any of the following SDK(s) on your system to run this template: '{0}'. Details on selecting SDK version to run: https://docs.microsoft.com/dotnet/core/tools/global-json.</source>
+        <target state="translated">このテンプレートの実行に使用できる他の SDK バージョンがインストールされています。システム上の SDK '{0}' のいずれかに切り替えてこのテンプレートを実行してください。実行する SDK バージョンの選択の詳細については、https://docs.microsoft.com/dotnet/core/tools/global-json をご覧ください。</target>
+        <note>{0} is the list of installed and supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkSectionHeader">
+        <source>.NET SDKs:</source>
+        <target state="translated">.NET SDK:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkVersionOptionNotSupported">
+        <source>The --sdk-version option is no longer supported for this command.</source>
+        <target state="translated">このコマンドでは、--sdk-version オプションはサポートされなくなりました。</target>
+        <note>{Locked="--sdk-version"}</note>
+      </trans-unit>
+      <trans-unit id="ShouldInstallAWorkloadSet">
+        <source>No workload sets are installed. Run "dotnet workload restore" to install a workload set.</source>
+        <target state="translated">ワークロード セットがインストールされていません。"dotnet workload restore" を実行してワークロード セットをインストールします。</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="ShutDownFailed">
+        <source>{0} failed to shut down: {1}</source>
+        <target state="translated">{0} のシャットダウンが失敗しました: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownFailedWithPid">
+        <source>{0} (process {1}) failed to shut down: {2}</source>
+        <target state="translated">{0} (プロセス {1}) のシャットダウンが失敗しました: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceeded">
+        <source>{0} shut down successfully.</source>
+        <target state="translated">{0} は正常にシャットダウンしました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceededWithPid">
+        <source>{0} (process {1}) shut down successfully.</source>
+        <target state="translated">{0} (プロセス {1}) は正常にシャットダウンしました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServer">
+        <source>Shutting down {0}...</source>
+        <target state="translated">{0} をシャットダウンしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServerWithPid">
+        <source>Shutting down {0} (process {1})...</source>
+        <target state="translated">{0} をシャットダウンしています (プロセス {1})...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkipSignCheckInvalidOption">
+        <source>Unable to bypass signature verification. The specified option conflicts with a global policy.</source>
+        <target state="translated">署名の認証を回避できません。指定されたオプションがグローバル ポリシーと競合しています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedColon">
+        <source>skipped:</source>
+        <target state="translated">スキップ済み:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedLowercase">
+        <source>skipped</source>
+        <target state="translated">スキップされました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippingManifestUpdate">
+        <source>Manifest packages were not found. Skipping manifest update...</source>
+        <target state="translated">マニフェスト パッケージが見つかりませんでした。マニフェストの更新をスキップしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnDefinition">
+        <source>Modify Visual Studio solution files.</source>
+        <target state="translated">Visual Studio ソリューション ファイルを変更します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnxGenerated">
+        <source>.slnx file {0} generated.</source>
+        <target state="translated">.slnx ファイル {0} が生成されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFilterDoesNotSupportFolderOptions">
+        <source>Solution filter files (.slnf) do not support the --in-root or --solution-folder options.</source>
+        <target state="translated">ソリューション フィルター ファイル (.slnf) では、--in-root または --solution-folder オプションはサポートされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderAndInRootMutuallyExclusive">
+        <source>The --solution-folder and --in-root options cannot be used together; use only one of the options.</source>
+        <target state="translated">--solution-folder オプションと --in-root オプションを一緒に使用することはできません。いずれかのオプションだけを使用します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderHeader">
+        <source>Solution Folder(s)</source>
+        <target state="translated">ソリューション フォルダー</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedNoWorkloadVersionAndSpecificWorkloadVersion">
+        <source>'useWorkloadVersions' specified to not use a workload version. This is not compatible with updating or installing with a specified workload version from the command line, global.json, or from a history record with a workload version.</source>
+        <target state="translated">'useWorkloadVersions' がワークロード バージョンを使用しないように指定されました。指定されたワークロード バージョンを使用した更新またはインストールには対応していません。これには、コマンド ライン、global.json、またはワークロード バージョンを含む履歴レコードからの操作が含まれます。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedWorkloadVersionAndSpecificNonWorkloadVersion">
+        <source>'useWorkloadVersions' specified to use a workload version. This option is not compatible with updating from a rollback file or from history using a set of manifests.</source>
+        <target state="translated">'useWorkloadVersions' がワークロード バージョンを使用するように指定されました。このオプションは、ロールバック ファイルからの更新や、マニフェストのセットを使用した履歴からの更新と互換性がありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifyManifests">
+        <source>Specify at least one manifest with --manifest.</source>
+        <target state="translated">--manifest を使用して、少なくとも 1 つのマニフェストを指定します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StackFrameAt">
+        <source>at</source>
+        <target state="translated">場所:</target>
+        <note>at that is used for a stack frame location in a stack trace, is followed by a class and method name</note>
+      </trans-unit>
+      <trans-unit id="StackFrameIn">
+        <source>in</source>
+        <target state="translated">場所:</target>
+        <note>in that is used in stack frame it is followed by file name</note>
+      </trans-unit>
+      <trans-unit id="StandardError">
+        <source>Error output</source>
+        <target state="translated">エラー出力</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StandardOutput">
+        <source>Standard output</source>
+        <target state="translated">標準出力</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StatusColumnHeader">
+        <source>Status</source>
+        <target state="translated">状態</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoreDefinition">
+        <source>Store the specified assemblies in the runtime package store.</source>
+        <target state="translated">指定されたアセンブリをランタイム パッケージ ストアに格納します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SucceededColon">
+        <source>succeeded:</source>
+        <target state="translated">成功:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Summary">
+        <source>Summary</source>
+        <target state="translated">概要</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="Tags">
+        <source>Tags</source>
+        <target state="translated">タグ</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="TestCommandUseDirectoryWithSwitch">
+        <source>Specifying a directory for 'dotnet test' should be via '--project' or '--solution'.</source>
+        <target state="translated">'dotnet test' のディレクトリを指定するには、'--project' または '--solution' を使用する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseProject">
+        <source>Specifying a project for 'dotnet test' should be via '--project'.</source>
+        <target state="translated">'dotnet test' のプロジェクトを指定するには、'--project' を使用する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseSolution">
+        <source>Specifying a solution for 'dotnet test' should be via '--solution'.</source>
+        <target state="translated">'dotnet test' のソリューションを指定するには、'--solution' を使用する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseTestModules">
+        <source>Specifying dlls or executables for 'dotnet test' should be via '--test-modules'.</source>
+        <target state="translated">'dotnet test' に dll または実行可能ファイルを指定するには、'--test-modules' を使用する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDefinition">
+        <source>Run unit tests using the test runner specified in a .NET project.</source>
+        <target state="translated">.NET プロジェクトに指定されているテスト ランナーを使用して、単体テストを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDiscoveryExitCode">
+        <source>Test discovery completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">テスト検出が異常終了コードで完了しました: {0} (参照: https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummary">
+        <source>Discovered {0} tests in {1} assemblies.</source>
+        <target state="translated">{1} アセンブリで {0} つのテストを検出しました。</target>
+        <note>0 is number of tests, 1 is count of assemblies</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummarySingular">
+        <source>Discovered {0} tests.</source>
+        <target state="translated">{0} つのテストが検出されました。</target>
+        <note>0 is number of tests</note>
+      </trans-unit>
+      <trans-unit id="TestRunExitCode">
+        <source>Test run completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">テスト実行が非成功終了コードで完了しました: {0} (参照: https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestRunSummary">
+        <source>Test run summary:</source>
+        <target state="translated">テストの実行の概要:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolAlreadyInstalled">
+        <source>Tool '{0}' (version '{1}') is already installed.</source>
+        <target state="translated">ツール '{0}' (バージョン '{1}') は既にインストールされています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolCommonNoManifestGuide">
+        <source>If you intended to perform the action on a global tool, use the `--global` option for the command.</source>
+        <target state="translated">グローバル ツールでアクションを実行する場合は、コマンドで `--global` オプションを使用してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolDefinition">
+        <source>Install or manage tools that extend the .NET experience.</source>
+        <target state="translated">.NET のエクスペリエンスを向上するツールをインストールまたは管理します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInstallationSucceeded">
+        <source>You can invoke the tool using the following command: {0}
+Tool '{1}' (version '{2}') was successfully installed.</source>
+        <target state="translated">次のコマンドを使用してツールを呼び出せます。{0}
+ツール '{1}' (バージョン '{2}') が正常にインストールされました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInvalidNuGetVersionRange">
+        <source>Specified version '{0}' is not a valid NuGet version range.</source>
+        <target state="translated">指定されたバージョン '{0}' は、有効な NuGet バージョン範囲ではありません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallNuGetConfigurationFileDoesNotExist">
+        <source>NuGet configuration file '{0}' does not exist.</source>
+        <target state="translated">NuGet 構成ファイル '{0}' は存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailed">
+        <source>Tool '{0}' failed to install.</source>
+        <target state="translated">ツール '{0}' をインストールできませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailedContactAuthor">
+        <source>Tool '{0}' failed to install. Contact the tool author for assistance.</source>
+        <target state="translated">ツール '{0}' をインストールできませんでした。ツールの作成者にお問い合わせください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationRestoreFailed">
+        <source>The tool package could not be restored.</source>
+        <target state="translated">ツール パッケージを復元できませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListCommandsColumn">
+        <source>Commands</source>
+        <target state="translated">コマンド</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidPackageWarning">
+        <source>Warning: tool package '{0}' is invalid, contact tool author:
+{1}</source>
+        <target state="translated">警告: ツール パッケージ '{0}' が無効です。ツールの作成者にお問い合わせください:
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">ツール パス '{0}' は存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListPackageIdColumn">
+        <source>Package Id</source>
+        <target state="translated">パッケージ ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListVersionColumn">
+        <source>Version</source>
+        <target state="translated">バージョン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">ツール パス '{0}' は存在しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be uninstalled.</source>
+        <target state="translated">ツール '{0}' の複数のバージョンがインストールされており、アンインストールできません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolNotInstalled">
+        <source>A tool with the package Id '{0}' could not be found.
+
+Tools are uninstalled using their package Id which may be different
+from the tool name you use when calling the tool. You can find the tool names
+and the corresponding package Ids for installed tools using the command
+'dotnet tool list'.</source>
+        <target state="translated">パッケージ Id が ' {0} ' のツールが見つかりませんでした。
+
+ツールは、異なるパッケージ Id を使用してアンインストールされます
+ツールを呼び出すときに使用するツール名。ツール名が見つかります
+と、コマンドを使用してインストールされたツールの対応するパッケージ Id
+' dotnet tool list '。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallUninstallSucceeded">
+        <source>Tool '{0}' (version '{1}') was successfully uninstalled.</source>
+        <target state="translated">ツール '{0}' (バージョン '{1}') は正常にアンインストールされました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be updated.</source>
+        <target state="translated">ツール '{0}' の複数のバージョンがインストールされており、更新できません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateUpdateSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}'.</source>
+        <target state="translated">ツール '{0}' がバージョン '{1}' からバージョン '{2}' に正常に更新されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalColon">
+        <source>total:</source>
+        <target state="translated">合計:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Try">
+        <source>try {0}</source>
+        <target state="translated">{0} を試す</target>
+        <note>number or tries of the current test assembly when test assembly is being retried. {0} is number that starts at 1</note>
+      </trans-unit>
+      <trans-unit id="UnexpectedHelpMessage">
+        <source>An unexpected help-related message was received when `--help` wasn't used.</source>
+        <target state="translated">'--help' が使用されていないときに、予期しないヘルプ関連のメッセージを受信しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageInHelpMode">
+        <source>A message of type '{0}' was received in help mode, which is not expected.</source>
+        <target state="translated">種類 '{0}' のメッセージをヘルプ モードで受信しましたが、これは想定されていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageWithoutHandshake">
+        <source>A message of type '{0}' was received before we got any handshakes, which is unexpected.</source>
+        <target state="translated">ハンドシェイクを受信する前に、種類 '{0}' のメッセージを受信しましたが、これは想定されていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedTestSessionEnd">
+        <source>A test session end event was received without a corresponding test session start.</source>
+        <target state="translated">対応するテスト セッションの開始がないまま、テスト セッション終了イベントを受信しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallLocalToolSucceeded">
+        <source>Tool '{0}' was successfully uninstalled and removed from manifest file {1}.</source>
+        <target state="translated">ツール '{0}' が正常にアンインストールされ、マニフェスト ファイル {1} から削除されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">ローカル オプション (--local)、グローバル オプション (--global)、ツール パス オプション (--tool-path) は、一度に 1 つだけ指定できます。オプションを 1 つだけ指定します: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownRecordsInformationalMessage">
+        <source>Rows with Unlogged changes represent changes from actions other than .NET CLI workload commands. Usually this represents an update to the .NET SDK or to Visual Studio.</source>
+        <target state="translated">ログに記録されていない変更がある行は、.NET CLI ワークロード コマンド以外のアクションからの変更を表します。通常、これは .NET SDK または Visual Studio の更新を表します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateFromRollbackSwitchesModeToLooseManifests">
+        <source>Updating to a rollback file is not compatible with workload sets. Install and Update will now use loose manifests. To update to a specific workload version, use --version.</source>
+        <target state="translated">ロールバック ファイルへの更新は、ワークロード セットと互換性がありません。インストールと更新にルーズ マニフェストが使用されるようになりました。特定のワークロードのバージョンに更新するには、--version を使用します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocaToolSucceededVersionNoChange">
+        <source>Tool '{0}' is up to date (version '{1}' manifest file {2}) .</source>
+        <target state="translated">ツール '{0}' は最新の状態です (バージョン '{1}' マニフェスト ファイル {2})。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}' (manifest file {3}).</source>
+        <target state="translated">ツール '{0}' がバージョン '{1}' からバージョン '{2}' (マニフェストファイル {3}) に正常に更新されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1} (manifest file {2}). Use the --allow-downgrade option to allow this update.</source>
+        <target state="translated">要求されたバージョン {0} は、既存のバージョン {1} (マニフェスト ファイル {2}) よりも低くなっています。この更新を許可するには、--allow-downgrade オプションを使用します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateModeDoesNotMatchGlobalJson">
+        <source>Specified to update workloads using {0} from the command line, but global.json file at {1} specified to use {2}.</source>
+        <target state="translated">コマンド ラインから {0} を使用してワークロードを更新するように指定されていますが、{1} の global.json では {2}を使用するように指定されています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1}.</source>
+        <target state="translated">要求されたバージョン {0} は、既存のバージョン {1} を下回っています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndPackageId">
+        <source>One must specify either package ID or use the update all option (--all).</source>
+        <target state="translated">パッケージ ID を指定するか、update all オプション (--all) を使用する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndVersion">
+        <source>The version option (--version) and the update all option (--all) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">version オプション (--version) と update all オプション (--all) は同時に使用できません。次のいずれかのオプションのみを指定してください:{0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option (--local), the global option (--global), and the tool path option (--tool-path) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">ローカル オプション (--local)、グローバル オプション (--global)、ツール パス オプション (--tool-path) は一緒に使用できません。いずれかのオプションだけを指定します: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolFailed">
+        <source>Tool '{0}' failed to update due to the following:</source>
+        <target state="translated">ツール '{0}' を更新できませんでした。原因:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedWorkloadMode">
+        <source>Successfully updated workload install mode to use {0}.</source>
+        <target state="translated">{0} を使用するようにワークロード インストール モードが正常に更新されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Usage">
+        <source>Usage</source>
+        <target state="translated">使用法</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserJwtsDefinition">
+        <source>Manage JSON Web Tokens in development.</source>
+        <target state="translated">開発中の JSON Web トークンを管理します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserSecretsDefinition">
+        <source>Manage development user secrets.</source>
+        <target state="translated">開発ユーザーのシークレットを管理します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingCacheForPackInstall">
+        <source>Installing package {0} version {1} from offline cache {2}.</source>
+        <target state="translated">オフライン キャッシュ {2} でパッケージ {0} のバージョン {1} をインストールしています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingLaunchSettingsFromMessage">
+        <source>Using launch settings from {0}...</source>
+        <target state="translated">{0} からの起動設定を使用中...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VSWorkloadNotRemoved">
+        <source>Workload '{0}' was not removed because it is installed and managed by Visual Studio: '{1}'. Please uninstall this workload using the Visual Studio Installer to fully remove it.</source>
+        <target state="translated">ワークロード '{0}' は、Visual Studio '{1}' によってインストールおよび管理されているため、削除されませんでした。このワークロードを完全に削除するには、Visual Studio インストーラーを使用してこのワークロードをアンインストールしてください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Verified">
+        <source>Verified</source>
+        <target state="translated">確認済み</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VersionCheckFailure">
+        <source>No version found to check if this is up to date. Please check for updates manually.</source>
+        <target state="translated">バージョンが見つからず、これが最新のものかを確認できませんでした。更新プログラムを手動で確認してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionColumnHeader">
+        <source>Version</source>
+        <target state="translated">バージョン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Versions">
+        <source>Versions</source>
+        <target state="translated">バージョン</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VsTestDefinition">
+        <source>Run Microsoft Test Engine (VSTest) commands.</source>
+        <target state="translated">Microsoft Test Engine (VSTest) コマンドを実行します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WarningCsFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was treated as an MSBuild argument. Unrecognized arguments: {1}.</source>
+        <target state="translated">警告: '{0}' はファイルベースのアプリのように見えますが、ファイルが見つからず、MSBuild 引数として扱われました。認識されない引数です: {1}。</target>
+        <note>{0} is the .cs file path argument. {1} is the list of unrecognized arguments.</note>
+      </trans-unit>
+      <trans-unit id="WarningFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' appears to be a file-based app but was treated as an MSBuild argument. To treat it as a file-based app, use 'dotnet {1} {0}' and remove unsupported arguments {2}.</source>
+        <target state="translated">警告: '{0}' はファイルベースのアプリのように見えますが、MSBuild 引数として扱われました。ファイルベースのアプリとして扱うには、'dotnet {1} {0}' を使用し、サポートされていない引数 {2} を削除します。</target>
+        <note>{0} is the file path argument. {1} is the command name (e.g. build, clean, publish). {2} is the list of unsupported arguments.{Locked="dotnet"}</note>
+      </trans-unit>
+      <trans-unit id="WatchDefinition">
+        <source>Start a file watcher that runs a command when files change.</source>
+        <target state="translated">ファイルが変更されたときにコマンドを実行するファイル ウォッチャーを起動します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadAlreadyInstalled">
+        <source>Workload(s) '{0}' are already installed.</source>
+        <target state="translated">ワークロード '{0}' は既にインストールされています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadDefinition">
+        <source>Manage optional workloads.</source>
+        <target state="translated">オプションのワークロードを管理します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryRecordInvalidIdValue">
+        <source>The ID of a workload history record should be between 1 and the number of workload history records, inclusive.</source>
+        <target state="translated">ワークロード履歴レコードの ID は、1 からワークロード履歴レコードの数までの範囲にする必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryWorkloadSetVersion">
+        <source>Workload Version</source>
+        <target state="translated">ワークロードのバージョン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumn">
+        <source>Installed Workload Id</source>
+        <target state="translated">インストール済みワークロードの ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumnName">
+        <source>Workload ID</source>
+        <target state="translated">ワークロード ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInfoProvider_Message_AddWorkloads">
+        <source>Run 'dotnet workload search' to search workloads available to be installed on your SDK.</source>
+        <target state="translated">SDK にインストールできるワークロードを検索するには、'dotnet workload search' を実行します。</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadInstallInstallationSucceeded">
+        <source>Successfully installed workload(s) {0}.</source>
+        <target state="translated">ワークロード {0} が正常にインストールされました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">インストールのロールバックに失敗しました: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">ワークロードをインストールできませんでした。インストール パックをロールバックしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallTypeColumn">
+        <source>Install Type</source>
+        <target state="translated">インストールの種類</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadCacheDownloadFailed">
+        <source>Download of workload packs to offline cache failed: {0}</source>
+        <target state="translated">オフライン キャッシュへのワークロード パックのダウンロードに失敗しました: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadUpdatesAvailable">
+        <source>Workload updates are available. Run `dotnet workload list` for more information.</source>
+        <target state="translated">ワークロードの更新が利用可能です。詳細については、`dotnet workload list` を実行してください。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallationFailed">
+        <source>Workload installation failed: {0}</source>
+        <target state="translated">ワークロード {0} をインストールできませんでした</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIntegrityCheck">
+        <source>Checking the state of installed workloads...</source>
+        <target state="translated">インストールされているワークロードの状態を確認しています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListFooter">
+        <source>Use `dotnet workload search` to find additional workloads to install.</source>
+        <target state="translated">`dotnet workload search` を使用して追加ワークロードを検出し、インストールします。</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadSetVersion">
+        <source>Workload version: {0}</source>
+        <target state="translated">ワークロードのバージョン: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadUpdatesAvailable">
+        <source>Updates are available for the following workload(s): {0}. Run `dotnet workload update` to get the latest.</source>
+        <target state="translated">次のワークロードについて更新プログラムを入手可能です: {0}。最新版を取得するには、`dotnet workload update` を実行します。</target>
+        <note>{Locked="dotnet workload update"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestFeatureBandColumn">
+        <source>Manifest feature band</source>
+        <target state="translated">マニフェスト機能バンド</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestIdColumn">
+        <source>Workload manifest ID</source>
+        <target state="translated">ワークロード マニフェスト ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationLooseManifests">
+        <source>Configured to use loose manifests when installing new manifests.</source>
+        <target state="translated">新しいマニフェストをインストールするときに緩いマニフェストを使用するように構成されています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationWorkloadSets">
+        <source>Configured to use workload sets when installing new manifests.</source>
+        <target state="translated">新しいマニフェストをインストールするときに workload sets を使用するように構成されています。</target>
+        <note>{Locked="workload sets"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestPathColumn">
+        <source>Manifest Path</source>
+        <target state="translated">マニフェスト パス</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestVersionColumn">
+        <source>Manifest Version</source>
+        <target state="translated">マニフェストのバージョン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotInstalled">
+        <source>Couldn't find workload ID(s): {0}</source>
+        <target state="translated">ワークロード ID が見つかりませんでした: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotRecognized">
+        <source>Workload ID {0} is not recognized.</source>
+        <target state="translated">ワークロード ID {0} は認識されません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotSupportedOnPlatform">
+        <source>Workload ID {0} isn't supported on this platform.</source>
+        <target state="translated">ワークロード ID {0} は、このプラットフォームでサポートされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadPackAlreadyInstalledMessage">
+        <source>Pack {0} version {1} is already installed.</source>
+        <target state="translated">パック '{0}' バージョン {1} は既にインストールされています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadRepairFailed">
+        <source>Workload repair failed: {0}</source>
+        <target state="translated">ワークロードの修復に失敗しました: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonInstalled">
+        <source>Using workload version {0}, which was specified in the global.json file at {1}.</source>
+        <target state="translated">{1} のglobal.json ファイルで指定されたワークロード バージョン {0} を使用しています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonNotInstalled">
+        <source>Workload version {0}, which was specified in {1}, was not found. Run "dotnet workload restore" to install this workload version.</source>
+        <target state="translated">{1} で指定されたワークロード バージョン {0} が見つかりませんでした。"dotnet workload restore" を実行して、このワークロード バージョンをインストールします。</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSetHasMissingManifests">
+        <source>Workload set version {0} has missing manifests likely removed by package management. Run "dotnet workload repair" to fix this.</source>
+        <target state="translated">ワークロード セット バージョン {0} で、パッケージ管理によって削除された可能性が高いマニフェストが不足しています。これを修正するには、"dotnet workload repair" を実行してください。</target>
+        <note>{0} is the workload set version. {Locked="dotnet workload repair"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSourceColumn">
+        <source>Installation Source</source>
+        <target state="translated">インストール ソース</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallFailed">
+        <source>Workload uninstallation failed: {0}</source>
+        <target state="translated">ワークロード {0} のアンインストールに失敗しました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallUninstallSucceeded">
+        <source>Successfully uninstalled workload(s): {0}</source>
+        <target state="translated">ワークロード {0} が正常にアンインストールされました</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateAdManifestsSucceeded">
+        <source>Successfully updated advertising manifests.</source>
+        <target state="translated">広告マニフェストを正常に更新しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateFailed">
+        <source>Workload update failed: {0}</source>
+        <target state="translated">ワークロードの更新に失敗しました: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">インストールのロールバックに失敗しました: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">ワークロードをインストールできませんでした。インストール パックをロールバックしています...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateUpdateSucceeded">
+        <source>Successfully updated workload(s): {0}.</source>
+        <target state="translated">ワークロード {0} が正常に更新されました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateWorkloadCacheDownloadFailed">
+        <source>Failed to download workload update packages to cache: {0}</source>
+        <target state="translated">ワークロード更新パッケージをキャッシュにダウンロードできませんでした: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionNotInstalledShort">
+        <source>(not installed)</source>
+        <target state="translated">(インストールされていません)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionRequestedNotFound">
+        <source>Workload version {0} not found.</source>
+        <target state="translated">ワークロード バージョン {0} が見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionWithSpecifiedManifestNotFound">
+        <source>No workload version matching {0} was found.</source>
+        <target state="translated">{0} に一致するワークロード バージョンが見つかりませんでした。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Workloads">
+        <source>Workloads</source>
+        <target state="translated">ワークロード</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCLIRecordForVisualStudioWorkloadMessage">
+        <source>Writing install records for Visual Studio workloads: '{0}'</source>
+        <target state="translated">Visual Studio ワークロードのインストール レコードを書き込み中: '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WritingPackInstallRecordMessage">
+        <source>Writing workload pack installation record for {0} version {1}...</source>
+        <target state="translated">{0} バージョン {1} のワークロード パックのインストール レコードを書き込んでいます...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ZeroTestsRan">
+        <source>Zero tests ran</source>
+        <target state="translated">0 件のテストが実行されました</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

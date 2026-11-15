@@ -1,0 +1,2339 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../CliCommandStrings.resx">
+    <body>
+      <trans-unit id="Aborted">
+        <source>Aborted</source>
+        <target state="translated">已中止</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_FullTestsCount">
+        <source>{0} tests running</source>
+        <target state="translated">正在執行 {0} 個測試</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_MoreTestsCount">
+        <source>and {0} more</source>
+        <target state="translated">和其他 {0} 個</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Actual">
+        <source>Actual</source>
+        <target state="translated">實際</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestPackageDoesNotExist">
+        <source>Advertising manifest not updated. Manifest package for {0} doesn't exist.</source>
+        <target state="translated">未更新廣告資訊清單。{0} 的資訊清單封裝並不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestUpdated">
+        <source>Updated advertising manifest {0}.</source>
+        <target state="translated">已更新廣告資訊清單 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalDeps">
+        <source>Path to additional deps.json file.</source>
+        <target state="translated">其他 deps.json 檔案的路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalProbingPathDefinition">
+        <source>Path containing probing policy and assemblies to probe for.</source>
+        <target state="translated">包含探查原則及要探查之組件的路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalTools">
+        <source>Additional commands from bundled tools:</source>
+        <target state="translated">來自配套工具的其他命令:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireWorkloadDeprecated">
+        <source>The Aspire workload is deprecated and no longer necessary. Aspire is now available as NuGet packages that you can add directly to your projects. For more information, see https://aka.ms/aspire/support-policy</source>
+        <target state="translated">Aspire 工作負載已棄用，不再需要。Aspire 現已作為 NuGet 套件提供，您可以將它直接新增至專案。如需詳細資訊，請參閱 https://aka.ms/aspire/support-policy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Authors">
+        <source>Authors</source>
+        <target state="translated">作者</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="CmdTestNoTestProjectsFound">
+        <source>No test projects were found.</source>
+        <target state="translated">未找到任何測試專案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceDescription">
+        <source>The device identifier to use for running the application.</source>
+        <target state="translated">用於執行應用程式的裝置識別碼。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceHelpName">
+        <source>DEVICE</source>
+        <target state="translated">裝置</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionListDevicesDescription">
+        <source>List available devices for running the application.</source>
+        <target state="translated">列出可用來執行應用程式的裝置。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildDefinition">
+        <source>Build a .NET project.</source>
+        <target state="translated">建置 .NET 專案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildRuntimeOptionDescription">
+        <source>The target runtime to build for.</source>
+        <target state="translated">要為其進行建置的目標執行階段。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildServerDefinition">
+        <source>Interact with servers started by a build.</source>
+        <target state="translated">與組建啟動的伺服器互動。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BundleUpToDateMessage">
+        <source>Up to date.</source>
+        <target state="translated">最新資訊。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CacheMissingPackage">
+        <source>Package {0} version {1} doesn't exist in offline cache {2}.</source>
+        <target state="translated">離線快取 {2} 中並沒有套件 {0} 版本 {1}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancelledLowercase">
+        <source>canceled</source>
+        <target state="translated">已取消</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancellingTestSession">
+        <source>Canceling the test session...</source>
+        <target state="translated">正在取消測試工作階段...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotAnalyzeVSWorkloadBand">
+        <source>Workloads managed by Visual Studio must be uninstalled using the Visual Studio Installer. For the version of Visual Studio managing the SDK '{0}', we could not display workloads to uninstall. This is likely because '{0}' uses a different dotnet root path or custom user profile directory from the current running SDK.
+Paths searched: '{1}', '{2}'.</source>
+        <target state="translated">必須使用 Visual Studio 安裝程式解除安裝由 Visual Studio 管理的工作負載。針對管理 SDK '{0}' 的 Visual Studio 版本，我們無法顯示要解除安裝的工作負載。這可能是因為 '{0}' 使用與目前執行中 SDK 不同的 dotnet 根路徑或自訂使用者設定檔目錄。
+搜尋的路徑: '{1}'、'{2}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineOptions">
+        <source>Cannot use the {0} and {1} options together.</source>
+        <target state="translated">無法同時使用 {0} 與 {1} 選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndRollback">
+        <source>Cannot use the {0} and {1} options together. If installing from a rollback file, remove {0}. Otherwise, remove {1}</source>
+        <target state="translated">無法同時使用 {0} 與 {1} 選項。如果從復原檔案安裝，請移除 {0}。否則，請移除 {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndVersion">
+        <source>Cannot use the {0} and {1} options together.  Remove one of the options.</source>
+        <target state="translated">無法同時使用 {0} 與 {1} 選項。移除其中一個選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotFindCommandName">
+        <source>Cannot find a tool in the manifest file that has a command named '{0}'.</source>
+        <target state="translated">在資訊清單中找不到有名稱 '{0}' 命令的工具。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotMigrateSlnx">
+        <source>Only .sln files can be migrated to .slnx format.</source>
+        <target state="translated">只有 .sln 檔案可以移轉為 .slnx 格式。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionAndWorkloadIdsByComponent">
+        <source>Cannot specify a workload version using the --version option while also specifying versions to install using workload@version syntax.</source>
+        <target state="translated">同時指定要使用 workload@version 語法安裝的版本時，無法使用 --version 選項指定工作負載版本。</target>
+        <note>{Locked="--version"}</note>
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionOnCommandLineAndInGlobalJson">
+        <source>Cannot specify a particular workload version on the command line via --version or --from-history when there is already a version specified in global.json file {0}. To update the globally installed workload version, run the command outside of the path containing that global.json file or update the version specified in the global.json file and run "dotnet workload update."</source>
+        <target state="translated">當 global.json 檔案 {0} 中已指定版本時，無法在命令列上透過 --version 或 --from-history 指定特定工作負載版本。若要更新全域安裝的工作負載版本，請在包含該 global.json 檔案的路徑外執行命令，或更新 global.json 檔案中指定的版本，然後執行 "dotnet workload update"。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotUseSkipManifestWithGlobalJsonWorkloadVersion">
+        <source>Cannot use the {0} option when workload version is specified in global.json.  Remove the {0} option, or remove the 'workloadVersion' element from {1}.</source>
+        <target state="translated">global.json 中指定工作負載版本時，無法使用 {0} 選項。移除 {0} 選項，或從 {1} 移除 'workloadVersion' 元素。</target>
+        <note>{Locked="workloadVersion"} Locked={"global.json"}</note>
+      </trans-unit>
+      <trans-unit id="CapabilityExpressionEvaluator_Exception_InvalidExpression">
+        <source>Invalid expression, position: {0}.</source>
+        <target state="translated">運算式無效，位置: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckForUpdatedWorkloadManifests">
+        <source>Checking for updated workload version.</source>
+        <target state="translated">正在檢查更新的工作負載版本。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanDefinition">
+        <source>Clean build outputs of a .NET project.</source>
+        <target state="translated">清除 .NET 專案的組建輸出。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsDirectoryNotFound">
+        <source>Warning: Artifacts directory does not exist: {0}</source>
+        <target state="translated">警告: 成品目錄不存在: {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsErrorRemovingFolder">
+        <source>Error removing folder '{0}': {1}</source>
+        <target state="translated">移除資料夾 '{0}' 時發生錯誤: {1}</target>
+        <note>{0} is folder path. {1} is inner error message.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsScanning">
+        <source>Scanning for folders to remove in: {0}</source>
+        <target state="translated">正在掃描要移除的資料夾位置: {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsTotalFoldersRemoved">
+        <source>Total folders removed: {0}</source>
+        <target state="translated">已移除的資料夾總數: {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsWouldRemoveFolders">
+        <source>Would remove folders: {0}</source>
+        <target state="translated">將移除的資料夾數量: {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CmdDGFileException">
+        <source>Unable to create dependency graph file for project '{0}'. Cannot add package reference.</source>
+        <target state="translated">無法為專案 '{0}' 建立相依性關係圖檔案。無法新增套件參考。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdDGFileIOException">
+        <source>Unable to generate a temporary file for project '{0}'. Cannot add package reference. Clear the temp directory and try again.</source>
+        <target state="translated">無法產生專案 '{0}' 的暫存檔案。無法新增套件參考。請清除該暫存目錄，然後再試一次。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdHelpUsageTitle">
+        <source>Usage:</source>
+        <target state="translated">使用方式:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidProjectFileExtensionErrorDescription">
+        <source>The provided project file has an invalid extension: {0}.</source>
+        <target state="translated">提供的專案檔案的副檔名無效: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidSolutionFileExtensionErrorDescription">
+        <source>The provided solution file has an invalid extension: {0}.</source>
+        <target state="translated">提供的解決方案檔案的副檔名無效: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMSBuildProjectsPropertiesErrorDescription">
+        <source>Build failed with exit code: {0}.</source>
+        <target state="translated">建置失敗，結束代碼為: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleBuildPathOptionsErrorDescription">
+        <source>Specify either the project, solution, directory, or test modules option.</source>
+        <target state="translated">指定專案、解決方案、目錄或測試模組選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleProjectOrSolutionFilesErrorDescription">
+        <source>Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
+        <target state="translated">指定要使用哪個專案檔或解決方案檔案，因為此資料夾包含一個以上的專案檔或解決方案檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoProjectOrSolutionFileErrorDescription">
+        <source>Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
+        <target state="translated">指定專案或解決方案檔案。目前的工作目錄並未包含專案或解決方案檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoTestModulesErrorDescription">
+        <source>No test modules found for the given test module pattern: {0} with root directory: {1}</source>
+        <target state="translated">找不到指定測試模組模式的測試模組: {0}，根目錄為: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentDirectoryErrorDescription">
+        <source>The provided directory path does not exist: {0}.</source>
+        <target state="translated">提供的目錄路徑不存在: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentFileErrorDescription">
+        <source>The provided file path does not exist: {0}.</source>
+        <target state="translated">提供的檔案路徑不存在: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentRootDirectoryErrorDescription">
+        <source>The provided root directory does not exist: {0}.</source>
+        <target state="translated">提供的根目錄不存在: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdOptionCannotBeUsedWithTestModulesDescription">
+        <source>The options architecture, configuration, framework, operating system, and runtime cannot be used with '--test-modules' option.</source>
+        <target state="translated">選項結構、設定、架構、作業系統和執行階段不能與 '--test-modules' 選項一起使用。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedMessageRequestTypeException">
+        <source>Message Request type '{0}' is unsupported.</source>
+        <target state="translated">不支援 '{0}' 訊息要求類型。</target>
+        <note>{0} - message request type</note>
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedVSTestTestApplicationsDescription">
+        <source>global.json defines test runner to be Microsoft.Testing.Platform. All projects must use that test runner.
+The following test projects are using VSTest test runner:
+{0}
+
+See https://aka.ms/dotnet-test/mtp for more information.</source>
+        <target state="translated">global.json 定義測試執行器為 Microsoft.Testing.Platform。所有專案必須使用該測試執行器。
+以下測試專案正在使用 VSTest 測試執行器:
+{0}
+
+如需詳細資訊，請參閱 https://aka.ms/dotnet-test/mtp。</target>
+        <note>{Locked="global.json"}{Locked="Microsoft.Testing.Platform"}
+{0} is one or more project names.</note>
+      </trans-unit>
+      <trans-unit id="Command">
+        <source>Command</source>
+        <target state="translated">命令</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandDoesNotExist">
+        <source>Specified command '{0}' is not a valid SDK command. Specify a valid SDK command. For more information, run dotnet help.</source>
+        <target state="translated">指定的命令 '{0}' 並非有效的 SDK 命令。請指定有效的 SDK 命令。如需詳細資訊，請執行 dotnet help。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandFooter">
+        <source>The latest versions of .NET can be installed from https://aka.ms/dotnet-core-download. For more information about .NET lifecycles, see https://aka.ms/dotnet-core-support.</source>
+        <target state="translated">最新的 .NET 版本可前往 https://aka.ms/dotnet-core-download. 安裝。如需 .NET 生命週期的詳細資訊，請參閱 https://aka.ms/dotnet-core-support。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Commands">
+        <source>SDK commands</source>
+        <target state="translated">SDK 命令</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandsMismatch">
+        <source>The command {0} specified in the tool manifest file is not contained in the package with Package Id {1}. The commands contained in the package are {2}.</source>
+        <target state="translated">指定在工具資訊清單檔中的命令 {0}，不包含在套件識別碼為 {1} 的套件中。套件中包含的命令是 {2}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptInvalidChoiceMessage">
+        <source>Please type '{0}' for yes or '{1}' for no.</source>
+        <target state="translated">請輸入 '{0}' 表示是或 '{1}' 表示否。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptNoValue">
+        <source>n</source>
+        <target state="translated">n</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "no", ie to cancel the operation.</note>
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptYesValue">
+        <source>y</source>
+        <target state="translated">y</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "yes", ie to agree.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleIsAlreadyInBatchingMode">
+        <source>Console is already in batching mode.</source>
+        <target state="translated">主控台已處於批次處理模式。</target>
+        <note>Exception that is thrown when console is already collecting input into a batch (into a string builder), and code asks to enable batching mode again.</note>
+      </trans-unit>
+      <trans-unit id="CouldNotFindAProject">
+        <source>Couldn't find a project. Ensure that a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">找不到專案。請確認專案存在於 {0} 中，或使用 {1} 將該路徑傳送至專案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Date">
+        <source>Date</source>
+        <target state="translated">日期</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadManifest">
+        <source>Uninstalling workload manifest {0} version {1}...</source>
+        <target state="translated">正解除安裝工作負載資訊清單 {0} 版本 {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadPack">
+        <source>Uninstalling workload pack {0} version {1}...</source>
+        <target state="translated">正在解除安裝工作負載套件 {0} 版本 {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadSet">
+        <source>Deleting workload version {0}.</source>
+        <target state="translated">正在刪除工作負載版本 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DepsFileDefinition">
+        <source>Path to &lt;application&gt;.deps.json file.</source>
+        <target state="translated">&lt;application&gt;.deps.json 檔案的路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Description</source>
+        <target state="translated">描述</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DescriptionColumnName">
+        <source>Description</source>
+        <target state="translated">描述</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsDefinition">
+        <source>Create and manage development certificates.</source>
+        <target state="translated">建立及管理開發憑證。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectoryAlreadyExists">
+        <source>The target directory already exists: '{0}'</source>
+        <target state="translated">目標目錄已存在: '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DiscoveredTestsInAssembly">
+        <source>Discovered {0} tests in assembly</source>
+        <target state="translated">已在組件中找到 {0} 個測試</target>
+        <note>0 is count, the sentence is followed by the path of the assebly</note>
+      </trans-unit>
+      <trans-unit id="DiscoveringTestsFrom">
+        <source>Discovering tests from</source>
+        <target state="translated">正在以下位置找測試</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestIncompatibleHandshakeVersion">
+        <source>Supported protocol versions sent by Microsoft.Testing.Platform are '{0}'. The SDK supports '{1}', which is incompatible.</source>
+        <target state="translated">Microsoft.Testing.Platform 所支援的通訊協定版本為 '{0}'。此 SDK 支援 '{1}'，但兩者不相容。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestMismatchingExecutionId">
+        <source>Received 'ExecutionId' of value '{0}' for message '{1}' while the 'ExecutionId' received of the handshake message was '{2}'.</source>
+        <target state="translated">收到訊息 '{1}' 的 'ExecutionId' 值為 '{0}'，但交握訊息收到的 'ExecutionId' 為 '{2}'。</target>
+        <note>{Locked="ExecutionId"}</note>
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureHasHandshake">
+        <source>Error disposing 'NamedPipeServer' corresponding to handshake:</source>
+        <target state="translated">處理與交握對應的 'NamedPipeServer' 時發生錯誤:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureWithoutHandshake">
+        <source>Error disposing 'NamedPipeServer', and no handshake was found.</source>
+        <target state="translated">處理 'NamedPipeServer' 時發生錯誤，且找不到交握。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeOverlapping">
+        <source>'dotnet' unexpectedly received overlapping messages from the 'dotnet test' named pipe.</source>
+        <target state="translated">'dotnet' 從 'dotnet test' 具名管道意外接收到重疊訊息。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadingPackToCacheMessage">
+        <source>Downloading pack {0} version {1} to offline cache {2}...</source>
+        <target state="translated">正在將套件 {0} 版本 {1} 下載到離線快取 {2}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Downloads">
+        <source>Downloads</source>
+        <target state="translated">下載</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DurationColon">
+        <source>duration:</source>
+        <target state="translated">期間:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorColon">
+        <source>error:</source>
+        <target state="translated">錯誤:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorRunningTestModule">
+        <source>The following exception occurred when running the test module with RunCommand '{0}' and RunArguments '{1}':
+
+{2}</source>
+        <target state="translated">使用 RunCommand '{0}' 和 RunArguments '{1}' 執行測試模組時，發生以下例外狀況: 
+
+{2}</target>
+        <note>{Locked="RunCommand"}{Locked="RunArguments"}
+{2} is the exception that occurred.</note>
+      </trans-unit>
+      <trans-unit id="Error_restore">
+        <source>Restore failed. Run `dotnet restore` for more details on the issue.</source>
+        <target state="translated">還原失敗。如需問題的詳細資料，請執行 'dotnet restore'。</target>
+        <note>{Locked="dotnet restore"}</note>
+      </trans-unit>
+      <trans-unit id="ExecutionUsageDescription">
+        <source>Execute a .NET application.</source>
+        <target state="translated">執行 .NET 應用程式。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExitCode">
+        <source>Exit code</source>
+        <target state="translated">結束代碼</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Expected">
+        <source>Expected</source>
+        <target state="translated">預期</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedSingleManifest">
+        <source>Expected single manifest feature band and manifest folder in MSI from package {0}</source>
+        <target state="translated">MSI 中的預期單一資訊清單級區和資訊清單資料夾來自套件 {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed">
+        <source>Failed</source>
+        <target state="translated">失敗</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedAdManifestUpdate">
+        <source>Failed to update the advertising manifest {0}: {1}.</source>
+        <target state="translated">無法更新廣告資訊清單 {0}: {1}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedColon">
+        <source>failed:</source>
+        <target state="translated">失敗:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedLowercase">
+        <source>failed</source>
+        <target state="translated">已失敗</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToCreateToolShim">
+        <source>Failed to create shell shim for tool '{0}': {1}</source>
+        <target state="translated">無法為工具 '{0}' 建立殼層填充碼: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToExtractMsi">
+        <source>Failed to extract information from MSI: {0}</source>
+        <target state="translated">無法從 MSI 擷取資訊: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadManifest">
+        <source>Failed to install manifest {0} version {1}: {2}.</source>
+        <target state="translated">無法安裝資訊清單 {0} 版本 {1}: {2}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadSet">
+        <source>Failed to install workload version {0}: {1}</source>
+        <target state="translated">無法安裝工作負載版本 {0}：{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRunTarget">
+        <source>Failed to restore workload for project {0}: Failed to run MSBuild Target _GetRequiredWorkloads.</source>
+        <target state="translated">無法還原專案 {0} 的工作負載: 無法執行 MSBuild 目標 _GetRequiredWorkloads。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToUninstallTool">
+        <source>Failed to uninstall tool '{0}': {1}</source>
+        <target state="translated">無法將工具 '{0}' 解除安裝: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedWithErrors">
+        <source>failed with {0} error(s)</source>
+        <target state="translated">失敗，有 {0} 個錯誤</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForTest">
+        <source>For test</source>
+        <target state="translated">用於測試</target>
+        <note>is followed by test name</note>
+      </trans-unit>
+      <trans-unit id="FormatDefinition">
+        <source>Apply style preferences to a project or solution.</source>
+        <target state="translated">將樣式喜好設定套用至專案或解決方案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FromFile">
+        <source>from</source>
+        <target state="translated">來自</target>
+        <note>from followed by a file name to point to the file from which test is originating</note>
+      </trans-unit>
+      <trans-unit id="FsiDefinition">
+        <source>Start F# Interactive / execute F# scripts.</source>
+        <target state="translated">啟動 F# Interactive/執行 F# 指令碼。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FxVersionDefinition">
+        <source>Version of the installed Shared Framework to use to run the application.</source>
+        <target state="translated">用於執行應用程式的已安裝之共用架構的版本。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectingSdkFeatureBandsMessage">
+        <source>Garbage collecting for SDK feature band(s) {0}...</source>
+        <target state="translated">SDK 功能級區 {0} 的垃圾收集...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectionFailed">
+        <source>Warning: Workload garbage collection failed with error: {0}.</source>
+        <target state="translated">警告: 工作負載垃圾收集失敗，錯誤碼: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GlobalJsonVersion">
+        <source>Global.json Version</source>
+        <target state="translated">Global.json 版本</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HandshakeFailuresHeader">
+        <source>Handshake failures:</source>
+        <target state="new">Handshake failures:</target>
+        <note>Section header printed at the end of a 'dotnet test' run when one or more test hosts failed to hand-shake with the SDK. Followed by per-assembly exit code, stdout and stderr.</note>
+      </trans-unit>
+      <trans-unit id="HelpDefinition">
+        <source>Opens the reference page in a browser for the specified command.</source>
+        <target state="translated">在瀏覽器中開啟指定命令的參考頁面。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpExtensionOptions">
+        <source>Extension Options:</source>
+        <target state="translated">延伸模組選項:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionBelow">
+        <source>{0} is missing the option below</source>
+        <target state="translated">{0} 缺少下列選項</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionsBelow">
+        <source>{0} is missing the options below</source>
+        <target state="translated">{0} 缺少下列選項</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionBelow">
+        <source>{0} are missing the option below</source>
+        <target state="translated">{0} 缺少下列選項</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionsBelow">
+        <source>{0} are missing the options below</source>
+        <target state="translated">{0} 缺少下列選項</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpOptions">
+        <source>Options:</source>
+        <target state="translated">選項:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpPlatformOptions">
+        <source>Platform Options:</source>
+        <target state="translated">平台選項:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableExtensionOptions">
+        <source>Unavailable extension options:</source>
+        <target state="translated">無法使用的延伸模組選項:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableOptions">
+        <source>Unavailable options:</source>
+        <target state="translated">無法使用的選項:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpWaitingForOptionsAndExtensions">
+        <source>Waiting for options and extensions...</source>
+        <target state="translated">正在等候選項與延伸模組...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HostFxrCouldNotBeLoaded">
+        <source>Could not load hostfxr from '{0}'.</source>
+        <target state="translated">無法從 '{0}' 載入 Hostfxr。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Id">
+        <source>Id</source>
+        <target state="translated">識別碼</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IgnoredArgumentsMessage">
+        <source>The following arguments have been ignored : "{0}"</source>
+        <target state="translated">已忽略下列引數: "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InProcessArtifactsProduced">
+        <source>In process file artifacts produced:</source>
+        <target state="translated">產生的流程内檔案成品：</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InadequatePermissions">
+        <source>Inadequate permissions. Run the command with elevated privileges.</source>
+        <target state="translated">權限不足。以較高的權限執行命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">一次只能有一個本機選項 (--local)、全域選項 (--global)、工具路徑選項 (--tool-path)。請僅指定其中一個選項: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingPackVersionMessage">
+        <source>Installing pack {0} version {1}...</source>
+        <target state="translated">正在安裝套件 {0} 版本 {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloadManifest">
+        <source>Installing workload manifest {0} version {1}...</source>
+        <target state="translated">正在安裝工作負載資訊清單 {0} 版本 {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloads">
+        <source>Installing workloads: {0}</source>
+        <target state="translated">正在安裝工作負載: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InsufficientPrivilegeToStartServer">
+        <source>Insufficient privilege to start the server.</source>
+        <target state="translated">權限不足，無法啟動伺服器。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InternalLoopAsyncDidNotExitSuccessfullyErrorMessage">
+        <source>Method '{0}' did not exit successfully</source>
+        <target state="translated">方法 '{0}' 未成功結束</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidFilePath">
+        <source>The specified file must exist and have '.cs' file extension: '{0}'</source>
+        <target state="translated">指定的檔案必須存在，並具有 '.cs' 副檔名:'{0}'</target>
+        <note>{Locked=".cs"}</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForFileBasedApp">
+        <source>Cannot specify option '{0}' when operating on a file-based app.</source>
+        <target state="translated">在檔案型應用程式上執行時，無法指定選項 '{0}'。</target>
+        <note>{0} is an option name like '--source'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForStdin">
+        <source>Cannot specify option '{0}' when also using '-' to read the file from standard input.</source>
+        <target state="translated">當使用「-」從標準輸入讀取檔案時，無法指定選項 '{0}'。</target>
+        <note>{0} is an option name like '--no-build'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidToolConfiguration">
+        <source>The settings file in the tool's NuGet package is invalid: {0}</source>
+        <target state="translated">工具之 NuGet 套件中的設定檔案無效: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidVersionForWorkload">
+        <source>Error parsing version '{1}' for workload manifest ID '{0}'</source>
+        <target state="translated">剖析工作負載資訊清單識別碼 '{1}' 的版本 '{0}' 時發生錯誤</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LatestVersion">
+        <source>Latest Version</source>
+        <target state="translated">最新版本</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="ListToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">一次只能有一個本機選項 (--local)、全域選項 (--global)、工具路徑選項 (--tool-path)。請僅指定其中一個選項: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalOptionDoesNotSupportFrameworkOption">
+        <source>The local option(--local) does not support the framework option (--framework).</source>
+        <target state="translated">本機選項 (--local) 並不支援架構選項 (-framework)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolInstallationSucceeded">
+        <source>You can invoke the tool from this directory using the following commands: 'dotnet tool run {0}' or 'dotnet {0}'.
+Tool '{1}' (version '{2}') was successfully installed. Entry is added to the manifest file {3}.</source>
+        <target state="translated">您可使用下列命令，從此目錄叫用工具: 'dotnet tool run {0}' 或 'dotnet {0}'。
+已成功安裝工具 '{1}' (版本 '{2}')。項目已新增至資訊清單檔 {3}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolsRestoreWasSuccessful">
+        <source>Restore was successful.</source>
+        <target state="translated">還原已成功。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NoProjectFound">
+        <source>No project was found at the path: {0}.</source>
+        <target state="translated">在路徑 {0} 中找不到任何專案。</target>
+        <note>{0} - the file path where project was expected to be found.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NotRestored">
+        <source>{0} is not restored.</source>
+        <target state="translated">{0} 未還原。</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluator_Error_NoTargetFramework">
+        <source>Project '{0}' is a SDK-style project, but does not specify the framework.</source>
+        <target state="translated">專案 '{0}' 是 SDK 樣式專案，但未指定架構。</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MaintenanceMessage">
+        <source>.NET {0} is going out of support soon.</source>
+        <target state="translated">.NET {0} 即將不再支援。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestFileColumn">
+        <source>Manifest</source>
+        <target state="translated">資訊清單</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestMsiNotFoundInNuGetPackage">
+        <source>Manifest MSI not found in NuGet package {0}</source>
+        <target state="translated">在 NuGet 套件 {0} 中找不到資訊清單 MSI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestPackageUrlNotResolved">
+        <source>Manifest package not resolved. Manifest package or URL for {0} doesn't exist.</source>
+        <target state="translated">未解析資訊清單封裝。{0} 的資訊清單套件或 URL 不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MinimumExpectedTestsPolicyViolation">
+        <source>Minimum expected tests policy violation, tests ran {0}, minimum expected {1}</source>
+        <target state="translated">預期測試原則違反的最小值，{0} 個執行的測試，預期的最小值為 {1}</target>
+        <note>{0}, {1} number of tests</note>
+      </trans-unit>
+      <trans-unit id="MismatchingHandshakeInfo">
+        <source>A new handshake '{0}' was received for the test application that doesn't match the previous handshake '{1}'.</source>
+        <target state="translated">測試應用程式收到新的交握 '{0}'，與先前的交握 '{1}' 不相符。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingTestSessionEnd">
+        <source>A test session start event was received without a corresponding test session end.</source>
+        <target state="translated">收到測試工作階段開始事件，但沒有對應的測試工作階段結束。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsBuildDefinition">
+        <source>Run Microsoft Build Engine (MSBuild) commands.</source>
+        <target state="translated">執行 Microsoft Build Engine (MSBuild) 命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressInstall">
+        <source>Installing {0} </source>
+        <target state="translated">安裝 {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressRepair">
+        <source>Repairing {0} </source>
+        <target state="translated">修復 {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressUninstall">
+        <source>Removing {0} </source>
+        <target state="translated">正在移除 {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleProjectsEvaluationResult_Error">
+        <source>Multiple projects found: {0}.</source>
+        <target state="translated">找到多個專案: {0}。</target>
+        <note>{0} - semi-colon separated list of path to projects found.</note>
+      </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="translated">名稱</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NeedNuGetInConfig">
+        <source>The 'dotnet tool search' command unconditionally accesses nuget.org to find tools, but it is not present in your nuget.config. Add it to run this command.
+    This can be done with this command:
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</source>
+        <target state="translated">'dotnet tool search' 命令可無條件存取 nuget.org 以尋找工具，但該命令不在您的 nuget.config 中。請新增它以執行此命令。
+    這可以使用此命令來完成:
+  dotnet nuget 新增來源 https://api.nuget.org/v3/index.json -n nuget.org</target>
+        <note>Do not translate 'dotnet tool search' or 'nuget.config'. Do not localize the last line at all.</note>
+      </trans-unit>
+      <trans-unit id="NewDefinition">
+        <source>Create a new .NET project or file.</source>
+        <target state="translated">建立新的 .NET 專案或檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewFeatureBandMessage">
+        <source>Try out the newest .NET SDK features with .NET {0}.</source>
+        <target state="translated">使用 .NET {0} 試用最新的 .NET SDK 功能。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewPatchAvailableMessage">
+        <source>Patch {0} is available.</source>
+        <target state="translated">有可用的修補程式 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewWorkloadSet">
+        <source>Installing workload version {0}.</source>
+        <target state="translated">正在安裝工作負載版本 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseRunningJustCsc">
+        <source>Warning: Binary log option was specified but MSBuild will be skipped because running just csc is enough. Specify '--no-cache' to force full build.</source>
+        <target state="translated">警告: 已指定二進位記錄檔選項，但將略過 MSBuild，因為僅執行 csc 就足夠了。請指定 '--no-cache' 以強制完整建置。</target>
+        <note>{Locked="--no-cache"}{Locked="MSBuild"}{Locked="csc"}</note>
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseUpToDate">
+        <source>Warning: Binary log option was specified but build will be skipped because output is up to date. Specify '--no-cache' to force build.</source>
+        <target state="translated">警告: 已指定二進位記錄選項，但將會略過建置，因為輸出為最新內容。請指定 '--no-cache' 以強制建置。</target>
+        <note>{Locked="--no-cache"}</note>
+      </trans-unit>
+      <trans-unit id="NoHistoryFound">
+        <source>No workload history found</source>
+        <target state="translated">找不到工作負載歷程記錄</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoManifestFileContainPackageId">
+        <source>Cannot find a manifest file that contains package id '{0}'.</source>
+        <target state="translated">找不到包含套件識別碼 '{0}' 的資訊清單檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectsOrSolutions">
+        <source>A project or solution file could not be found in {0}. Specify a project or solution file to use.</source>
+        <target state="translated">在 {0} 中找不到專案或解決方案檔案。請指定要使用的專案或解決方案檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResult">
+        <source>Could not find any results.</source>
+        <target state="translated">找不到任何結果。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithIdErrorMessage">
+        <source>No serializer registered with ID '{0}'</source>
+        <target state="translated">沒有使用識別碼 '{0}' 註冊的序列化程式</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithTypeErrorMessage">
+        <source>No serializer registered with type '{0}'</source>
+        <target state="translated">沒有使用類型 '{0}' 註冊的序列化程式</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoServersToShutdown">
+        <source>No build servers are running.</source>
+        <target state="translated">未執行任何組建伺服器。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoToolsWereRestored">
+        <source>No tools were restored.</source>
+        <target state="translated">未還原任何工具。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTrustWithParentPID">
+        <source>Failed to establish a trust relationship with parent process ({0}).</source>
+        <target state="translated">無法與父處理序 ({0}) 建立信任關係。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadHistoryRecords">
+        <source>Workload history records are created when when running an operation that modifies workloads like update or install. Cannot update from history until workload history records exist.</source>
+        <target state="translated">執行會修改工作負載 (例如更新或安裝) 的作業時，會建立工作負載歷程記錄。在工作負載歷程記錄存在之前，無法從歷程記錄更新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadUpdateFound">
+        <source>No workload update found.</source>
+        <target state="translated">找不到任何工作負載更新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadVersionsFound">
+        <source>No workload versions found for SDK feature band {0}.</source>
+        <target state="translated">找不到 SDK 功能帶 {0} 的工作負載版本。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsInstalledInfoWarning">
+        <source>There are no installed workloads to display.</source>
+        <target state="translated">沒有已安裝的工作負載可顯示。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToRepair">
+        <source>No workloads are installed, nothing to repair. Run `dotnet workload search` to find workloads to install.</source>
+        <target state="translated">未安裝任何工作負載，沒有要修復的項目。請執行 `dotnet workload search` 以尋找要安裝的工作負載。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToUpdate">
+        <source>No workloads installed for this feature band. To update workloads installed with earlier SDK versions, include the --from-previous-sdk option.</source>
+        <target state="translated">此功能帶未安裝任何工作負載。若要更新與舊版本 SDK 一起安裝的工作負載，請包含 --from-previous-sdk 選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NugetDefinition">
+        <source>Provides additional NuGet commands.</source>
+        <target state="translated">提供其他 NuGet 命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OSDoesNotSupportMsi">
+        <source>MSI installations are only supported on Windows.</source>
+        <target state="translated">只有 Windows 支援 MSI 安裝。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OnlyLocalOptionSupportManifestFileOption">
+        <source>Specifying the tool manifest option (--tool-manifest) is only valid with the local option (--local or the default).</source>
+        <target state="translated">只有出現區域選項 (--local 或預設) 時，才可指定工具資訊清單選項 (--tool-manifest)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfProcessArtifactsProduced">
+        <source>Out of process file artifacts produced:</source>
+        <target state="translated">產生的流程外檔案成品：</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfSupportMessage">
+        <source>.NET {0} is out of support.</source>
+        <target state="translated">.NET {0} 已不再支援。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackDefinition">
+        <source>Create a NuGet package.</source>
+        <target state="translated">建立 NuGet 套件。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageDefinition">
+        <source>Search for, add, remove, or list PackageReferences for a .NET project.</source>
+        <target state="translated">搜尋、新增、移除或列出 .NET 專案的 PackageReferences。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageFailedToRestore">
+        <source>Package "{0}" failed to restore, due to {1}</source>
+        <target state="translated">因為 {1}，所以無法還原套件 "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageId">
+        <source>Package ID</source>
+        <target state="translated">套件識別碼</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="PackageListFileNotFound">
+        <source>Could not find file or directory '{0}'.</source>
+        <target state="translated">找不到檔案或目錄 ‘{0}’。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageRemoveSpecifyExactlyOnePackageReference">
+        <source>Specify only one package reference to remove.</source>
+        <target state="translated">請只指定一個要移除的套件參考。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionConclusion">
+        <source>Command names conflict. Command names are case insensitive.
+{0}</source>
+        <target state="translated">命令名稱相衝突。命令名稱區分大小寫。
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionForOnePackage">
+        <source>A command "{0}" in package "{1}"</source>
+        <target state="translated">套件 "{1}" 中的命令 "{0}"</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Passed">
+        <source>Passed</source>
+        <target state="translated">成功</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PassedLowercase">
+        <source>passed</source>
+        <target state="translated">已通過</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PathToApplicationDefinition">
+        <source>The path to an application .dll file to execute.</source>
+        <target state="translated">要執行的應用程式 .dll 檔案之路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PendingReboot">
+        <source>The machine has a pending reboot. The workload operation will continue, but you may need to restart.</source>
+        <target state="translated">機器有擱置中的重新開機。工作負載作業將繼續，但您可能需要重新開機。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_BothInRootAndSolutionFolderSpecified">
+        <source>Add project reference to solution action is not configured correctly in the template.
+    The 'solutionFolder' and 'inRoot' cannot be used together; use only one of the options.</source>
+        <target state="translated">未在範本中正確設定新增至解決方案動作中的專案參考。
+    'solutionFolder' 和 'inRoot' 不能同時使用; 只使用其中一個選項。</target>
+        <note>do not translate: 'solutionFolder', 'inRoot'</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoProjectsToAdd">
+        <source>Add project reference to solution action is not configured correctly in the template. Unable to determine the project files to add.</source>
+        <target state="translated">範本中未正確設定將專案參考新增至方案動作。無法判斷要新增的專案檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoSolutionFile">
+        <source>Unable to determine which solution file to add the reference to.</source>
+        <target state="translated">無法判斷要將參考新增到哪一個解決方案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed">
+        <source>Failed to add project(s) to the solution: {0}</source>
+        <target state="translated">無法將專案新增至解決方案: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed_NoReason">
+        <source>Failed to add project(s) to a solution file.</source>
+        <target state="translated">無法將專案新增至方案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_InRoot_Running">
+        <source>Adding
+    project(s): {0}
+    in the root of solution file: {1}</source>
+        <target state="translated">正在新增
+    專案: {0}
+    在解決方案檔案的根目錄中: {1}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Running">
+        <source>Adding
+    project(s): {0}
+    to solution file: {1}
+    solution folder: {2}</source>
+        <target state="translated">正在新增
+    專案: {0}
+    至解決方案檔案: {1}
+    解決方案資料夾: {2}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file,
+{2} - the solution folder inside solution to add the projects to.</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Succeeded">
+        <source>Successfully added project(s) to a solution file.</source>
+        <target state="translated">成功將專案新增至方案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference">
+        <source>Adding a package reference {0} to project file {1}:</source>
+        <target state="translated">正在將套件參考 {0} 新增至專案檔 {1}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_Failed">
+        <source>Failed to add package reference: {0}</source>
+        <target state="translated">無法新增套件參考: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_WithVersion">
+        <source>Adding a package reference {0} (version: {1}) to project file {2}:</source>
+        <target state="translated">正在將套件參考 {0} (版本: {1}) 新增至專案檔 {2}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference">
+        <source>Adding a project reference {0} to project file {1}:</source>
+        <target state="translated">正在將專案參考 {0} 新增至專案檔 {1}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference_Failed">
+        <source>Failed to add project reference: {0}</source>
+        <target state="translated">無法新增專案參考: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ActionMisconfigured">
+        <source>Add reference action is not configured correctly in the template.</source>
+        <target state="translated">範本中的新增參考動作設定不正確。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_FrameworkNotSupported">
+        <source>Unable to automatically add the framework reference {0} to the project. Manually edit the project file to add it.</source>
+        <target state="translated">無法將架構參考 {0} 自動新增到專案。手動編輯專案檔案以新增。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ProjFileListHeader">
+        <source>Project files found:</source>
+        <target state="translated">找到的專案檔:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnresolvedProjFile">
+        <source>Unable to determine which project file to add the reference to.</source>
+        <target state="translated">無法判斷要將參考新增到哪一個專案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnsupportedRefType">
+        <source>Adding reference type {0} is not supported.</source>
+        <target state="translated">不支援要新增的專案類型 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Failed">
+        <source>Failed to add a reference to the project file.</source>
+        <target state="translated">無法將參考新增至專案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Succeeded">
+        <source>Successfully added a reference to the project file.</source>
+        <target state="translated">成功將參考新增至專案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_FailedToDetermineProjectToRestore">
+        <source>Couldn't determine files to restore.</source>
+        <target state="translated">無法判斷要還原的檔案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_NoProjectsToRestore">
+        <source>No projects are configured to restore. Check primary outputs configuration in template.json.</source>
+        <target state="translated">未設定要還原的專案。請檢查 template.json 中的主要輸出設定。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Failed">
+        <source>Restore failed.</source>
+        <target state="translated">還原失敗。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_RestoreFailed">
+        <source>Failed to perform restore: {0}</source>
+        <target state="translated">無法執行還原: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Running">
+        <source>Restoring {0}:</source>
+        <target state="translated">正在還原 {0}:</target>
+        <note>{0} - path to a project to restore</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Succeeded">
+        <source>Restore succeeded.</source>
+        <target state="translated">還原成功。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PrereleaseAndVersionAreNotSupportedAtTheSameTime">
+        <source>The --prerelease and --version options are not supported in the same command</source>
+        <target state="translated">同一個命令中不支援 --prerelease 與 --version 選項</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_EvaluationFailed">
+        <source>Failed to create constraint '{0}': failed to evaluate the project: {1}</source>
+        <target state="translated">無法建立限制式 '{0}': 無法評估專案: {1}</target>
+        <note>{0} - type of constraint (non-localizable), {1} - localized reason why evaluation failed, ends with period.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_NoEvaluator">
+        <source>Failed to create constraint '{0}': {1} component is not available.</source>
+        <target state="translated">無法建立限制式 '{0}': {1} 元件無法使用。</target>
+        <note>{0} - type of constraint (non-localizable), {1} - name of required component (non-localizable).</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_DisplayName">
+        <source>Project capabilities</source>
+        <target state="translated">專案功能</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldBeString">
+        <source>argument should be a string</source>
+        <target state="translated">引數應為字串</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldNotBeEmpty">
+        <source>arguments should not contain empty values</source>
+        <target state="translated">引數不應包含空白值</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidConstraintConfiguration">
+        <source>Invalid constraint configuration</source>
+        <target state="translated">限制式設定無效</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidJson">
+        <source>invalid JSON</source>
+        <target state="translated">JSON 無效</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_EvaluationFailed_Message">
+        <source>Failed to evaluate project context: {0}</source>
+        <target state="translated">無法評估專案內容: {0}</target>
+        <note>{0} - failure reason</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_Message">
+        <source>The template needs project capability '{0}', and current project ({1}) does not satisfy it.</source>
+        <target state="translated">範本需要專案功能 '{0}'，但目前的專案 ({1}) 無法滿足。</target>
+        <note>{0} - project capability expression (non-localizable), {1} - path to the project.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_MultipleProjectsFound_CTA">
+        <source>Specify the project to use using {0} option.</source>
+        <target state="translated">指定要使用 {0} 選項的專案。</target>
+        <note>{0} - option to use - non localizable</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NoProjectFound_CTA">
+        <source>This template can only be created inside the project.</source>
+        <target state="translated">此範本只能在專案內建立。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NonSDKStyle_Message">
+        <source>The project {0} is not an SDK style project, and is not supported for evaluation. It is only possible to use this template with SDK-style projects.</source>
+        <target state="translated">專案 {0} 不是 SDK 樣式專案，因此不支援評估。此範本只能搭配 SDK 樣式專案使用。</target>
+        <note>{0} - path to the project</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NotRestored_CTA">
+        <source>Run 'dotnet restore {0}' to restore the project.</source>
+        <target state="translated">執行 'dotnet restore {0}' 以還原專案。</target>
+        <note>{Locked="dotnet restore {0}"}</note>
+      </trans-unit>
+      <trans-unit id="ProjectContextSymbolSource_DisplayName">
+        <source>Project context</source>
+        <target state="translated">專案內容</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskDeleteSource">
+        <source>Delete all source files after conversion?</source>
+        <target state="translated">轉換後刪除所有來源檔案</target>
+        <note>Asking whether to irreversibly delete the entry point file and all files included via #:include directives and default item globbing.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskForOutputDirectory">
+        <source>Specify the output directory (press Enter for default: '{0}', directory must not exist):</source>
+        <target state="translated">請指定輸出目錄 (按 Enter 鍵以使用預設值: '{0}'，目錄必須不存在):</target>
+        <note>{0} is the default value</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceNo">
+        <source>No - keep all source files</source>
+        <target state="translated">否 - 保留所有原始檔案</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceYes">
+        <source>Yes - delete all source files</source>
+        <target state="translated">是 - 刪除所有來源檔案</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeletedSourceFile">
+        <source>Deleted source file: {0}</source>
+        <target state="translated">已刪除來源檔案: {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDuplicateRefFolderName">
+        <source>Multiple referenced files would be converted into the same directory: '{0}'</source>
+        <target state="translated">多個參照的檔案將會轉換到相同的目錄: '{0}'</target>
+        <note>{0} is the target directory path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldConvertFile">
+        <source>Dry run: would remove file-level directives from file: {0}</source>
+        <target state="translated">試執行: 將從檔案移除檔案層級指示詞: {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCopyFile">
+        <source>Dry run: would copy file '{0}' to '{1}'.</source>
+        <target state="translated">試執行: 將會把檔案 '{0}' 複製到 '{1}'。</target>
+        <note>{0} and {1} are file full paths.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateDirectory">
+        <source>Dry run: would create directory: {0}</source>
+        <target state="translated">試執行: 將會建立目錄: {0}</target>
+        <note>{0} is the directory full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateFile">
+        <source>Dry run: would create file: {0}</source>
+        <target state="translated">試執行: 將會建立檔案: {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldDeleteSourceFile">
+        <source>Dry run: would delete source file: {0}</source>
+        <target state="translated">試執行: 將會刪除來源檔案: {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectsHeader">
+        <source>Project(s)</source>
+        <target state="translated">專案</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishDefinition">
+        <source>Publish a .NET project for deployment.</source>
+        <target state="translated">為部署發佈 .NET 專案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReferenceDefinition">
+        <source>Add, remove, or list ProjectReferences for a .NET project.</source>
+        <target state="translated">新增、移除或列出 .NET 專案的 ProjectReferences。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReleasesLibraryFailed">
+        <source>Unable to get releases information: {0}</source>
+        <target state="translated">無法取得發行資訊: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovingWorkloadInstallationRecord">
+        <source>Removing workload installation record for {0}...</source>
+        <target state="translated">正在移除 {0} 的工作負載安裝記錄...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairSucceeded">
+        <source>Successfully repaired workloads: {0}</source>
+        <target state="translated">已成功修復工作負載: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairingWorkloads">
+        <source>Repairing workload installation for workloads: {0}</source>
+        <target state="translated">正在修復工作負載的工作負載安裝: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiresWindows">
+        <source>This command can only be run on Windows</source>
+        <target state="translated">此命令只可在 Windows 上執行</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreDefinition">
+        <source>Restore dependencies specified in a .NET project.</source>
+        <target state="translated">還原 .NET 專案中指定的相依性。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreFailed">
+        <source>Restore failed.</source>
+        <target state="translated">還原失敗。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreNewVersionAvailable">
+        <source>A newer version of tool '{0}' is available (version '{1}'). Consider updating your manifest file.</source>
+        <target state="translated">有較新版本的工具 '{0}' 可用 (版本 '{1}')。請考慮更新您的資訊清單檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestorePartiallyFailed">
+        <source>Restore partially failed.</source>
+        <target state="translated">還原部分失敗。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreSuccessful">
+        <source>Tool '{0}' (version '{1}') was restored. Available commands: {2}</source>
+        <target state="translated">已還原工具 '{0}' (版本 '{1}')。可用的命令: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Retried">
+        <source>retried</source>
+        <target state="translated">已重試</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollForwardDefinition">
+        <source>Roll forward to framework version  (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).</source>
+        <target state="translated">復原為架構版本 (LatestPatch、Minor、LatestMinor、Major、LatestMajor、Disable)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionContainsExtraneousManifestIds">
+        <source>Invalid rollback definition. The manifest IDs in rollback definition {0} do not match installed manifest IDs {1}.</source>
+        <target state="translated">無效的復原定義。復原定義 {0} 中的資訊清單識別碼不符合已安裝的資訊清單識別碼 {1}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionFileDoesNotExist">
+        <source>Provided rollback definition file {0} doesn't exist.</source>
+        <target state="translated">提供的復原定義檔案 {0} 不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollingBackPackInstall">
+        <source>Rolling back pack {0} installation...</source>
+        <target state="translated">正在回復套件 {0} 安裝...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableDevices">
+        <source>Available devices:</source>
+        <target state="translated">可用的裝置:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableTargetFrameworks">
+        <source>Available target frameworks:</source>
+        <target state="translated">可用的目標架構:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandBuilding">
+        <source>Building...</source>
+        <target state="translated">正在建置...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandDeployFailed">
+        <source>Deployment to device failed. Fix any deployment errors and run again.</source>
+        <target state="translated">無法部署至裝置。請修正所有部署錯誤後再重新執行。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandEvaluationExceptionBuildFailed">
+        <source>Running the {0} target to discover run commands failed for this project. Fix the errors and warnings and run again.</source>
+        <target state="translated">執行 {0} 目標以探索對此專案的執行命令失敗。修正錯誤和警告，然後重新執行。</target>
+        <note>{0} is the name of an MSBuild target</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExampleText">
+        <source>Example</source>
+        <target state="translated">範例</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandException">
+        <source>The build failed. Fix the build errors and run again.</source>
+        <target state="translated">建置失敗。請修正建置錯誤後，再執行一次。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotApplyLaunchSettings">
+        <source>The launch profile "{0}" could not be applied.
+{1}</source>
+        <target state="translated">無法套用啟動設定檔 "{0}"。
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">無法使用啟動設定檔 '{0}'，因為找不到啟動設定檔檔案。嘗試的位置: 
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionMultipleProjects">
+        <source>Specify which project file to use because {0} contains more than one project file.</source>
+        <target state="translated">因為 {0} 包含多個專案檔，所以請指定要使用的專案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionNoProjects">
+        <source>Couldn't find a project to run. Ensure a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">找不到要執行的專案。請確認專案存在於 {0} 中，或使用 {1} 將該路徑傳送至專案。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRun">
+        <source>Unable to proceed with project '{0}'.
+Ensure you have a runnable project type.
+A runnable project should target a runnable TFM (for instance, net{1}) and have OutputType 'Exe'.
+The current OutputType is '{2}'.</source>
+        <target state="translated">無法繼續處理專案 '{0}'。
+請確定您有可執行的專案類型。
+可執行的專案應以可執行的 TFM (例如 net{1}) 為目標，且 OutputType 應為 'Exe'。
+目前的 OutputType 為 '{2}'。</target>
+        <note>{0} is project file path. {1} is dotnet framework version. {2} is the project output type.{Locked="OutputType"}{Locked="Exe"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyDevice">
+        <source>Unable to run this project because multiple devices are available. Please specify which device to use by passing the {0} argument with one of the following values:</source>
+        <target state="translated">因為有多台裝置可用，因此無法執行此專案。請透過傳遞 {0} 引數並指定以下其中一個值，以指定要使用的裝置:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyFramework">
+        <source>Unable to run your project
+Your project targets multiple frameworks. Specify which framework to run using '{0}'.</source>
+        <target state="translated">無法執行您的專案
+您的專案以多重架構為目標。請使用 '{0}' 指定要執行的架構。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreDevicesText">
+        <source>Move up and down to reveal more devices</source>
+        <target state="translated">上下移動以顯示更多的裝置</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreFrameworksText">
+        <source>Move up and down to reveal more frameworks</source>
+        <target state="translated">上下移動以顯示更多的架構</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandNoDevicesAvailable">
+        <source>No devices are available for this project.</source>
+        <target state="translated">沒有可供此專案使用的裝置。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandProjectAbbreviationDeprecated">
+        <source>Warning NETSDK1174: The abbreviation of -p for --project is deprecated. Please use --project.</source>
+        <target state="translated">警告 NETSDK1174: --project 已取代縮寫 -p。請使用 --project。</target>
+        <note>{Locked="--project"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandSearchPlaceholderText">
+        <source>Type to search</source>
+        <target state="translated">要搜尋的類型</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectDevicePrompt">
+        <source>Select a device to run on:</source>
+        <target state="translated">選取要在下列位置執行的裝置:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectTargetFrameworkPrompt">
+        <source>Select the target framework to run:</source>
+        <target state="translated">選取要執行的目標架構:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSpecifiedFileIsNotAValidProject">
+        <source>'{0}' is not a valid project file.</source>
+        <target state="translated">'{0}' 並非有效的專案名稱。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningCsFileArgumentPassedToProject">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was passed as an argument to the project '{1}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">警告: '{0}' 看起來像檔案型應用程式，但找不到檔案，且是以引數形式傳遞至專案 '{1}'。若要以應用程式引數形式傳遞它，請使用 'dotnet run -- {0}' 來抑制此警告。</target>
+        <note>{0} is the .cs file path argument. {1} is the project file path.{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningFileArgumentPassedToProject">
+        <source>Warning: '{0}' appears to be a file-based app but was passed as an argument to the project '{1}'. To run it as a file-based app, use 'dotnet run --file {0}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">警告: '{0}' 似乎是檔案型應用程式，但它是以引數形式傳遞至專案 '{1}'。若要以檔案型應用程式執行它，請使用 'dotnet run --file {0}'。若要以應用程式引數形式傳遞它，請使用 'dotnet run -- {0}' 來抑制此警告。</target>
+        <note>{0} is the file path argument. {1} is the project file path.{Locked="dotnet run --file"}{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">警告: 來自 '{0}' 的設定未被使用，因為 '{1}' 具有優先順序。</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningUnableToDetermineLoggerArguments">
+        <source>Warning: Could not determine which application arguments appeared after '--'. All application arguments will be passed to the application without treating logger arguments specially.</source>
+        <target state="translated">警告: 無法判斷哪些應用程式引數出現在 '--' 之後。所有應用程式引數都會傳遞給應用程式，而不會特別處理記錄器引數。</target>
+        <note>{Locked="--"}</note>
+      </trans-unit>
+      <trans-unit id="RunDefinition">
+        <source>Build and run a .NET project output.</source>
+        <target state="translated">建置並執行 .NET 專案輸出。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunDotnetCommandHelpForMore">
+        <source>Run 'dotnet [command] --help' for more information on a command.</source>
+        <target state="translated">如需命令的詳細資訊，請執行 'dotnet [command] --help'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunRuntimeOptionDescription">
+        <source>The target runtime to run for.</source>
+        <target state="translated">測試標的之目標執行階段。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningTestsFrom">
+        <source>Running tests from</source>
+        <target state="translated">正從下列位置執行測試</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeConfigDefinition">
+        <source>Path to &lt;application&gt;.runtimeconfig.json file.</source>
+        <target state="translated">&lt;application&gt;.runtimeconfig.json 檔案的路徑。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimePropertyNotFound">
+        <source>Runtime property 'HOSTFXR_PATH' was not set or empty.</source>
+        <target state="translated">未設定執行階段屬性 'HOSTFXR_PATH'，或其為空白。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeSectionHeader">
+        <source>.NET Runtimes:</source>
+        <target state="translated">.NET 執行階段:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKCommandUsageDescription">
+        <source>Execute a .NET SDK command.</source>
+        <target state="translated">執行 .NET SDK 命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKInfoCommandDefinition">
+        <source>Display .NET information.</source>
+        <target state="translated">顯示 .NET 資訊。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListRuntimesCommandDefinition">
+        <source>Display the installed runtimes.</source>
+        <target state="translated">顯示已安裝的執行階段。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListSdksCommandDefinition">
+        <source>Display the installed SDKs.</source>
+        <target state="translated">顯示已安裝的 SDK。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKOptionsHelpDefinition">
+        <source>Show command line help.</source>
+        <target state="translated">顯示命令列說明。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKVersionCommandDefinition">
+        <source>Display .NET SDK version in use.</source>
+        <target state="translated">顯示使用中的 .NET SDK 版本。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SamePackageIdInOtherManifestFile">
+        <source>Warning: There are other manifest files in the directory hierarchy that will affect this local tool. The following files have not been changed:
+{0}</source>
+        <target state="translated">警告: 目錄階層中有其他資訊清單檔會影響此本機工具。未變更的檔案如下:
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkDefinition">
+        <source>Manage .NET SDK installation.</source>
+        <target state="translated">管理 .NET SDK 安裝。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_InstallSdk">
+        <source>Go to aka.ms/get-dotnet and install any of the supported SDK versions: '{0}'.</source>
+        <target state="translated">移至 aka.ms/get-dotnet 並安裝任何支援的 SDK 版本: '{0}'。</target>
+        <note>{0} is the list of supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_SwitchSdk">
+        <source>You have other SDK version(s) installed that can be used to run this template. Switch to any of the following SDK(s) on your system to run this template: '{0}'. Details on selecting SDK version to run: https://docs.microsoft.com/dotnet/core/tools/global-json.</source>
+        <target state="translated">您已安裝其他可用來執行此範本的 SDK 版本。請在系統上切換至下列任一 SDK 以執行此範本: '{0}'。有關選取要執行之 SDK 版本的詳細資料: https://docs.microsoft.com/dotnet/core/tools/global-json。</target>
+        <note>{0} is the list of installed and supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkSectionHeader">
+        <source>.NET SDKs:</source>
+        <target state="translated">.NET SDK:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkVersionOptionNotSupported">
+        <source>The --sdk-version option is no longer supported for this command.</source>
+        <target state="translated">此命令已不再支援 --sdk-version 選項。</target>
+        <note>{Locked="--sdk-version"}</note>
+      </trans-unit>
+      <trans-unit id="ShouldInstallAWorkloadSet">
+        <source>No workload sets are installed. Run "dotnet workload restore" to install a workload set.</source>
+        <target state="translated">未安裝任何工作負載集合。執行 "dotnet workload restore" 以安裝工作負載集合。</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="ShutDownFailed">
+        <source>{0} failed to shut down: {1}</source>
+        <target state="translated">{0} 無法關閉: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownFailedWithPid">
+        <source>{0} (process {1}) failed to shut down: {2}</source>
+        <target state="translated">{0} (處理序 {1}) 無法關閉: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceeded">
+        <source>{0} shut down successfully.</source>
+        <target state="translated">{0} 關閉成功。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceededWithPid">
+        <source>{0} (process {1}) shut down successfully.</source>
+        <target state="translated">{0} (處理序 {1}) 已成功關閉。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServer">
+        <source>Shutting down {0}...</source>
+        <target state="translated">正在關閉 {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServerWithPid">
+        <source>Shutting down {0} (process {1})...</source>
+        <target state="translated">正在關閉 {0} (處理序 {1})...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkipSignCheckInvalidOption">
+        <source>Unable to bypass signature verification. The specified option conflicts with a global policy.</source>
+        <target state="translated">無法跳過簽章驗證。指定的選項與全域原則衝突。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedColon">
+        <source>skipped:</source>
+        <target state="translated">已略過:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedLowercase">
+        <source>skipped</source>
+        <target state="translated">已跳過</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippingManifestUpdate">
+        <source>Manifest packages were not found. Skipping manifest update...</source>
+        <target state="translated">找不到資訊清單套件。正在略過資訊清單更新...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnDefinition">
+        <source>Modify Visual Studio solution files.</source>
+        <target state="translated">修改 Visual Studio 解決方案檔。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnxGenerated">
+        <source>.slnx file {0} generated.</source>
+        <target state="translated">產生的 .slnx 檔案 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFilterDoesNotSupportFolderOptions">
+        <source>Solution filter files (.slnf) do not support the --in-root or --solution-folder options.</source>
+        <target state="translated">解決方案篩選檔案 (.slnf) 不支援 --in-root 或 --solution-folder 選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderAndInRootMutuallyExclusive">
+        <source>The --solution-folder and --in-root options cannot be used together; use only one of the options.</source>
+        <target state="translated">不可同時使用 --solution-folder 和 --in-root 選項; 請只使用其中一個選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderHeader">
+        <source>Solution Folder(s)</source>
+        <target state="translated">解決方案資料夾</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedNoWorkloadVersionAndSpecificWorkloadVersion">
+        <source>'useWorkloadVersions' specified to not use a workload version. This is not compatible with updating or installing with a specified workload version from the command line, global.json, or from a history record with a workload version.</source>
+        <target state="translated">指定 'useWorkloadVersions' 不使用工作負載版本。這與從命令列、global.json 或從具有工作負載版本的歷程記錄中更新或安裝指定的工作負載版本不相容。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedWorkloadVersionAndSpecificNonWorkloadVersion">
+        <source>'useWorkloadVersions' specified to use a workload version. This option is not compatible with updating from a rollback file or from history using a set of manifests.</source>
+        <target state="translated">指定 'useWorkloadVersions' 使用工作負載版本。此選項與從復原檔案或使用一組資訊清單從歷程記錄中進行更新的方式不相容。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifyManifests">
+        <source>Specify at least one manifest with --manifest.</source>
+        <target state="translated">利用 --manifest 至少指定一個資訊清單。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StackFrameAt">
+        <source>at</source>
+        <target state="translated">於</target>
+        <note>at that is used for a stack frame location in a stack trace, is followed by a class and method name</note>
+      </trans-unit>
+      <trans-unit id="StackFrameIn">
+        <source>in</source>
+        <target state="translated">在</target>
+        <note>in that is used in stack frame it is followed by file name</note>
+      </trans-unit>
+      <trans-unit id="StandardError">
+        <source>Error output</source>
+        <target state="translated">錯誤輸出</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StandardOutput">
+        <source>Standard output</source>
+        <target state="translated">標準輸出</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StatusColumnHeader">
+        <source>Status</source>
+        <target state="translated">狀態</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoreDefinition">
+        <source>Store the specified assemblies in the runtime package store.</source>
+        <target state="translated">將指定的組件儲存到執行階段套件存放區中。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SucceededColon">
+        <source>succeeded:</source>
+        <target state="translated">已成功:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Summary">
+        <source>Summary</source>
+        <target state="translated">摘要</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="Tags">
+        <source>Tags</source>
+        <target state="translated">標記</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="TestCommandUseDirectoryWithSwitch">
+        <source>Specifying a directory for 'dotnet test' should be via '--project' or '--solution'.</source>
+        <target state="translated">指定 'dotnet test' 的目錄應透過 '--project' 或 '--solution'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseProject">
+        <source>Specifying a project for 'dotnet test' should be via '--project'.</source>
+        <target state="translated">指定 'dotnet test' 的專案應透過 '--project'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseSolution">
+        <source>Specifying a solution for 'dotnet test' should be via '--solution'.</source>
+        <target state="translated">指定 'dotnet test' 的解決方案應透過 '--solution'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseTestModules">
+        <source>Specifying dlls or executables for 'dotnet test' should be via '--test-modules'.</source>
+        <target state="translated">指定 'dotnet test' 的 DLL 或可執行檔應透過 '--test-modules'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDefinition">
+        <source>Run unit tests using the test runner specified in a .NET project.</source>
+        <target state="translated">使用 .NET 專案中指定的測試執行器，執行單元測試。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDiscoveryExitCode">
+        <source>Test discovery completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">測試探索已完成，未成功的結束代碼為: {0} (請參閱: https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummary">
+        <source>Discovered {0} tests in {1} assemblies.</source>
+        <target state="translated">在 {1} 組件中找到 {0} 個測試。</target>
+        <note>0 is number of tests, 1 is count of assemblies</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummarySingular">
+        <source>Discovered {0} tests.</source>
+        <target state="translated">已找到 {0} 個測試。</target>
+        <note>0 is number of tests</note>
+      </trans-unit>
+      <trans-unit id="TestRunExitCode">
+        <source>Test run completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">測試執行已完成，未成功的結束代碼為: {0} (請參閱: https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestRunSummary">
+        <source>Test run summary:</source>
+        <target state="translated">測試回合摘要：</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolAlreadyInstalled">
+        <source>Tool '{0}' (version '{1}') is already installed.</source>
+        <target state="translated">工具 '{0}' ('{1}' 版) 已經安裝。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolCommonNoManifestGuide">
+        <source>If you intended to perform the action on a global tool, use the `--global` option for the command.</source>
+        <target state="translated">如果您打算在全域工具上執行動作，請對命令使用 `--global` 選項。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolDefinition">
+        <source>Install or manage tools that extend the .NET experience.</source>
+        <target state="translated">安裝或管理可擴充 .NET 體驗的工具。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInstallationSucceeded">
+        <source>You can invoke the tool using the following command: {0}
+Tool '{1}' (version '{2}') was successfully installed.</source>
+        <target state="translated">您可以使用下列命令來叫用工具: {0}
+已成功安裝工具 '{1}' ('{2}' 版)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInvalidNuGetVersionRange">
+        <source>Specified version '{0}' is not a valid NuGet version range.</source>
+        <target state="translated">指定的版本 '{0}' 不是有效的 NuGet 版本範圍。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallNuGetConfigurationFileDoesNotExist">
+        <source>NuGet configuration file '{0}' does not exist.</source>
+        <target state="translated">NuGet 組態檔 '{0}' 不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailed">
+        <source>Tool '{0}' failed to install.</source>
+        <target state="translated">工具 '{0}' 無法安裝。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailedContactAuthor">
+        <source>Tool '{0}' failed to install. Contact the tool author for assistance.</source>
+        <target state="translated">無法安裝工具 '{0}'。請連絡工具作者尋求協助。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationRestoreFailed">
+        <source>The tool package could not be restored.</source>
+        <target state="translated">此工具套件無法還原。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListCommandsColumn">
+        <source>Commands</source>
+        <target state="translated">命令</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidPackageWarning">
+        <source>Warning: tool package '{0}' is invalid, contact tool author:
+{1}</source>
+        <target state="translated">警告: 工具套件 '{0}' 無效，請連絡工具作者:
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">工具路徑 {0} 不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListPackageIdColumn">
+        <source>Package Id</source>
+        <target state="translated">套件識別碼</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListVersionColumn">
+        <source>Version</source>
+        <target state="translated">版本</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">工具路徑 {0} 不存在。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be uninstalled.</source>
+        <target state="translated">工具 '{0}' 有多個安裝的版本，且無法解除安裝。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolNotInstalled">
+        <source>A tool with the package Id '{0}' could not be found.
+
+Tools are uninstalled using their package Id which may be different
+from the tool name you use when calling the tool. You can find the tool names
+and the corresponding package Ids for installed tools using the command
+'dotnet tool list'.</source>
+        <target state="translated">找不到套件識別碼為 '{0}' 的工具。
+
+必須使用工具的套件識別碼才能將其解除安裝
+而該識別碼可能與您在呼叫工具時的工具名稱不同。您可以使用命令
+'dotnet tool list' 來針對已安裝工具尋找工具名稱
+和對應的套件識別碼。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallUninstallSucceeded">
+        <source>Tool '{0}' (version '{1}') was successfully uninstalled.</source>
+        <target state="translated">已成功解除安裝工具 '{0}' ('{1}' 版)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be updated.</source>
+        <target state="translated">工具 '{0}' 有多個安裝的版本，且無法更新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateUpdateSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}'.</source>
+        <target state="translated">已成功將工具 '{0}' 從 '{1}' 版更新為 '{2}' 版。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalColon">
+        <source>total:</source>
+        <target state="translated">總計:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Try">
+        <source>try {0}</source>
+        <target state="translated">嘗試 {0}</target>
+        <note>number or tries of the current test assembly when test assembly is being retried. {0} is number that starts at 1</note>
+      </trans-unit>
+      <trans-unit id="UnexpectedHelpMessage">
+        <source>An unexpected help-related message was received when `--help` wasn't used.</source>
+        <target state="translated">未使用 `--help` 時，收到未預期的說明相關訊息。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageInHelpMode">
+        <source>A message of type '{0}' was received in help mode, which is not expected.</source>
+        <target state="translated">在說明模式中收到類型為 '{0}' 的訊息，這是不預期的。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageWithoutHandshake">
+        <source>A message of type '{0}' was received before we got any handshakes, which is unexpected.</source>
+        <target state="translated">在收到任何交握之前，我們就接收到類型為 '{0}' 的訊息，這是不預期的情況。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedTestSessionEnd">
+        <source>A test session end event was received without a corresponding test session start.</source>
+        <target state="translated">收到測試工作階段結束事件，但沒有對應的測試工作階段開始。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallLocalToolSucceeded">
+        <source>Tool '{0}' was successfully uninstalled and removed from manifest file {1}.</source>
+        <target state="translated">已成功解除安裝工具 '{0}'，且已將其從資訊清單檔 {1} 中移除。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">一次只能有一個本機選項 (--local)、全域選項 (--global)、工具路徑選項 (--tool-path)。請僅指定其中一個選項: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownRecordsInformationalMessage">
+        <source>Rows with Unlogged changes represent changes from actions other than .NET CLI workload commands. Usually this represents an update to the .NET SDK or to Visual Studio.</source>
+        <target state="translated">具有未記錄變更的列代表變更來自 .NET CLI 工作負載命令以外的動作。這通常代表對 .NET SDK 或 Visual Studio 的更新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateFromRollbackSwitchesModeToLooseManifests">
+        <source>Updating to a rollback file is not compatible with workload sets. Install and Update will now use loose manifests. To update to a specific workload version, use --version.</source>
+        <target state="translated">更新至復原檔案與工作負載集不相容。安裝和更新現在將使用鬆散的資訊清單。若要更新至特定工作負載版本，請使用 --version。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocaToolSucceededVersionNoChange">
+        <source>Tool '{0}' is up to date (version '{1}' manifest file {2}) .</source>
+        <target state="translated">工具 '{0}' 為最新 (版本 '{1}' 資訊清單檔 {2})。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}' (manifest file {3}).</source>
+        <target state="translated">已成功將工具 '{0}' 從 '{1}' 版更新為 '{2}' 版 (資訊清單檔 {3})。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1} (manifest file {2}). Use the --allow-downgrade option to allow this update.</source>
+        <target state="translated">要求的版本 {0} 低於現有版本 {1} (資訊清單檔 {2})。使用 --allow-downgrade 選項以允許此更新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateModeDoesNotMatchGlobalJson">
+        <source>Specified to update workloads using {0} from the command line, but global.json file at {1} specified to use {2}.</source>
+        <target state="translated">指定使用命令列的 {0} 來更新工作負載，但指定在 {1} 的 global.json 檔案使用 {2}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1}.</source>
+        <target state="translated">要求的版本 {0} 低於現有版本 {1}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndPackageId">
+        <source>One must specify either package ID or use the update all option (--all).</source>
+        <target state="translated">必須指定套件識別碼，或使用更新所有選項 (--all)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndVersion">
+        <source>The version option (--version) and the update all option (--all) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">版本選項 (--version) 和更新所有選項 (--all) 無法一起使用。請只指定其中一個選項: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option (--local), the global option (--global), and the tool path option (--tool-path) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">不可同時使用本機選項 (--local)、全域選項 (--global) 和工具路徑選項 (--tool-path)。請只指定其中一個選項: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolFailed">
+        <source>Tool '{0}' failed to update due to the following:</source>
+        <target state="translated">由於下列原因，因此工具 '{0}' 無法更新:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedWorkloadMode">
+        <source>Successfully updated workload install mode to use {0}.</source>
+        <target state="translated">已成功更新工作負載安裝模式以使用 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Usage">
+        <source>Usage</source>
+        <target state="translated">使用方式</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserJwtsDefinition">
+        <source>Manage JSON Web Tokens in development.</source>
+        <target state="translated">在開發中管理 JSON Web 權杖。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserSecretsDefinition">
+        <source>Manage development user secrets.</source>
+        <target state="translated">管理開發使用者祕密。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingCacheForPackInstall">
+        <source>Installing package {0} version {1} from offline cache {2}.</source>
+        <target state="translated">正在從離線快取 {2} 安裝套件 {0} 版本 {1}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingLaunchSettingsFromMessage">
+        <source>Using launch settings from {0}...</source>
+        <target state="translated">使用來自 {0} 的啟動設定...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VSWorkloadNotRemoved">
+        <source>Workload '{0}' was not removed because it is installed and managed by Visual Studio: '{1}'. Please uninstall this workload using the Visual Studio Installer to fully remove it.</source>
+        <target state="translated">未移除工作負載 '{0}'，因為它已安裝並由 Visual Studio管理: '{1}'。請使用 Visual Studio 安裝程式解除安裝此工作負載，以將其完全移除。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Verified">
+        <source>Verified</source>
+        <target state="translated">已驗證</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VersionCheckFailure">
+        <source>No version found to check if this is up to date. Please check for updates manually.</source>
+        <target state="translated">找不到版本可檢查其是否為最新版。請手動檢查更新。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionColumnHeader">
+        <source>Version</source>
+        <target state="translated">版本</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Versions">
+        <source>Versions</source>
+        <target state="translated">版本</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VsTestDefinition">
+        <source>Run Microsoft Test Engine (VSTest) commands.</source>
+        <target state="translated">執行 Microsoft Test Engine (VSTest) 命令。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WarningCsFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was treated as an MSBuild argument. Unrecognized arguments: {1}.</source>
+        <target state="translated">警告: '{0}' 看起來像檔案型應用程式，但找不到檔案，且將其視為 MSBuild 引數。無法辨認的引數: {1}。</target>
+        <note>{0} is the .cs file path argument. {1} is the list of unrecognized arguments.</note>
+      </trans-unit>
+      <trans-unit id="WarningFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' appears to be a file-based app but was treated as an MSBuild argument. To treat it as a file-based app, use 'dotnet {1} {0}' and remove unsupported arguments {2}.</source>
+        <target state="translated">警告: '{0}' 似乎是檔案型應用程式，但被視為 MSBuild 引數。若要將它視為檔案型應用程式，請使用 'dotnet {1} {0}'，並移除不支援的引數 {2}。</target>
+        <note>{0} is the file path argument. {1} is the command name (e.g. build, clean, publish). {2} is the list of unsupported arguments.{Locked="dotnet"}</note>
+      </trans-unit>
+      <trans-unit id="WatchDefinition">
+        <source>Start a file watcher that runs a command when files change.</source>
+        <target state="translated">啟動會在檔案變更時執行命令的檔案監看員。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadAlreadyInstalled">
+        <source>Workload(s) '{0}' are already installed.</source>
+        <target state="translated">已安裝工作負載 '{0}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadDefinition">
+        <source>Manage optional workloads.</source>
+        <target state="translated">管理選擇性工作負載。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryRecordInvalidIdValue">
+        <source>The ID of a workload history record should be between 1 and the number of workload history records, inclusive.</source>
+        <target state="translated">工作負載歷程記錄的識別碼應介於 1 到工作負載歷程記錄數目 (含) 之間。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryWorkloadSetVersion">
+        <source>Workload Version</source>
+        <target state="translated">工作負載版本</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumn">
+        <source>Installed Workload Id</source>
+        <target state="translated">已安裝的工作負載識別碼</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumnName">
+        <source>Workload ID</source>
+        <target state="translated">工作負載識別碼</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInfoProvider_Message_AddWorkloads">
+        <source>Run 'dotnet workload search' to search workloads available to be installed on your SDK.</source>
+        <target state="translated">執行 'dotnet workload search' 以搜尋可安裝在 SDK 上的工作負載。</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadInstallInstallationSucceeded">
+        <source>Successfully installed workload(s) {0}.</source>
+        <target state="translated">已成功安裝工作負載 (s) {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">安裝復原失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">工作負載安裝失敗。正在復原已安裝的套件...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallTypeColumn">
+        <source>Install Type</source>
+        <target state="translated">安裝類型</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadCacheDownloadFailed">
+        <source>Download of workload packs to offline cache failed: {0}</source>
+        <target state="translated">將工作負載套件下載到離線快取失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadUpdatesAvailable">
+        <source>Workload updates are available. Run `dotnet workload list` for more information.</source>
+        <target state="translated">有可用的工作負載更新。如需詳細資訊，請執行 `dotnet workload list`。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallationFailed">
+        <source>Workload installation failed: {0}</source>
+        <target state="translated">工作負載安裝失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIntegrityCheck">
+        <source>Checking the state of installed workloads...</source>
+        <target state="translated">正在檢查已安裝工作負載的狀態...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListFooter">
+        <source>Use `dotnet workload search` to find additional workloads to install.</source>
+        <target state="translated">使用 `dotnet workload search` 尋找其他要安裝的工作負載。</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadSetVersion">
+        <source>Workload version: {0}</source>
+        <target state="translated">工作負載版本: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadUpdatesAvailable">
+        <source>Updates are available for the following workload(s): {0}. Run `dotnet workload update` to get the latest.</source>
+        <target state="translated">以下工作負載有可用的更新: {0}。執行 `dotnet workload update` 以取得最新更新。</target>
+        <note>{Locked="dotnet workload update"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestFeatureBandColumn">
+        <source>Manifest feature band</source>
+        <target state="translated">資訊清單功能帶</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestIdColumn">
+        <source>Workload manifest ID</source>
+        <target state="translated">工作負載資訊清單識別碼</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationLooseManifests">
+        <source>Configured to use loose manifests when installing new manifests.</source>
+        <target state="translated">設為在安裝新資訊清單時使用鬆散的資訊清單。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationWorkloadSets">
+        <source>Configured to use workload sets when installing new manifests.</source>
+        <target state="translated">設為在安裝新資訊清單時使用 workload sets。</target>
+        <note>{Locked="workload sets"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestPathColumn">
+        <source>Manifest Path</source>
+        <target state="translated">資訊清單路徑</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestVersionColumn">
+        <source>Manifest Version</source>
+        <target state="translated">資訊清單版本</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotInstalled">
+        <source>Couldn't find workload ID(s): {0}</source>
+        <target state="translated">找不到工作負載識別碼: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotRecognized">
+        <source>Workload ID {0} is not recognized.</source>
+        <target state="translated">無法辨識工作負載識別碼 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotSupportedOnPlatform">
+        <source>Workload ID {0} isn't supported on this platform.</source>
+        <target state="translated">此平台不支援工作負載識別碼 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadPackAlreadyInstalledMessage">
+        <source>Pack {0} version {1} is already installed.</source>
+        <target state="translated">套件{0} ({1} 版本) 已經安裝。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadRepairFailed">
+        <source>Workload repair failed: {0}</source>
+        <target state="translated">工作負載修復失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonInstalled">
+        <source>Using workload version {0}, which was specified in the global.json file at {1}.</source>
+        <target state="translated">使用工作負載版本 {0}，這是在 {1} 的 global.json 檔案中所指定。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonNotInstalled">
+        <source>Workload version {0}, which was specified in {1}, was not found. Run "dotnet workload restore" to install this workload version.</source>
+        <target state="translated">找不到 {1} 中指定的工作負載版本 {0}。執行 "dotnet workload restore" 以安裝此工作負載版本。</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSetHasMissingManifests">
+        <source>Workload set version {0} has missing manifests likely removed by package management. Run "dotnet workload repair" to fix this.</source>
+        <target state="translated">工作負載集合版本 {0} 缺少資訊清單，其可能已遭套件管理移除。請執行「dotnet workload repair」來修復此問題。</target>
+        <note>{0} is the workload set version. {Locked="dotnet workload repair"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSourceColumn">
+        <source>Installation Source</source>
+        <target state="translated">安裝來源</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallFailed">
+        <source>Workload uninstallation failed: {0}</source>
+        <target state="translated">工作負載解除安裝失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallUninstallSucceeded">
+        <source>Successfully uninstalled workload(s): {0}</source>
+        <target state="translated">已成功將工作負載解除安裝: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateAdManifestsSucceeded">
+        <source>Successfully updated advertising manifests.</source>
+        <target state="translated">已成功更新廣告資訊清單。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateFailed">
+        <source>Workload update failed: {0}</source>
+        <target state="translated">工作負載更新失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">安裝復原失敗: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">工作負載安裝失敗。正在復原已安裝的套件...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateUpdateSucceeded">
+        <source>Successfully updated workload(s): {0}.</source>
+        <target state="translated">已成功更新工作負載: {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateWorkloadCacheDownloadFailed">
+        <source>Failed to download workload update packages to cache: {0}</source>
+        <target state="translated">無法將工作負載更新套件下載到快取: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionNotInstalledShort">
+        <source>(not installed)</source>
+        <target state="translated">(未安裝)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionRequestedNotFound">
+        <source>Workload version {0} not found.</source>
+        <target state="translated">找不到工作負載版本 {0}。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionWithSpecifiedManifestNotFound">
+        <source>No workload version matching {0} was found.</source>
+        <target state="translated">找不到符合 {0} 的工作負載版本。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Workloads">
+        <source>Workloads</source>
+        <target state="translated">工作負載</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCLIRecordForVisualStudioWorkloadMessage">
+        <source>Writing install records for Visual Studio workloads: '{0}'</source>
+        <target state="translated">正在寫入 Visual Studio 工作負載的安裝紀錄：'{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WritingPackInstallRecordMessage">
+        <source>Writing workload pack installation record for {0} version {1}...</source>
+        <target state="translated">正在寫入 {0} 版本 {1} 的工作負載套件安裝記錄...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ZeroTestsRan">
+        <source>Zero tests ran</source>
+        <target state="translated">已執行零項測試</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

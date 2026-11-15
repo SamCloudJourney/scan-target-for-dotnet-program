@@ -1,0 +1,21 @@
+stages:
+- stage: Tag_n_Scan
+  displayName: Tag & Scan
+  dependsOn: []
+  jobs:
+  - job: Tag_n_Scan
+    displayName: Tag & Scan
+    pool:
+      name: $(DncEngInternalBuildPool)
+      image: build.azurelinux.3.amd64
+      os: linux
+
+    steps:
+    - checkout: self
+      retryCountOnTaskFailure: 5
+
+    - script: |
+        set -ex
+        eng/common/dotnet.sh run --project eng/tools/CloakedFileScan/CloakedFileScan.csproj
+      displayName: Scan for cloaked files
+      continueOnError: true

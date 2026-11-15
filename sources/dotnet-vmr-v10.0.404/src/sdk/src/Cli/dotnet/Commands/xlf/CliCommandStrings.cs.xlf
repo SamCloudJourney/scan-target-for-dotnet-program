@@ -1,0 +1,2339 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../CliCommandStrings.resx">
+    <body>
+      <trans-unit id="Aborted">
+        <source>Aborted</source>
+        <target state="translated">Přerušeno</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_FullTestsCount">
+        <source>{0} tests running</source>
+        <target state="translated">Spuštěné testy: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ActiveTestsRunning_MoreTestsCount">
+        <source>and {0} more</source>
+        <target state="translated">a ještě {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Actual">
+        <source>Actual</source>
+        <target state="translated">Skutečnost</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestPackageDoesNotExist">
+        <source>Advertising manifest not updated. Manifest package for {0} doesn't exist.</source>
+        <target state="translated">Manifest reklamy není aktualizován. Balíček manifestu pro {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdManifestUpdated">
+        <source>Updated advertising manifest {0}.</source>
+        <target state="translated">Aktualizoval se manifest reklamy {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalDeps">
+        <source>Path to additional deps.json file.</source>
+        <target state="translated">Cesta k dodatečnému souboru deps.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalProbingPathDefinition">
+        <source>Path containing probing policy and assemblies to probe for.</source>
+        <target state="translated">Cesta obsahující testovací zásady a sestavení, která se mají testovat</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AdditionalTools">
+        <source>Additional commands from bundled tools:</source>
+        <target state="translated">Další příkazy z nástrojů v balíčku:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireWorkloadDeprecated">
+        <source>The Aspire workload is deprecated and no longer necessary. Aspire is now available as NuGet packages that you can add directly to your projects. For more information, see https://aka.ms/aspire/support-policy</source>
+        <target state="translated">Úloha Aspire je zastaralá a už není potřeba. Aspire je nyní k dispozici v podobě balíčků NuGet, které můžete přidat přímo do svých projektů. Další informace najdete na https://aka.ms/aspire/support-policy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Authors">
+        <source>Authors</source>
+        <target state="translated">Autoři</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="CmdTestNoTestProjectsFound">
+        <source>No test projects were found.</source>
+        <target state="translated">Nenašly se žádné testovací projekty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceDescription">
+        <source>The device identifier to use for running the application.</source>
+        <target state="translated">Identifikátor zařízení, který se má použít ke spuštění aplikace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionDeviceHelpName">
+        <source>DEVICE</source>
+        <target state="translated">ZAŘÍZENÍ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandOptionListDevicesDescription">
+        <source>List available devices for running the application.</source>
+        <target state="translated">Vypíše dostupná zařízení pro spuštění aplikace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildDefinition">
+        <source>Build a .NET project.</source>
+        <target state="translated">Sestaví projekt .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildRuntimeOptionDescription">
+        <source>The target runtime to build for.</source>
+        <target state="translated">Cílový modul runtime pro sestavení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildServerDefinition">
+        <source>Interact with servers started by a build.</source>
+        <target state="translated">Interakce se servery spuštěnými buildem</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BundleUpToDateMessage">
+        <source>Up to date.</source>
+        <target state="translated">Aktuální</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CacheMissingPackage">
+        <source>Package {0} version {1} doesn't exist in offline cache {2}.</source>
+        <target state="translated">Balíček {0} verze {1} v offline mezipaměti {2} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancelledLowercase">
+        <source>canceled</source>
+        <target state="translated">zrušeno</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancellingTestSession">
+        <source>Canceling the test session...</source>
+        <target state="translated">Ruší se testovací relace...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotAnalyzeVSWorkloadBand">
+        <source>Workloads managed by Visual Studio must be uninstalled using the Visual Studio Installer. For the version of Visual Studio managing the SDK '{0}', we could not display workloads to uninstall. This is likely because '{0}' uses a different dotnet root path or custom user profile directory from the current running SDK.
+Paths searched: '{1}', '{2}'.</source>
+        <target state="translated">Úlohy spravované Visual Studio se musí odinstalovat pomocí Instalačního programu pro Visual Studio. U verze Visual Studio správy sady SDK „{0}“ se nám nepovedlo zobrazit úlohy k odinstalaci. Je to pravděpodobně proto, že „{0}“ používá jinou kořenovou cestu dotnet nebo vlastní adresář profilu uživatele z aktuální spuštěné sady SDK.
+Prohledané cesty: „{1}“, „{2}“.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineOptions">
+        <source>Cannot use the {0} and {1} options together.</source>
+        <target state="translated">Možnosti {0} a {1} nelze použít společně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndRollback">
+        <source>Cannot use the {0} and {1} options together. If installing from a rollback file, remove {0}. Otherwise, remove {1}</source>
+        <target state="translated">Možnosti {0} a {1} nelze použít společně. Při instalaci ze souboru vráceného zpět odeberte {0}. V opačném případě odeberte {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotCombineSkipManifestAndVersion">
+        <source>Cannot use the {0} and {1} options together.  Remove one of the options.</source>
+        <target state="translated">Možnosti {0} a {1} nelze použít společně.  Jednu z možností odeberte.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotFindCommandName">
+        <source>Cannot find a tool in the manifest file that has a command named '{0}'.</source>
+        <target state="translated">V souboru manifestu se nepovedlo najít nástroj, který obsahuje příkaz s názvem {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotMigrateSlnx">
+        <source>Only .sln files can be migrated to .slnx format.</source>
+        <target state="translated">Do formátu .slnx lze migrovat pouze soubory .sln.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionAndWorkloadIdsByComponent">
+        <source>Cannot specify a workload version using the --version option while also specifying versions to install using workload@version syntax.</source>
+        <target state="translated">Nelze zadat verzi úlohy pomocí parametru --version a současně zadat verze k instalaci pomocí syntaxe workload@version.</target>
+        <note>{Locked="--version"}</note>
+      </trans-unit>
+      <trans-unit id="CannotSpecifyVersionOnCommandLineAndInGlobalJson">
+        <source>Cannot specify a particular workload version on the command line via --version or --from-history when there is already a version specified in global.json file {0}. To update the globally installed workload version, run the command outside of the path containing that global.json file or update the version specified in the global.json file and run "dotnet workload update."</source>
+        <target state="translated">Na příkazovém řádku nelze pomocí možnosti --version nebo --from-history zadat konkrétní verzi úlohy, pokud je již verze zadána v souboru global.json {0}. Pokud chcete aktualizovat globálně nainstalovanou verzi úlohy, spusťte příkaz mimo cestu obsahující daný soubor global.json nebo aktualizujte verzi uvedenou v souboru global.json a spusťte příkaz dotnet workload update.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotUseSkipManifestWithGlobalJsonWorkloadVersion">
+        <source>Cannot use the {0} option when workload version is specified in global.json.  Remove the {0} option, or remove the 'workloadVersion' element from {1}.</source>
+        <target state="translated">Možnost {0} se nedá použít, pokud je v global.json zadaná verze úlohy.  Odeberte možnost {0} nebo odeberte element workloadVersion z {1}.</target>
+        <note>{Locked="workloadVersion"} Locked={"global.json"}</note>
+      </trans-unit>
+      <trans-unit id="CapabilityExpressionEvaluator_Exception_InvalidExpression">
+        <source>Invalid expression, position: {0}.</source>
+        <target state="translated">Neplatný výraz, pozice: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckForUpdatedWorkloadManifests">
+        <source>Checking for updated workload version.</source>
+        <target state="translated">Kontroluje se aktualizovaná verze úlohy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanDefinition">
+        <source>Clean build outputs of a .NET project.</source>
+        <target state="translated">Vyčistí výstupy sestavení projektu .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsDirectoryNotFound">
+        <source>Warning: Artifacts directory does not exist: {0}</source>
+        <target state="translated">Upozornění: Adresář artefaktů neexistuje: {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsErrorRemovingFolder">
+        <source>Error removing folder '{0}': {1}</source>
+        <target state="translated">Chyba při odebírání složky {0}: {1}</target>
+        <note>{0} is folder path. {1} is inner error message.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsScanning">
+        <source>Scanning for folders to remove in: {0}</source>
+        <target state="translated">Vyhledávání složek k odebrání v: {0}</target>
+        <note>{0} is directory path.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsTotalFoldersRemoved">
+        <source>Total folders removed: {0}</source>
+        <target state="translated">Celkový počet odebraných složek: {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CleanFileBasedAppArtifactsWouldRemoveFolders">
+        <source>Would remove folders: {0}</source>
+        <target state="translated">Odebere složky: {0}</target>
+        <note>{0} is count.</note>
+      </trans-unit>
+      <trans-unit id="CmdDGFileException">
+        <source>Unable to create dependency graph file for project '{0}'. Cannot add package reference.</source>
+        <target state="translated">Není možné vytvořit soubor grafu závislostí pro projekt {0}. Nelze přidat odkaz na balíček.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdDGFileIOException">
+        <source>Unable to generate a temporary file for project '{0}'. Cannot add package reference. Clear the temp directory and try again.</source>
+        <target state="translated">Nejde generovat dočasný soubor pro projekt {0}. Není možné přidat odkaz na balíček. Vyprázdněte dočasný adresář a zkuste to znovu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdHelpUsageTitle">
+        <source>Usage:</source>
+        <target state="translated">Využití:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidProjectFileExtensionErrorDescription">
+        <source>The provided project file has an invalid extension: {0}.</source>
+        <target state="translated">Zadaný soubor projektu má neplatnou příponu: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdInvalidSolutionFileExtensionErrorDescription">
+        <source>The provided solution file has an invalid extension: {0}.</source>
+        <target state="translated">Poskytnutý soubor řešení má neplatnou příponu: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMSBuildProjectsPropertiesErrorDescription">
+        <source>Build failed with exit code: {0}.</source>
+        <target state="translated">Sestavení se nezdařilo s ukončovacím kódem: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleBuildPathOptionsErrorDescription">
+        <source>Specify either the project, solution, directory, or test modules option.</source>
+        <target state="translated">Zadejte parametr projektu, řešení, adresáře nebo testovacích modulů.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdMultipleProjectOrSolutionFilesErrorDescription">
+        <source>Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
+        <target state="translated">Určete, který soubor projektu nebo řešení se má použít, protože tato složka obsahuje více než jeden soubor projektu nebo řešení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoProjectOrSolutionFileErrorDescription">
+        <source>Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
+        <target state="translated">Určete soubor projektu nebo řešení. Aktuální pracovní adresář neobsahuje soubor projektu ani řešení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNoTestModulesErrorDescription">
+        <source>No test modules found for the given test module pattern: {0} with root directory: {1}</source>
+        <target state="translated">Pro daný vzor testovacího modulu se nenašly žádné testovací moduly: {0} s kořenovým adresářem: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentDirectoryErrorDescription">
+        <source>The provided directory path does not exist: {0}.</source>
+        <target state="translated">Zadaná cesta k adresáři neexistuje: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentFileErrorDescription">
+        <source>The provided file path does not exist: {0}.</source>
+        <target state="translated">Zadaná cesta k souboru neexistuje: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdNonExistentRootDirectoryErrorDescription">
+        <source>The provided root directory does not exist: {0}.</source>
+        <target state="translated">Zadaný kořenový adresář neexistuje: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdOptionCannotBeUsedWithTestModulesDescription">
+        <source>The options architecture, configuration, framework, operating system, and runtime cannot be used with '--test-modules' option.</source>
+        <target state="translated">Architekturu parametrů, konfiguraci, architekturu, operační systém a modul runtime nejde použít s parametrem --test-modules.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedMessageRequestTypeException">
+        <source>Message Request type '{0}' is unsupported.</source>
+        <target state="translated">Typ žádosti o zprávu {0} není podporovaný.</target>
+        <note>{0} - message request type</note>
+      </trans-unit>
+      <trans-unit id="CmdUnsupportedVSTestTestApplicationsDescription">
+        <source>global.json defines test runner to be Microsoft.Testing.Platform. All projects must use that test runner.
+The following test projects are using VSTest test runner:
+{0}
+
+See https://aka.ms/dotnet-test/mtp for more information.</source>
+        <target state="translated">Soubor global.json definuje, že spouštěč testů bude Microsoft.Testing.Platform. Tento spouštěč testů musí používat všechny projekty.
+Následující testovací projekty používají spouštěč testů VSTest:
+{0}
+
+Další informace najdete na https://aka.ms/dotnet-test/mtp.</target>
+        <note>{Locked="global.json"}{Locked="Microsoft.Testing.Platform"}
+{0} is one or more project names.</note>
+      </trans-unit>
+      <trans-unit id="Command">
+        <source>Command</source>
+        <target state="translated">Příkaz</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandDoesNotExist">
+        <source>Specified command '{0}' is not a valid SDK command. Specify a valid SDK command. For more information, run dotnet help.</source>
+        <target state="translated">Zadaný příkaz {0} není platným příkazem sady SDK. Zadejte platný příkaz sady SDK. Další informace získáte spuštěním příkazu dotnet help.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandFooter">
+        <source>The latest versions of .NET can be installed from https://aka.ms/dotnet-core-download. For more information about .NET lifecycles, see https://aka.ms/dotnet-core-support.</source>
+        <target state="translated">Nejnovější verze rozhraní .NET se dají nainstalovat z adresy https://aka.ms/dotnet-core-download. Další informace o životních cyklech rozhraní .NET najdete na adrese https://aka.ms/dotnet-core-support.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Commands">
+        <source>SDK commands</source>
+        <target state="translated">Příkazy sady SDK</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandsMismatch">
+        <source>The command {0} specified in the tool manifest file is not contained in the package with Package Id {1}. The commands contained in the package are {2}.</source>
+        <target state="translated">Příkaz {0}, který se zadal v souboru manifestu nástroje, není součástí balíčku s ID {1}. Příkazy obsažené v balíčku jsou {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptInvalidChoiceMessage">
+        <source>Please type '{0}' for yes or '{1}' for no.</source>
+        <target state="translated">Zadejte prosím {0} pro yes (ano) nebo {1} pro no (ne).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptNoValue">
+        <source>n</source>
+        <target state="translated">n</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "no", ie to cancel the operation.</note>
+      </trans-unit>
+      <trans-unit id="ConfirmationPromptYesValue">
+        <source>y</source>
+        <target state="translated">y</target>
+        <note>For a command line connfirmation prompt, this is the key that should be pressed for "yes", ie to agree.</note>
+      </trans-unit>
+      <trans-unit id="ConsoleIsAlreadyInBatchingMode">
+        <source>Console is already in batching mode.</source>
+        <target state="translated">Konzole je již v režimu dávkování.</target>
+        <note>Exception that is thrown when console is already collecting input into a batch (into a string builder), and code asks to enable batching mode again.</note>
+      </trans-unit>
+      <trans-unit id="CouldNotFindAProject">
+        <source>Couldn't find a project. Ensure that a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">Projekt se nepovedlo najít. Ověřte, že projekt existuje v {0}, nebo pomocí parametru {1} předejte cestu k projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Date">
+        <source>Date</source>
+        <target state="translated">Datum</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadManifest">
+        <source>Uninstalling workload manifest {0} version {1}...</source>
+        <target state="translated">Probíhá odinstalace manifestu úlohy {0} verze {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadPack">
+        <source>Uninstalling workload pack {0} version {1}...</source>
+        <target state="translated">Probíhá odinstalace sady funkcí {0} verze {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeletingWorkloadSet">
+        <source>Deleting workload version {0}.</source>
+        <target state="translated">Odstraňuje se verze úlohy {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DepsFileDefinition">
+        <source>Path to &lt;application&gt;.deps.json file.</source>
+        <target state="translated">Cesta k souboru &lt;aplikace&gt;.deps.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Description</source>
+        <target state="translated">Popis</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DescriptionColumnName">
+        <source>Description</source>
+        <target state="translated">Popis</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsDefinition">
+        <source>Create and manage development certificates.</source>
+        <target state="translated">Vytvoří a spravuje certifikáty pro vývoj.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DirectoryAlreadyExists">
+        <source>The target directory already exists: '{0}'</source>
+        <target state="translated">Cílový adresář již existuje: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DiscoveredTestsInAssembly">
+        <source>Discovered {0} tests in assembly</source>
+        <target state="translated">Počet zjištěných testů v sestavení: {0}</target>
+        <note>0 is count, the sentence is followed by the path of the assebly</note>
+      </trans-unit>
+      <trans-unit id="DiscoveringTestsFrom">
+        <source>Discovering tests from</source>
+        <target state="translated">Zjišťování testů z</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestIncompatibleHandshakeVersion">
+        <source>Supported protocol versions sent by Microsoft.Testing.Platform are '{0}'. The SDK supports '{1}', which is incompatible.</source>
+        <target state="translated">Podporované verze protokolů odesílané Microsoft.Testing.Platform jsou {0}. Sada SDK podporuje {1}, což není kompatibilní.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestMismatchingExecutionId">
+        <source>Received 'ExecutionId' of value '{0}' for message '{1}' while the 'ExecutionId' received of the handshake message was '{2}'.</source>
+        <target state="translated">Byla přijata hodnota ExecutionId {0} pro zprávu {1}, zatímco ExecutionId přijaté zprávy metodou handshake bylo {2}.</target>
+        <note>{Locked="ExecutionId"}</note>
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureHasHandshake">
+        <source>Error disposing 'NamedPipeServer' corresponding to handshake:</source>
+        <target state="translated">Chyba při rušení serveru NamedPipeServer odpovídajícího zprávě metodou handshake:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeFailureWithoutHandshake">
+        <source>Error disposing 'NamedPipeServer', and no handshake was found.</source>
+        <target state="translated">Při rušení serveru NamedPipeServer došlo k chybě a nebyla nalezena žádná zpráva metodou handshake.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotnetTestPipeOverlapping">
+        <source>'dotnet' unexpectedly received overlapping messages from the 'dotnet test' named pipe.</source>
+        <target state="translated">Příkaz dotnet neočekávaně obdržel překrývající se zprávy z pojmenovaného kanálu dotnet test.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadingPackToCacheMessage">
+        <source>Downloading pack {0} version {1} to offline cache {2}...</source>
+        <target state="translated">Probíhá stahování balíčku {0} verze {1} do offline mezipaměti {2}…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Downloads">
+        <source>Downloads</source>
+        <target state="translated">Soubory ke stažení</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="DurationColon">
+        <source>duration:</source>
+        <target state="translated">doba trvání:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorColon">
+        <source>error:</source>
+        <target state="translated">chyba:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorRunningTestModule">
+        <source>The following exception occurred when running the test module with RunCommand '{0}' and RunArguments '{1}':
+
+{2}</source>
+        <target state="translated">Při spuštění testovacího modulu s příkazem RunCommand {0} a argumenty RunArguments {1} došlo k následující výjimce:
+
+{2}</target>
+        <note>{Locked="RunCommand"}{Locked="RunArguments"}
+{2} is the exception that occurred.</note>
+      </trans-unit>
+      <trans-unit id="Error_restore">
+        <source>Restore failed. Run `dotnet restore` for more details on the issue.</source>
+        <target state="translated">Obnovení neproběhlo úspěšně. Další podrobnosti o problému získáte spuštěním příkazu dotnet restore.</target>
+        <note>{Locked="dotnet restore"}</note>
+      </trans-unit>
+      <trans-unit id="ExecutionUsageDescription">
+        <source>Execute a .NET application.</source>
+        <target state="translated">Spustí aplikaci .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExitCode">
+        <source>Exit code</source>
+        <target state="translated">Ukončovací kód</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Expected">
+        <source>Expected</source>
+        <target state="translated">Očekáváno</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedSingleManifest">
+        <source>Expected single manifest feature band and manifest folder in MSI from package {0}</source>
+        <target state="translated">Z balíčku {0} se očekávalo jedno pásmo funkce manifestu a složka manifestu ve službě MSI.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Failed">
+        <source>Failed</source>
+        <target state="translated">Neúspěšné</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedAdManifestUpdate">
+        <source>Failed to update the advertising manifest {0}: {1}.</source>
+        <target state="translated">Nepovedlo se aktualizovat manifest reklamy {0}: {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedColon">
+        <source>failed:</source>
+        <target state="translated">neúspěšné:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedLowercase">
+        <source>failed</source>
+        <target state="translated">selhalo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToCreateToolShim">
+        <source>Failed to create shell shim for tool '{0}': {1}</source>
+        <target state="translated">Pro nástroj {0} se nepodařilo vytvořit překrytí prostředí: {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToExtractMsi">
+        <source>Failed to extract information from MSI: {0}</source>
+        <target state="translated">Nepovedlo se extrahovat informace z MSI: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadManifest">
+        <source>Failed to install manifest {0} version {1}: {2}.</source>
+        <target state="translated">Nepodařilo se nainstalovat manifest {0} verze {1}: {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallWorkloadSet">
+        <source>Failed to install workload version {0}: {1}</source>
+        <target state="translated">Nepovedlo se nainstalovat verzi úlohy {0}: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToRunTarget">
+        <source>Failed to restore workload for project {0}: Failed to run MSBuild Target _GetRequiredWorkloads.</source>
+        <target state="translated">Nepovedlo se obnovit úlohu pro projekt {0}: nepovedlo se spustit _GetRequiredWorkloads cíle nástroje MSBuild.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToUninstallTool">
+        <source>Failed to uninstall tool '{0}': {1}</source>
+        <target state="translated">Nepodařilo se odinstalovat nástroj {0}: {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedWithErrors">
+        <source>failed with {0} error(s)</source>
+        <target state="translated">selhalo s {0} chybou/chybami.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForTest">
+        <source>For test</source>
+        <target state="translated">Pro testování</target>
+        <note>is followed by test name</note>
+      </trans-unit>
+      <trans-unit id="FormatDefinition">
+        <source>Apply style preferences to a project or solution.</source>
+        <target state="translated">Aplikujte předvolby stylu na projekt nebo řešení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FromFile">
+        <source>from</source>
+        <target state="translated">od</target>
+        <note>from followed by a file name to point to the file from which test is originating</note>
+      </trans-unit>
+      <trans-unit id="FsiDefinition">
+        <source>Start F# Interactive / execute F# scripts.</source>
+        <target state="translated">Spustí F# Interactive / spustí skripty F#.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FxVersionDefinition">
+        <source>Version of the installed Shared Framework to use to run the application.</source>
+        <target state="translated">Verze nainstalované sdílené architektury, která se má použít ke spuštění aplikace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectingSdkFeatureBandsMessage">
+        <source>Garbage collecting for SDK feature band(s) {0}...</source>
+        <target state="translated">Pásma funkcí sady SDK {0} pro uvolňování paměti...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GarbageCollectionFailed">
+        <source>Warning: Workload garbage collection failed with error: {0}.</source>
+        <target state="translated">Upozornění: uvolňování paměti úlohy selhalo s chybou: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GlobalJsonVersion">
+        <source>Global.json Version</source>
+        <target state="translated">Verze souboru global.json</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HandshakeFailuresHeader">
+        <source>Handshake failures:</source>
+        <target state="new">Handshake failures:</target>
+        <note>Section header printed at the end of a 'dotnet test' run when one or more test hosts failed to hand-shake with the SDK. Followed by per-assembly exit code, stdout and stderr.</note>
+      </trans-unit>
+      <trans-unit id="HelpDefinition">
+        <source>Opens the reference page in a browser for the specified command.</source>
+        <target state="translated">Otevře v prohlížeči referenční stránku pro zadaný příkaz.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpExtensionOptions">
+        <source>Extension Options:</source>
+        <target state="translated">Parametry rozšíření:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionBelow">
+        <source>{0} is missing the option below</source>
+        <target state="translated">V názvu {0} chybí níže uvedený parametr.</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModuleIsMissingTheOptionsBelow">
+        <source>{0} is missing the options below</source>
+        <target state="translated">V názvu {0} chybí níže uvedený parametr.</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionBelow">
+        <source>{0} are missing the option below</source>
+        <target state="translated">V názvu {0} chybí níže uvedený parametr.</target>
+        <note>0 is name of the module, this string is followed by lined that list the option</note>
+      </trans-unit>
+      <trans-unit id="HelpModulesAreMissingTheOptionsBelow">
+        <source>{0} are missing the options below</source>
+        <target state="translated">V názvu {0} chybí níže uvedené parametry.</target>
+        <note>0 is name of the module, this string is followed by lined that list the options</note>
+      </trans-unit>
+      <trans-unit id="HelpOptions">
+        <source>Options:</source>
+        <target state="translated">Parametry:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpPlatformOptions">
+        <source>Platform Options:</source>
+        <target state="translated">Parametry platformy:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableExtensionOptions">
+        <source>Unavailable extension options:</source>
+        <target state="translated">Nedostupné parametry rozšíření:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpUnavailableOptions">
+        <source>Unavailable options:</source>
+        <target state="translated">Nedostupné parametry:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpWaitingForOptionsAndExtensions">
+        <source>Waiting for options and extensions...</source>
+        <target state="translated">Čeká se na parametry a rozšíření...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HostFxrCouldNotBeLoaded">
+        <source>Could not load hostfxr from '{0}'.</source>
+        <target state="translated">Z {0} nelze načíst nástroj hostfxr.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Id">
+        <source>Id</source>
+        <target state="translated">ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IgnoredArgumentsMessage">
+        <source>The following arguments have been ignored : "{0}"</source>
+        <target state="translated">Následující argumenty se ignorovaly: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InProcessArtifactsProduced">
+        <source>In process file artifacts produced:</source>
+        <target state="translated">Vytvořené artefakty souboru v procesu:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InadequatePermissions">
+        <source>Inadequate permissions. Run the command with elevated privileges.</source>
+        <target state="translated">Nedostatečná oprávnění. Spusťte příkaz se zvýšenými oprávněními.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">Možnost local (--local), možnost global (--global), možnost tool path (--tool-path), v jednu chvíli je možné mít jen jednu. Zadejte jen jednu z možností: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingPackVersionMessage">
+        <source>Installing pack {0} version {1}...</source>
+        <target state="translated">Instaluje se sada {0} verze {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloadManifest">
+        <source>Installing workload manifest {0} version {1}...</source>
+        <target state="translated">Probíhá instalace manifestu úlohy {0} verze {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingWorkloads">
+        <source>Installing workloads: {0}</source>
+        <target state="translated">Probíhá instalace úloh: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InsufficientPrivilegeToStartServer">
+        <source>Insufficient privilege to start the server.</source>
+        <target state="translated">Nedostatečná oprávnění pro spuštění serveru</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InternalLoopAsyncDidNotExitSuccessfullyErrorMessage">
+        <source>Method '{0}' did not exit successfully</source>
+        <target state="translated">Metoda {0} nebyla úspěšně ukončena.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidFilePath">
+        <source>The specified file must exist and have '.cs' file extension: '{0}'</source>
+        <target state="translated">Zadaný soubor musí existovat a musí mít příponu souboru .cs:{0}</target>
+        <note>{Locked=".cs"}</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForFileBasedApp">
+        <source>Cannot specify option '{0}' when operating on a file-based app.</source>
+        <target state="translated">Možnost {0} nelze zadat při práci se souborovou aplikací.</target>
+        <note>{0} is an option name like '--source'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidOptionForStdin">
+        <source>Cannot specify option '{0}' when also using '-' to read the file from standard input.</source>
+        <target state="translated">Nelze zadat parametr {0}, pokud se k načtení souboru ze standardního vstupního zařízení používá také parametr -.</target>
+        <note>{0} is an option name like '--no-build'.</note>
+      </trans-unit>
+      <trans-unit id="InvalidToolConfiguration">
+        <source>The settings file in the tool's NuGet package is invalid: {0}</source>
+        <target state="translated">Soubor nastavení v balíčku NuGet nástroje je neplatný: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidVersionForWorkload">
+        <source>Error parsing version '{1}' for workload manifest ID '{0}'</source>
+        <target state="translated">Chyba při analýze verze {1} pro ID manifestu úlohy {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LatestVersion">
+        <source>Latest Version</source>
+        <target state="translated">Nejnovější verze</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="ListToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">Možnost local (--local), možnost global (--global), možnost tool path (--tool-path), v jednu chvíli je možné mít jen jednu. Zadejte jen jednu z možností: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalOptionDoesNotSupportFrameworkOption">
+        <source>The local option(--local) does not support the framework option (--framework).</source>
+        <target state="translated">Možnost local (--local) nepodporuje možnost framework (--framework).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolInstallationSucceeded">
+        <source>You can invoke the tool from this directory using the following commands: 'dotnet tool run {0}' or 'dotnet {0}'.
+Tool '{1}' (version '{2}') was successfully installed. Entry is added to the manifest file {3}.</source>
+        <target state="translated">Nástroj můžete z tohoto adresáře zavolat pomocí těchto příkazů: dotnet tool run {0} nebo dotnet {0}.
+Nástroj {1} (verze {2}) se úspěšně nainstaloval. Do souboru manifestu {3} se přidala položka.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LocalToolsRestoreWasSuccessful">
+        <source>Restore was successful.</source>
+        <target state="translated">Obnovení proběhlo úspěšně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NoProjectFound">
+        <source>No project was found at the path: {0}.</source>
+        <target state="translated">Žádný projekt se nepodařilo najít v cestě: {0}.</target>
+        <note>{0} - the file path where project was expected to be found.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluationResult_Error_NotRestored">
+        <source>{0} is not restored.</source>
+        <target state="translated">{0} se neobnovil.</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MSBuildEvaluator_Error_NoTargetFramework">
+        <source>Project '{0}' is a SDK-style project, but does not specify the framework.</source>
+        <target state="translated">Projekt {0} je projekt ve stylu sady SDK, ale neurčuje architekturu.</target>
+        <note>{0} - the full path to the project.</note>
+      </trans-unit>
+      <trans-unit id="MaintenanceMessage">
+        <source>.NET {0} is going out of support soon.</source>
+        <target state="translated">Rozhraní .NET {0} se zanedlouho přestane podporovat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestFileColumn">
+        <source>Manifest</source>
+        <target state="translated">Manifest</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestMsiNotFoundInNuGetPackage">
+        <source>Manifest MSI not found in NuGet package {0}</source>
+        <target state="translated">Instalační služba MSI manifestu se nenašla v balíčku NuGet {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManifestPackageUrlNotResolved">
+        <source>Manifest package not resolved. Manifest package or URL for {0} doesn't exist.</source>
+        <target state="translated">Balíček manifestu nebyl přeložen. Balíček manifestu nebo adresa URL pro {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MinimumExpectedTestsPolicyViolation">
+        <source>Minimum expected tests policy violation, tests ran {0}, minimum expected {1}</source>
+        <target state="translated">Minimální očekávané porušení zásad testů, spuštěné testy: {0}, očekávané minimum: {1}</target>
+        <note>{0}, {1} number of tests</note>
+      </trans-unit>
+      <trans-unit id="MismatchingHandshakeInfo">
+        <source>A new handshake '{0}' was received for the test application that doesn't match the previous handshake '{1}'.</source>
+        <target state="translated">Byla přijata nová zpráva metodou handshake {0} pro testovací aplikaci, který neodpovídá předchozí zprávě metodou handshake {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MissingTestSessionEnd">
+        <source>A test session start event was received without a corresponding test session end.</source>
+        <target state="translated">Byla přijata počáteční událost testovací relace bez odpovídajícího konce testovací relace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsBuildDefinition">
+        <source>Run Microsoft Build Engine (MSBuild) commands.</source>
+        <target state="translated">Spustí příkazy MSBuild (Microsoft Build Engine).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressInstall">
+        <source>Installing {0} </source>
+        <target state="translated">Instaluje se {0}. </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressRepair">
+        <source>Repairing {0} </source>
+        <target state="translated">Opravuje se {0} </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MsiProgressUninstall">
+        <source>Removing {0} </source>
+        <target state="translated">Odebírání {0}. </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleProjectsEvaluationResult_Error">
+        <source>Multiple projects found: {0}.</source>
+        <target state="translated">Našlo se více projektů: {0}.</target>
+        <note>{0} - semi-colon separated list of path to projects found.</note>
+      </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="translated">Název</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NeedNuGetInConfig">
+        <source>The 'dotnet tool search' command unconditionally accesses nuget.org to find tools, but it is not present in your nuget.config. Add it to run this command.
+    This can be done with this command:
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</source>
+        <target state="translated">Příkaz dotnet tool search nepodmíněně přistupuje k nuget.org k vyhledání nástrojů, ale ve vašem souboru nuget.config se nenachází. Pokud chcete tento příkaz spustit, přidejte ho.
+    Můžete to provést pomocí tohoto příkazu:
+  dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org</target>
+        <note>Do not translate 'dotnet tool search' or 'nuget.config'. Do not localize the last line at all.</note>
+      </trans-unit>
+      <trans-unit id="NewDefinition">
+        <source>Create a new .NET project or file.</source>
+        <target state="translated">Vytvoří nový projekt nebo soubor .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewFeatureBandMessage">
+        <source>Try out the newest .NET SDK features with .NET {0}.</source>
+        <target state="translated">V rozhraní .NET {0} si můžete vyzkoušet nejnovější funkce sady .NET SDK.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewPatchAvailableMessage">
+        <source>Patch {0} is available.</source>
+        <target state="translated">Je k dispozici oprava {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewWorkloadSet">
+        <source>Installing workload version {0}.</source>
+        <target state="translated">Probíhá instalace verze úlohy {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseRunningJustCsc">
+        <source>Warning: Binary log option was specified but MSBuild will be skipped because running just csc is enough. Specify '--no-cache' to force full build.</source>
+        <target state="translated">Upozornění: Byl zadán parametr binárního protokolu, ale MSBuild bude přeskočen, protože stačí spustit pouze csc. Chcete-li vynutit úplné sestavení, zadejte --no-cache.</target>
+        <note>{Locked="--no-cache"}{Locked="MSBuild"}{Locked="csc"}</note>
+      </trans-unit>
+      <trans-unit id="NoBinaryLogBecauseUpToDate">
+        <source>Warning: Binary log option was specified but build will be skipped because output is up to date. Specify '--no-cache' to force build.</source>
+        <target state="translated">Upozornění: Byl zadán parametr binárního protokolu, ale sestavení bude přeskočeno, protože výstup je aktuální. Chcete-li vynutit sestavení, zadejte --no-cache.</target>
+        <note>{Locked="--no-cache"}</note>
+      </trans-unit>
+      <trans-unit id="NoHistoryFound">
+        <source>No workload history found</source>
+        <target state="translated">Nenašla se žádná historie úlohy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoManifestFileContainPackageId">
+        <source>Cannot find a manifest file that contains package id '{0}'.</source>
+        <target state="translated">Nedaří se najít soubor manifestu s ID balíčku {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoProjectsOrSolutions">
+        <source>A project or solution file could not be found in {0}. Specify a project or solution file to use.</source>
+        <target state="translated">{0} neobsahuje žádný soubor projektu nebo řešení. Zadejte soubor projektu nebo řešení, který chcete použít.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResult">
+        <source>Could not find any results.</source>
+        <target state="translated">Nenašly se žádné výsledky.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithIdErrorMessage">
+        <source>No serializer registered with ID '{0}'</source>
+        <target state="translated">Není zaregistrovaný žádný serializátor s ID {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSerializerRegisteredWithTypeErrorMessage">
+        <source>No serializer registered with type '{0}'</source>
+        <target state="translated">Není zaregistrovaný žádný serializátor s typem {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoServersToShutdown">
+        <source>No build servers are running.</source>
+        <target state="translated">Nejsou spuštěné žádné buildovací servery.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoToolsWereRestored">
+        <source>No tools were restored.</source>
+        <target state="translated">Neobnovily se žádné nástroje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoTrustWithParentPID">
+        <source>Failed to establish a trust relationship with parent process ({0}).</source>
+        <target state="translated">Nepovedlo se navázat vztah důvěryhodnosti s nadřazeným procesem ({0}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadHistoryRecords">
+        <source>Workload history records are created when when running an operation that modifies workloads like update or install. Cannot update from history until workload history records exist.</source>
+        <target state="translated">Záznamy historie úloh se vytvářejí při spuštění operace, která mění úlohy, jako je aktualizace nebo instalace. Není možné aktualizovat z historie, dokud neexistují záznamy historie úlohy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadUpdateFound">
+        <source>No workload update found.</source>
+        <target state="translated">Nenašla se žádná aktualizace úlohy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadVersionsFound">
+        <source>No workload versions found for SDK feature band {0}.</source>
+        <target state="translated">Nenašly se žádné verze úloh pro pásmo funkcí sady SDK {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsInstalledInfoWarning">
+        <source>There are no installed workloads to display.</source>
+        <target state="translated">Nejsou k dispozici žádné nainstalované úlohy, které by se daly zobrazit.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToRepair">
+        <source>No workloads are installed, nothing to repair. Run `dotnet workload search` to find workloads to install.</source>
+        <target state="translated">Nejsou nainstalované žádné úlohy, nic se nedá opravit. Pokud chcete najít úlohy, které se mají nainstalovat, spusťte vyhledávání úloh dotnet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoWorkloadsToUpdate">
+        <source>No workloads installed for this feature band. To update workloads installed with earlier SDK versions, include the --from-previous-sdk option.</source>
+        <target state="translated">Pro toto pásmo funkcí nejsou nainstalované žádné úlohy. Pokud chcete provést aktualizaci úlohy nainstalované z předchozí sady SDK, přidejte možnost --from-previous-sdk.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NugetDefinition">
+        <source>Provides additional NuGet commands.</source>
+        <target state="translated">Nabízí další příkazy NuGet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OSDoesNotSupportMsi">
+        <source>MSI installations are only supported on Windows.</source>
+        <target state="translated">Instalace MSI jsou podporovány pouze v systému Windows.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OnlyLocalOptionSupportManifestFileOption">
+        <source>Specifying the tool manifest option (--tool-manifest) is only valid with the local option (--local or the default).</source>
+        <target state="translated">Zadávání možnosti manifestu nástroje (--tool-manifest) je platné jen spolu s možností local (--local nebo výchozí).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfProcessArtifactsProduced">
+        <source>Out of process file artifacts produced:</source>
+        <target state="translated">Vytvořené artefakty souboru mimo proces:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutOfSupportMessage">
+        <source>.NET {0} is out of support.</source>
+        <target state="translated">Rozhraní .NET {0} se už nepodporuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackDefinition">
+        <source>Create a NuGet package.</source>
+        <target state="translated">Vytvoří balíček NuGet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageDefinition">
+        <source>Search for, add, remove, or list PackageReferences for a .NET project.</source>
+        <target state="translated">Umožňuje vyhledat, přidat, odebrat nebo vypsat PackageReferences pro projekt .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageFailedToRestore">
+        <source>Package "{0}" failed to restore, due to {1}</source>
+        <target state="translated">Balíček {0} se nepovedlo obnovit. Příčina: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageId">
+        <source>Package ID</source>
+        <target state="translated">ID balíčku</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="PackageListFileNotFound">
+        <source>Could not find file or directory '{0}'.</source>
+        <target state="translated">Soubor nebo adresář {0} nešlo najít.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageRemoveSpecifyExactlyOnePackageReference">
+        <source>Specify only one package reference to remove.</source>
+        <target state="translated">Zadejte jen jeden odkaz na balíček, který chcete odebrat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionConclusion">
+        <source>Command names conflict. Command names are case insensitive.
+{0}</source>
+        <target state="translated">Konflikt názvů příkazů. Názvy příkazů nerozlišují velká a malá písmena.
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackagesCommandNameCollisionForOnePackage">
+        <source>A command "{0}" in package "{1}"</source>
+        <target state="translated">Příkaz {0} v balíčku {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Passed">
+        <source>Passed</source>
+        <target state="translated">Úspěšné</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PassedLowercase">
+        <source>passed</source>
+        <target state="translated">úspěch</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PathToApplicationDefinition">
+        <source>The path to an application .dll file to execute.</source>
+        <target state="translated">Cesta k souboru .dll aplikace, který se má spustit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PendingReboot">
+        <source>The machine has a pending reboot. The workload operation will continue, but you may need to restart.</source>
+        <target state="translated">Počítač čeká na restartování. Operace úlohy bude pokračovat, ale možná budete muset provést restartování.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_BothInRootAndSolutionFolderSpecified">
+        <source>Add project reference to solution action is not configured correctly in the template.
+    The 'solutionFolder' and 'inRoot' cannot be used together; use only one of the options.</source>
+        <target state="translated">Akce přidání odkazu na projekt do řešení není v šabloně správně nakonfigurovaná.
+    SolutionFolder a inRoot se nedají použít společně; použijte jen jednu z těchto možností.</target>
+        <note>do not translate: 'solutionFolder', 'inRoot'</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoProjectsToAdd">
+        <source>Add project reference to solution action is not configured correctly in the template. Unable to determine the project files to add.</source>
+        <target state="translated">Akce Přidat odkaz na projekt do řešení není v šabloně správně nakonfigurovaná. Nedají se určit soubory projektu, které se mají přidat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Error_NoSolutionFile">
+        <source>Unable to determine which solution file to add the reference to.</source>
+        <target state="translated">Nedá se určit, do kterého souboru řešení se má odkaz přidat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed">
+        <source>Failed to add project(s) to the solution: {0}</source>
+        <target state="translated">Do řešení se nepovedlo přidat projekty: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Failed_NoReason">
+        <source>Failed to add project(s) to a solution file.</source>
+        <target state="translated">Přidání projektu/ů do souboru řešení se nezdařilo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_InRoot_Running">
+        <source>Adding
+    project(s): {0}
+    in the root of solution file: {1}</source>
+        <target state="translated">Přidávání
+    projektu/ů: {0}
+    do kořenového adresáře souboru řešení: {1}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Running">
+        <source>Adding
+    project(s): {0}
+    to solution file: {1}
+    solution folder: {2}</source>
+        <target state="translated">Přidávání
+    projektu/ů: {0}
+    do souboru řešení: {1}
+    složka řešení: {2}</target>
+        <note>{0} - list of file paths to projects to add,
+{1} - the path to target solution file,
+{2} - the solution folder inside solution to add the projects to.</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddProjToSln_Succeeded">
+        <source>Successfully added project(s) to a solution file.</source>
+        <target state="translated">Projekt(y) se úspěšně přidal(y) do souboru řešení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference">
+        <source>Adding a package reference {0} to project file {1}:</source>
+        <target state="translated">Přidávání reference balíčku {0} do souboru projektu {1}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_Failed">
+        <source>Failed to add package reference: {0}</source>
+        <target state="translated">Nepovedlo se přidat odkaz na balíček: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddPackageReference_WithVersion">
+        <source>Adding a package reference {0} (version: {1}) to project file {2}:</source>
+        <target state="translated">Přidávání reference balíčku {0} (verze: {1}) do souboru projektu {2}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference">
+        <source>Adding a project reference {0} to project file {1}:</source>
+        <target state="translated">Přidávání reference projektu {0} do souboru projektu {1}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_AddProjectReference_Failed">
+        <source>Failed to add project reference: {0}</source>
+        <target state="translated">Nepovedlo se přidat odkaz na projekt: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ActionMisconfigured">
+        <source>Add reference action is not configured correctly in the template.</source>
+        <target state="translated">V šabloně není správně nakonfigurovaná akce pro přidání odkazu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_FrameworkNotSupported">
+        <source>Unable to automatically add the framework reference {0} to the project. Manually edit the project file to add it.</source>
+        <target state="translated">Do projektu se nedá automaticky přidat odkaz na rozhraní {0}. Pokud ho chcete přidat, upravte soubor projektu ručně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_ProjFileListHeader">
+        <source>Project files found:</source>
+        <target state="translated">Nalezené soubory projektu:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnresolvedProjFile">
+        <source>Unable to determine which project file to add the reference to.</source>
+        <target state="translated">Nepovedlo se určit, do kterého souboru projektu se má odkaz přidat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Error_UnsupportedRefType">
+        <source>Adding reference type {0} is not supported.</source>
+        <target state="translated">Přidávání typu odkazu {0} se nepodporuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Failed">
+        <source>Failed to add a reference to the project file.</source>
+        <target state="translated">Přidání reference do souboru projektu se nezdařilo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_AddReference_Succeeded">
+        <source>Successfully added a reference to the project file.</source>
+        <target state="translated">Reference se úspěšně přidala do souboru projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_FailedToDetermineProjectToRestore">
+        <source>Couldn't determine files to restore.</source>
+        <target state="translated">Soubory k obnovení se nepodařilo určit.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Error_NoProjectsToRestore">
+        <source>No projects are configured to restore. Check primary outputs configuration in template.json.</source>
+        <target state="translated">Nejsou nakonfigurovány žádné projekty k obnovení. Ověřte konfiguraci primárních výstupů v template.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Failed">
+        <source>Restore failed.</source>
+        <target state="translated">Obnovení neproběhlo úspěšně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_RestoreFailed">
+        <source>Failed to perform restore: {0}</source>
+        <target state="translated">Nepovedlo se provést obnovení: {0}</target>
+        <note>{0} - the reason why operation failed, normally ends with period</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Running">
+        <source>Restoring {0}:</source>
+        <target state="translated">Obnovování {0}:</target>
+        <note>{0} - path to a project to restore</note>
+      </trans-unit>
+      <trans-unit id="PostAction_Restore_Succeeded">
+        <source>Restore succeeded.</source>
+        <target state="translated">Obnovení proběhlo úspěšně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PrereleaseAndVersionAreNotSupportedAtTheSameTime">
+        <source>The --prerelease and --version options are not supported in the same command</source>
+        <target state="translated">Možnosti --prerelease a --version v jednom příkazu se nepodporují.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_EvaluationFailed">
+        <source>Failed to create constraint '{0}': failed to evaluate the project: {1}</source>
+        <target state="translated">Nepovedlo se vytvořit omezení {0}: Nepovedlo se vyhodnotit projekt: {1}</target>
+        <note>{0} - type of constraint (non-localizable), {1} - localized reason why evaluation failed, ends with period.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraintFactory_Exception_NoEvaluator">
+        <source>Failed to create constraint '{0}': {1} component is not available.</source>
+        <target state="translated">Nepovedlo se vytvořit omezení {0}: Komponenta {1} není k dispozici.</target>
+        <note>{0} - type of constraint (non-localizable), {1} - name of required component (non-localizable).</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_DisplayName">
+        <source>Project capabilities</source>
+        <target state="translated">Možnosti projektu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldBeString">
+        <source>argument should be a string</source>
+        <target state="translated">argument musí být řetězec</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_ArgumentShouldNotBeEmpty">
+        <source>arguments should not contain empty values</source>
+        <target state="translated">argumenty by neměly obsahovat prázdné hodnoty</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidConstraintConfiguration">
+        <source>Invalid constraint configuration</source>
+        <target state="translated">Neplatná konfigurace omezení</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Error_InvalidJson">
+        <source>invalid JSON</source>
+        <target state="translated">neplatný JSON</target>
+        <note>part of a sentence</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_EvaluationFailed_Message">
+        <source>Failed to evaluate project context: {0}</source>
+        <target state="translated">Nepovedlo se vyhodnotit kontext projektu: {0}</target>
+        <note>{0} - failure reason</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_Message">
+        <source>The template needs project capability '{0}', and current project ({1}) does not satisfy it.</source>
+        <target state="translated">Šablona potřebuje schopnost projektu {0} a aktuální projekt ({1}) ji nesplňuje.</target>
+        <note>{0} - project capability expression (non-localizable), {1} - path to the project.</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_MultipleProjectsFound_CTA">
+        <source>Specify the project to use using {0} option.</source>
+        <target state="translated">Zadejte projekt, který se má použít s možností {0}.</target>
+        <note>{0} - option to use - non localizable</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NoProjectFound_CTA">
+        <source>This template can only be created inside the project.</source>
+        <target state="translated">Tuto šablonu je možné vytvořit jenom v rámci projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NonSDKStyle_Message">
+        <source>The project {0} is not an SDK style project, and is not supported for evaluation. It is only possible to use this template with SDK-style projects.</source>
+        <target state="translated">Projekt {0} není projekt ve stylu sady SDK a není podporován pro hodnocení. Tuto šablonu je možné použít jenom s projekty ve stylu sady SDK.</target>
+        <note>{0} - path to the project</note>
+      </trans-unit>
+      <trans-unit id="ProjectCapabilityConstraint_Restricted_NotRestored_CTA">
+        <source>Run 'dotnet restore {0}' to restore the project.</source>
+        <target state="translated">Spuštěním příkazu dotnet restore {0} projekt obnovíte.</target>
+        <note>{Locked="dotnet restore {0}"}</note>
+      </trans-unit>
+      <trans-unit id="ProjectContextSymbolSource_DisplayName">
+        <source>Project context</source>
+        <target state="translated">Kontext projektu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskDeleteSource">
+        <source>Delete all source files after conversion?</source>
+        <target state="translated">Chcete po převodu odstranit všechny zdrojové soubory?</target>
+        <note>Asking whether to irreversibly delete the entry point file and all files included via #:include directives and default item globbing.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertAskForOutputDirectory">
+        <source>Specify the output directory (press Enter for default: '{0}', directory must not exist):</source>
+        <target state="translated">Zadejte výstupní adresář (stisknutím klávesy Enter použijete výchozí hodnotu: {0}, adresář nesmí existovat):</target>
+        <note>{0} is the default value</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceNo">
+        <source>No - keep all source files</source>
+        <target state="translated">Ne – zachovat všechny zdrojové soubory</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeleteSourceChoiceYes">
+        <source>Yes - delete all source files</source>
+        <target state="translated">Ano – odstranit všechny zdrojové soubory</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectConvertDeletedSourceFile">
+        <source>Deleted source file: {0}</source>
+        <target state="translated">Odstraněný zdrojový soubor: {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertDuplicateRefFolderName">
+        <source>Multiple referenced files would be converted into the same directory: '{0}'</source>
+        <target state="translated">Několik odkazovaných souborů by bylo převedeno do stejného adresáře: {0}.</target>
+        <note>{0} is the target directory path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldConvertFile">
+        <source>Dry run: would remove file-level directives from file: {0}</source>
+        <target state="translated">Zkušební spuštění: odebere direktivy na úrovni souboru ze souboru: {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCopyFile">
+        <source>Dry run: would copy file '{0}' to '{1}'.</source>
+        <target state="translated">Zkušební spuštění: zkopíruje soubor {0} do {1}.</target>
+        <note>{0} and {1} are file full paths.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateDirectory">
+        <source>Dry run: would create directory: {0}</source>
+        <target state="translated">Zkušební spuštění: vytvoří adresář: {0}</target>
+        <note>{0} is the directory full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldCreateFile">
+        <source>Dry run: would create file: {0}</source>
+        <target state="translated">Zkušební spuštění: vytvoří soubor: {0}</target>
+        <note>{0} is the file full path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectConvertWouldDeleteSourceFile">
+        <source>Dry run: would delete source file: {0}</source>
+        <target state="translated">Zkušební spuštění: odstraní zdrojový soubor: {0}</target>
+        <note>{0} is the source file path.</note>
+      </trans-unit>
+      <trans-unit id="ProjectsHeader">
+        <source>Project(s)</source>
+        <target state="translated">Projekty</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PublishDefinition">
+        <source>Publish a .NET project for deployment.</source>
+        <target state="translated">Publikuje projekt .NET pro nasazení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReferenceDefinition">
+        <source>Add, remove, or list ProjectReferences for a .NET project.</source>
+        <target state="translated">Umožňuje přidat, odebrat nebo vypsat ProjectReferences pro projekt .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReleasesLibraryFailed">
+        <source>Unable to get releases information: {0}</source>
+        <target state="translated">Nedají se získat informace o vydaných verzích: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovingWorkloadInstallationRecord">
+        <source>Removing workload installation record for {0}...</source>
+        <target state="translated">Odebírá se záznam instalace úlohy pro {0}…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairSucceeded">
+        <source>Successfully repaired workloads: {0}</source>
+        <target state="translated">Úspěšně opravené úlohy: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RepairingWorkloads">
+        <source>Repairing workload installation for workloads: {0}</source>
+        <target state="translated">Opravuje se instalace úlohy pro úlohy: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiresWindows">
+        <source>This command can only be run on Windows</source>
+        <target state="translated">Tento příkaz je možné spustit pouze ve Windows.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreDefinition">
+        <source>Restore dependencies specified in a .NET project.</source>
+        <target state="translated">Obnoví závislosti zadané v projektu .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreFailed">
+        <source>Restore failed.</source>
+        <target state="translated">Obnovení selhalo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreNewVersionAvailable">
+        <source>A newer version of tool '{0}' is available (version '{1}'). Consider updating your manifest file.</source>
+        <target state="translated">K dispozici je novější verze nástroje {0} (verze{1}). Zvažte aktualizaci souboru manifestu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestorePartiallyFailed">
+        <source>Restore partially failed.</source>
+        <target state="translated">Obnovení bylo částečně neúspěšné.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoreSuccessful">
+        <source>Tool '{0}' (version '{1}') was restored. Available commands: {2}</source>
+        <target state="translated">Nástroj {0} (verze {1}) se obnovil. Dostupné příkazy: {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Retried">
+        <source>retried</source>
+        <target state="translated">zkoušeno opakovaně</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollForwardDefinition">
+        <source>Roll forward to framework version  (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).</source>
+        <target state="translated">Posune se na vyšší verzi architektury (LatestPatch, Minor, LatestMinor, Major, LatestMajor, Disable).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionContainsExtraneousManifestIds">
+        <source>Invalid rollback definition. The manifest IDs in rollback definition {0} do not match installed manifest IDs {1}.</source>
+        <target state="translated">Neplatná definice vrácení zpět. ID manifestu v definici vrácení zpět {0} neodpovídají nainstalovaným ID manifestu {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollbackDefinitionFileDoesNotExist">
+        <source>Provided rollback definition file {0} doesn't exist.</source>
+        <target state="translated">Zadaný soubor definice vrácení zpět {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RollingBackPackInstall">
+        <source>Rolling back pack {0} installation...</source>
+        <target state="translated">Vrací se zpět instalace balíčku {0}…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableDevices">
+        <source>Available devices:</source>
+        <target state="translated">Dostupná zařízení:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandAvailableTargetFrameworks">
+        <source>Available target frameworks:</source>
+        <target state="translated">Dostupné cílové architektury:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandBuilding">
+        <source>Building...</source>
+        <target state="translated">Sestavování...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandDeployFailed">
+        <source>Deployment to device failed. Fix any deployment errors and run again.</source>
+        <target state="translated">Nasazení do zařízení se nezdařilo. Opravte všechny chyby nasazení a spusťte příkaz znovu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandEvaluationExceptionBuildFailed">
+        <source>Running the {0} target to discover run commands failed for this project. Fix the errors and warnings and run again.</source>
+        <target state="translated">Spuštění cíle {0} ke zjištění příkazů spuštění pro tento projekt se nezdařilo. Opravte chyby a upozornění a spusťte je znovu.</target>
+        <note>{0} is the name of an MSBuild target</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExampleText">
+        <source>Example</source>
+        <target state="translated">Příklad</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandException">
+        <source>The build failed. Fix the build errors and run again.</source>
+        <target state="translated">Sestavení se nepovedlo. Opravte v sestavení chyby a spusťte ho znovu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotApplyLaunchSettings">
+        <source>The launch profile "{0}" could not be applied.
+{1}</source>
+        <target state="translated">Profil spuštění {0} se nedá použít.
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionCouldNotLocateALaunchSettingsFile">
+        <source>Cannot use launch profile '{0}' because the launch settings file could not be located. Locations tried:
+{1}</source>
+        <target state="translated">Nelze použít profil spouštění {0}, protože soubor nastavení spouštění nebyl nalezen. Vyzkoušená umístění:
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionMultipleProjects">
+        <source>Specify which project file to use because {0} contains more than one project file.</source>
+        <target state="translated">Určete, který soubor projektu se má použít, protože {0} obsahuje více než jeden soubor projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionNoProjects">
+        <source>Couldn't find a project to run. Ensure a project exists in {0}, or pass the path to the project using {1}.</source>
+        <target state="translated">Projekt, který se má spustit, se nenašel. Ověřte, že projekt existuje v {0}, nebo pomocí parametru {1} předejte cestu k projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRun">
+        <source>Unable to proceed with project '{0}'.
+Ensure you have a runnable project type.
+A runnable project should target a runnable TFM (for instance, net{1}) and have OutputType 'Exe'.
+The current OutputType is '{2}'.</source>
+        <target state="translated">V projektu {0} nelze pokračovat.
+Ujistěte se, že máte spustitelný typ projektu.
+Spustitelný projekt by měl cílit na spustitelný TFM (například net{1}) a mít OutputType Exe.
+Aktuální OutputType je {2}.</target>
+        <note>{0} is project file path. {1} is dotnet framework version. {2} is the project output type.{Locked="OutputType"}{Locked="Exe"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyDevice">
+        <source>Unable to run this project because multiple devices are available. Please specify which device to use by passing the {0} argument with one of the following values:</source>
+        <target state="translated">Tento projekt nelze spustit, protože je k dispozici více zařízení. Zadejte prosím zařízení, které se má použít, předáním argumentu {0} s jednou z následujících hodnot:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandExceptionUnableToRunSpecifyFramework">
+        <source>Unable to run your project
+Your project targets multiple frameworks. Specify which framework to run using '{0}'.</source>
+        <target state="translated">Projekt nelze spustit.
+Cílem projektu je více architektur. Pomocí parametru {0} určete, která architektura se má spustit.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreDevicesText">
+        <source>Move up and down to reveal more devices</source>
+        <target state="translated">Posunutím nahoru a dolů zobrazíte další zařízení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandMoreFrameworksText">
+        <source>Move up and down to reveal more frameworks</source>
+        <target state="translated">Posunutím nahoru a dolů zobrazíte další architektury.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandNoDevicesAvailable">
+        <source>No devices are available for this project.</source>
+        <target state="translated">Pro tento projekt nejsou k dispozici žádná zařízení.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandProjectAbbreviationDeprecated">
+        <source>Warning NETSDK1174: The abbreviation of -p for --project is deprecated. Please use --project.</source>
+        <target state="translated">Upozornění NETSDK1174: Zkratka -p pro --project je zastaralá. Použijte prosím --project.</target>
+        <note>{Locked="--project"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandSearchPlaceholderText">
+        <source>Type to search</source>
+        <target state="translated">Zadejte hledaný text</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectDevicePrompt">
+        <source>Select a device to run on:</source>
+        <target state="translated">Vyberte zařízení pro spuštění:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSelectTargetFrameworkPrompt">
+        <source>Select the target framework to run:</source>
+        <target state="translated">Vyberte cílovou architekturu, která se má spustit:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandSpecifiedFileIsNotAValidProject">
+        <source>'{0}' is not a valid project file.</source>
+        <target state="translated">{0} není platný soubor projektu.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommandWarningCsFileArgumentPassedToProject">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was passed as an argument to the project '{1}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">Upozornění: {0} vypadá jako souborová aplikace, ale soubor nebyl nalezen a byl předán jako argument projektu {1}. Pokud ho chcete předat jako argument aplikace, použijte dotnet run -- {0}, čímž toto upozornění potlačíte.</target>
+        <note>{0} is the .cs file path argument. {1} is the project file path.{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningFileArgumentPassedToProject">
+        <source>Warning: '{0}' appears to be a file-based app but was passed as an argument to the project '{1}'. To run it as a file-based app, use 'dotnet run --file {0}'. To pass it as an application argument, use 'dotnet run -- {0}' to suppress this warning.</source>
+        <target state="translated">Upozornění: {0} vypadá jako souborová aplikace, ale byl předán jako argument projektu {1}. Pokud ho chcete spustit jako souborovou aplikaci, použijte příkaz dotnet run --file {0}. Pokud ho chcete předat jako argument aplikace, použijte dotnet run -- {0}, čímž toto upozornění potlačíte.</target>
+        <note>{0} is the file path argument. {1} is the project file path.{Locked="dotnet run --file"}{Locked="dotnet run --"}</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningRunJsonNotUsed">
+        <source>Warning: Settings from '{0}' are not used because '{1}' has precedence.</source>
+        <target state="translated">Upozornění: Nastavení z {0} nejsou použita, protože {1} má přednost.</target>
+        <note>{0} is an app.run.json file path. {1} is a launchSettings.json file path.</note>
+      </trans-unit>
+      <trans-unit id="RunCommandWarningUnableToDetermineLoggerArguments">
+        <source>Warning: Could not determine which application arguments appeared after '--'. All application arguments will be passed to the application without treating logger arguments specially.</source>
+        <target state="translated">Upozornění: Nepovedlo se určit, které argumenty aplikace se objevily po --. Všechny argumenty aplikace budou předány aplikaci bez speciálního zpracování argumentů protokolovacího nástroje.</target>
+        <note>{Locked="--"}</note>
+      </trans-unit>
+      <trans-unit id="RunDefinition">
+        <source>Build and run a .NET project output.</source>
+        <target state="translated">Sestaví a spustí výstup projektu .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunDotnetCommandHelpForMore">
+        <source>Run 'dotnet [command] --help' for more information on a command.</source>
+        <target state="translated">Další informace o příkazu získáte spuštěním příkazu dotnet [příkaz] --help.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunRuntimeOptionDescription">
+        <source>The target runtime to run for.</source>
+        <target state="translated">Cílový modul runtime pro běh</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningTestsFrom">
+        <source>Running tests from</source>
+        <target state="translated">Spouštění testů z</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeConfigDefinition">
+        <source>Path to &lt;application&gt;.runtimeconfig.json file.</source>
+        <target state="translated">Cesta k souboru &lt;aplikace&gt;.runtimeconfig.json.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimePropertyNotFound">
+        <source>Runtime property 'HOSTFXR_PATH' was not set or empty.</source>
+        <target state="translated">Vlastnost modulu runtime HOSTFXR_PATH nebyla nastavena nebo je prázdná.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RuntimeSectionHeader">
+        <source>.NET Runtimes:</source>
+        <target state="translated">Moduly runtime rozhraní .NET:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKCommandUsageDescription">
+        <source>Execute a .NET SDK command.</source>
+        <target state="translated">Spustí příkaz sady .NET SDK.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKInfoCommandDefinition">
+        <source>Display .NET information.</source>
+        <target state="translated">Zobrazí informace o rozhraní .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListRuntimesCommandDefinition">
+        <source>Display the installed runtimes.</source>
+        <target state="translated">Zobrazí nainstalované moduly runtime.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKListSdksCommandDefinition">
+        <source>Display the installed SDKs.</source>
+        <target state="translated">Zobrazí nainstalované sady SDK.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKOptionsHelpDefinition">
+        <source>Show command line help.</source>
+        <target state="translated">Zobrazí nápovědu příkazového řádku.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SDKVersionCommandDefinition">
+        <source>Display .NET SDK version in use.</source>
+        <target state="translated">Zobrazí používanou verzi sady .NET SDK.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SamePackageIdInOtherManifestFile">
+        <source>Warning: There are other manifest files in the directory hierarchy that will affect this local tool. The following files have not been changed:
+{0}</source>
+        <target state="translated">Upozornění: V hierarchii se nacházejí i další soubory manifestu, které budou mít na tento místní nástroj vliv. Následující soubory se nezměnily:
+{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkDefinition">
+        <source>Manage .NET SDK installation.</source>
+        <target state="translated">Umožňuje spravovat instalaci sady .NET SDK.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_InstallSdk">
+        <source>Go to aka.ms/get-dotnet and install any of the supported SDK versions: '{0}'.</source>
+        <target state="translated">Přejděte na aka.ms/get-dotnet a nainstalujte některou z podporovaných verzí sady SDK:{0}.</target>
+        <note>{0} is the list of supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkInfoProvider_Message_SwitchSdk">
+        <source>You have other SDK version(s) installed that can be used to run this template. Switch to any of the following SDK(s) on your system to run this template: '{0}'. Details on selecting SDK version to run: https://docs.microsoft.com/dotnet/core/tools/global-json.</source>
+        <target state="translated">Máte nainstalované další verze sady SDK, které se dají použít ke spuštění této šablony. Pokud chcete spustit tuto šablonu, přepněte na některou z následujících sad SDK ve vašem systému: {0}. Podrobnosti o výběru verze sady SDK, která se má spustit: https://docs.microsoft.com/dotnet/core/tools/global-json.</target>
+        <note>{0} is the list of installed and supported versions.</note>
+      </trans-unit>
+      <trans-unit id="SdkSectionHeader">
+        <source>.NET SDKs:</source>
+        <target state="translated">Sady .NET SDK:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkVersionOptionNotSupported">
+        <source>The --sdk-version option is no longer supported for this command.</source>
+        <target state="translated">Možnost --sdk-version se už pro tento příkaz nepodporuje.</target>
+        <note>{Locked="--sdk-version"}</note>
+      </trans-unit>
+      <trans-unit id="ShouldInstallAWorkloadSet">
+        <source>No workload sets are installed. Run "dotnet workload restore" to install a workload set.</source>
+        <target state="translated">Nejsou nainstalované žádné sady úloh. Spuštěním příkazu dotnet workload restore nainstalujte sadu úloh.</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="ShutDownFailed">
+        <source>{0} failed to shut down: {1}</source>
+        <target state="translated">Nepovedlo se vypnout server {0}: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownFailedWithPid">
+        <source>{0} (process {1}) failed to shut down: {2}</source>
+        <target state="translated">Nepovedlo se vypnout {0} (proces {1}): {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceeded">
+        <source>{0} shut down successfully.</source>
+        <target state="translated">Vypnutí serveru {0} proběhlo úspěšně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShutDownSucceededWithPid">
+        <source>{0} (process {1}) shut down successfully.</source>
+        <target state="translated">{0} (proces {1}) se úspěšně vypnul.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServer">
+        <source>Shutting down {0}...</source>
+        <target state="translated">Vypíná se {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ShuttingDownServerWithPid">
+        <source>Shutting down {0} (process {1})...</source>
+        <target state="translated">Vypíná se {0} (proces {1})...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkipSignCheckInvalidOption">
+        <source>Unable to bypass signature verification. The specified option conflicts with a global policy.</source>
+        <target state="translated">Nepovedlo se obejít ověření podpisu. Zadaná možnost je v konfliktu s globálními zásadami.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedColon">
+        <source>skipped:</source>
+        <target state="translated">přeskočeno:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippedLowercase">
+        <source>skipped</source>
+        <target state="translated">vynecháno</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SkippingManifestUpdate">
+        <source>Manifest packages were not found. Skipping manifest update...</source>
+        <target state="translated">Balíčky manifestu se nepovedlo najít. Aktualizace manifestu bude přeskočena...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnDefinition">
+        <source>Modify Visual Studio solution files.</source>
+        <target state="translated">Upraví soubory řešení sady Visual Studio.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SlnxGenerated">
+        <source>.slnx file {0} generated.</source>
+        <target state="translated">.slnx soubor {0} byl vygenerován.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFilterDoesNotSupportFolderOptions">
+        <source>Solution filter files (.slnf) do not support the --in-root or --solution-folder options.</source>
+        <target state="translated">Soubory filtru řešení (.slnf) nepodporují možnosti --in-root nebo --solution-folder.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderAndInRootMutuallyExclusive">
+        <source>The --solution-folder and --in-root options cannot be used together; use only one of the options.</source>
+        <target state="translated">Parametry --solution-folder a --in-root nejdou použít společně; použijte jenom jeden z nich.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionFolderHeader">
+        <source>Solution Folder(s)</source>
+        <target state="translated">Složk(a/y) řešení</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedNoWorkloadVersionAndSpecificWorkloadVersion">
+        <source>'useWorkloadVersions' specified to not use a workload version. This is not compatible with updating or installing with a specified workload version from the command line, global.json, or from a history record with a workload version.</source>
+        <target state="translated">Pro nepoužití verze úlohy byla zadána hodnota useWorkloadVersions. To není kompatibilní s aktualizací nebo instalací se zadanou verzí úlohy z příkazového řádku, global.json nebo ze záznamu historie s verzí úlohy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifiedWorkloadVersionAndSpecificNonWorkloadVersion">
+        <source>'useWorkloadVersions' specified to use a workload version. This option is not compatible with updating from a rollback file or from history using a set of manifests.</source>
+        <target state="translated">Pro použití verze úlohy byla zadána hodnota useWorkloadVersions. Tato možnost není kompatibilní s aktualizací ze souboru vrácení zpět nebo z historie pomocí sady manifestů.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpecifyManifests">
+        <source>Specify at least one manifest with --manifest.</source>
+        <target state="translated">Pomocí parametru --manifest zadejte alespoň jeden manifest.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StackFrameAt">
+        <source>at</source>
+        <target state="translated">v</target>
+        <note>at that is used for a stack frame location in a stack trace, is followed by a class and method name</note>
+      </trans-unit>
+      <trans-unit id="StackFrameIn">
+        <source>in</source>
+        <target state="translated">v</target>
+        <note>in that is used in stack frame it is followed by file name</note>
+      </trans-unit>
+      <trans-unit id="StandardError">
+        <source>Error output</source>
+        <target state="translated">Chybový výstup</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StandardOutput">
+        <source>Standard output</source>
+        <target state="translated">Standardní výstup</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StatusColumnHeader">
+        <source>Status</source>
+        <target state="translated">Stav</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StoreDefinition">
+        <source>Store the specified assemblies in the runtime package store.</source>
+        <target state="translated">Uloží zadaná sestavení do úložiště balíčků modulu runtime.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SucceededColon">
+        <source>succeeded:</source>
+        <target state="translated">úspěšné:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Summary">
+        <source>Summary</source>
+        <target state="translated">Souhrn</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="Tags">
+        <source>Tags</source>
+        <target state="translated">Značky</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="TestCommandUseDirectoryWithSwitch">
+        <source>Specifying a directory for 'dotnet test' should be via '--project' or '--solution'.</source>
+        <target state="translated">Zadání adresáře pro dotnet test by mělo být prostřednictvím --project nebo --solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseProject">
+        <source>Specifying a project for 'dotnet test' should be via '--project'.</source>
+        <target state="translated">Zadání projektu pro dotnet test by mělo být prostřednictvím --project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseSolution">
+        <source>Specifying a solution for 'dotnet test' should be via '--solution'.</source>
+        <target state="translated">Zadání řešení pro dotnet test by mělo být prostřednictvím --solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestCommandUseTestModules">
+        <source>Specifying dlls or executables for 'dotnet test' should be via '--test-modules'.</source>
+        <target state="translated">Zadání knihoven DLL nebo spustitelných souborů pro dotnet test by mělo být prostřednictvím --test-modules.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDefinition">
+        <source>Run unit tests using the test runner specified in a .NET project.</source>
+        <target state="translated">Spustí testy jednotek v nástroji Test Runner zadaném v projektu .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TestDiscoveryExitCode">
+        <source>Test discovery completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">Testovací zjišťování bylo dokončeno s neúspěšným ukončovacím kódem: {0} (viz: https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummary">
+        <source>Discovered {0} tests in {1} assemblies.</source>
+        <target state="translated">Počet zjištěných testů v(e) {1} sestaveních: {0}</target>
+        <note>0 is number of tests, 1 is count of assemblies</note>
+      </trans-unit>
+      <trans-unit id="TestDiscoverySummarySingular">
+        <source>Discovered {0} tests.</source>
+        <target state="translated">Počet zjištěných testů: {0}</target>
+        <note>0 is number of tests</note>
+      </trans-unit>
+      <trans-unit id="TestRunExitCode">
+        <source>Test run completed with non-success exit code: {0} (see: https://aka.ms/testingplatform/exitcodes)</source>
+        <target state="translated">Testovací běh byl dokončen s neúspěšným ukončovacím kódem: {0} (viz: https://aka.ms/testingplatform/exitcodes)</target>
+        <note>0 is whole number, the value of exit code</note>
+      </trans-unit>
+      <trans-unit id="TestRunSummary">
+        <source>Test run summary:</source>
+        <target state="translated">Souhrn testovacího běhu:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolAlreadyInstalled">
+        <source>Tool '{0}' (version '{1}') is already installed.</source>
+        <target state="translated">Nástroj {0} (verze {1}) je už nainstalovaný.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolCommonNoManifestGuide">
+        <source>If you intended to perform the action on a global tool, use the `--global` option for the command.</source>
+        <target state="translated">Pokud jste chtěli provést akci s globálním nástrojem, použijte pro příkaz možnost --global.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolDefinition">
+        <source>Install or manage tools that extend the .NET experience.</source>
+        <target state="translated">Umožňuje instalaci nebo správu nástrojů, které rozšiřují prostředí .NET.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInstallationSucceeded">
+        <source>You can invoke the tool using the following command: {0}
+Tool '{1}' (version '{2}') was successfully installed.</source>
+        <target state="translated">Tento nástroj lze vyvolat pomocí následujícího příkazu: {0}
+Nástroj {1} (verze {2}) byl úspěšně nainstalován.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallInvalidNuGetVersionRange">
+        <source>Specified version '{0}' is not a valid NuGet version range.</source>
+        <target state="translated">Zadaná verze {0} není platným rozsahem verzí NuGet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallNuGetConfigurationFileDoesNotExist">
+        <source>NuGet configuration file '{0}' does not exist.</source>
+        <target state="translated">Konfigurační soubor NuGet {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailed">
+        <source>Tool '{0}' failed to install.</source>
+        <target state="translated">Nástroj {0} se nepodařilo nainstalovat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationFailedContactAuthor">
+        <source>Tool '{0}' failed to install. Contact the tool author for assistance.</source>
+        <target state="translated">Nástroj {0} se nepodařilo nainstalovat. Obraťte se s žádostí o pomoc na autora nástroje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolInstallationRestoreFailed">
+        <source>The tool package could not be restored.</source>
+        <target state="translated">Balíček nástroje nebylo možné obnovit.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListCommandsColumn">
+        <source>Commands</source>
+        <target state="translated">Příkazy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidPackageWarning">
+        <source>Warning: tool package '{0}' is invalid, contact tool author:
+{1}</source>
+        <target state="translated">Upozornění: Balíček nástroje {0} je neplatný, obraťte se na autora nástroje:
+{1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">Cesta k nástroji {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListPackageIdColumn">
+        <source>Package Id</source>
+        <target state="translated">ID balíčku</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolListVersionColumn">
+        <source>Version</source>
+        <target state="translated">Verze</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallInvalidToolPathOption">
+        <source>Tool path '{0}' does not exist.</source>
+        <target state="translated">Cesta k nástroji {0} neexistuje.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be uninstalled.</source>
+        <target state="translated">Nástroj {0} má několik nainstalovaných verzí a nelze ho odinstalovat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallToolNotInstalled">
+        <source>A tool with the package Id '{0}' could not be found.
+
+Tools are uninstalled using their package Id which may be different
+from the tool name you use when calling the tool. You can find the tool names
+and the corresponding package Ids for installed tools using the command
+'dotnet tool list'.</source>
+        <target state="translated">Nástroj s ID balíčku {0} se nenašel.
+
+Nástroje se odinstalují pomocí svého ID balíčku, které se může lišit
+od názvu nástroje, který používáte při volání nástroje. Názvy nástrojů najdete
+a odpovídající ID balíčků nainstalovaných nástrojů najdete pomocí
+příkazu „dotnet tool list“.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUninstallUninstallSucceeded">
+        <source>Tool '{0}' (version '{1}') was successfully uninstalled.</source>
+        <target state="translated">Nástroj {0} (verze {1}) byl úspěšně odinstalován.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateToolHasMultipleVersionsInstalled">
+        <source>Tool '{0}' has multiple versions installed and cannot be updated.</source>
+        <target state="translated">Nástroj {0} má několik nainstalovaných verzí a nelze ho aktualizovat.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ToolUpdateUpdateSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}'.</source>
+        <target state="translated">Nástroj {0} byl úspěšně aktualizován z verze {1} na verzi {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalColon">
+        <source>total:</source>
+        <target state="translated">celkem:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Try">
+        <source>try {0}</source>
+        <target state="translated">{0} pokus</target>
+        <note>number or tries of the current test assembly when test assembly is being retried. {0} is number that starts at 1</note>
+      </trans-unit>
+      <trans-unit id="UnexpectedHelpMessage">
+        <source>An unexpected help-related message was received when `--help` wasn't used.</source>
+        <target state="translated">Byla obdržena neočekávaná zpráva týkající se nápovědy, když nebyl použit parametr --help.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageInHelpMode">
+        <source>A message of type '{0}' was received in help mode, which is not expected.</source>
+        <target state="translated">V režimu nápovědy byla přijata zpráva typu {0}, což není očekáváno.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedMessageWithoutHandshake">
+        <source>A message of type '{0}' was received before we got any handshakes, which is unexpected.</source>
+        <target state="translated">Zpráva typu {0} byla přijata předtím, než jsme obdrželi jakékoli zprávy metodou handshake, což je neočekávané.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedTestSessionEnd">
+        <source>A test session end event was received without a corresponding test session start.</source>
+        <target state="translated">Byla přijata koncová událost testovací relace bez odpovídajícího začátku testovací relace.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallLocalToolSucceeded">
+        <source>Tool '{0}' was successfully uninstalled and removed from manifest file {1}.</source>
+        <target state="translated">Nástroj {0} se úspěšně odinstaloval a odebral ze souboru manifestu {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UninstallToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option(--local), the global option (--global), the tool path option (--tool-path), can only have one at a time. Specify only one of the options: {0}.</source>
+        <target state="translated">Možnost local (--local), možnost global (--global), možnost tool path (--tool-path), v jednu chvíli je možné mít jen jednu. Zadejte jen jednu z možností: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownRecordsInformationalMessage">
+        <source>Rows with Unlogged changes represent changes from actions other than .NET CLI workload commands. Usually this represents an update to the .NET SDK or to Visual Studio.</source>
+        <target state="translated">Řádky s nezaprotokolovanými změnami představují změny z jiných akcí než příkazů úloh rozhraní příkazového řádku .NET. Obvykle to představuje aktualizaci sady .NET SDK nebo sady Visual Studio.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateFromRollbackSwitchesModeToLooseManifests">
+        <source>Updating to a rollback file is not compatible with workload sets. Install and Update will now use loose manifests. To update to a specific workload version, use --version.</source>
+        <target state="translated">Aktualizace na soubor vrácení zpět není kompatibilní se sadami úloh. Instalace a aktualizace teď budou používat volné manifesty. Pokud chcete provést aktualizaci na konkrétní verzi úlohy, použijte možnost --version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocaToolSucceededVersionNoChange">
+        <source>Tool '{0}' is up to date (version '{1}' manifest file {2}) .</source>
+        <target state="translated">Nástroj {0} je aktuální (verze {1}, soubor manifestu {2}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolSucceeded">
+        <source>Tool '{0}' was successfully updated from version '{1}' to version '{2}' (manifest file {3}).</source>
+        <target state="translated">Nástroj {0} byl úspěšně aktualizován z verze {1} na verzi {2} (soubor manifestu {3}).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateLocalToolToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1} (manifest file {2}). Use the --allow-downgrade option to allow this update.</source>
+        <target state="translated">Požadovaná verze {0} je nižší než stávající verze {1} (soubor manifestu {2}). Pokud chcete povolit tuto aktualizaci, použijte možnost --allow-downgrade.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateModeDoesNotMatchGlobalJson">
+        <source>Specified to update workloads using {0} from the command line, but global.json file at {1} specified to use {2}.</source>
+        <target state="translated">Určeno pro aktualizaci úloh pomocí {0} z příkazového řádku, ale soubor global.json v {1} je zadán pro použití {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToLowerVersion">
+        <source>The requested version {0} is lower than existing version {1}.</source>
+        <target state="translated">Požadovaná verze {0} je nižší než stávající verze {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndPackageId">
+        <source>One must specify either package ID or use the update all option (--all).</source>
+        <target state="translated">Jeden musí určovat buď ID balíčku, nebo použít možnost aktualizovat vše (--all).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidAllAndVersion">
+        <source>The version option (--version) and the update all option (--all) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">Možnost verze (--version) a možnost aktualizovat vše (--all) nejde použít naráz. Zadejte pouze jednu z možností: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolCommandInvalidGlobalAndLocalAndToolPath">
+        <source>The local option (--local), the global option (--global), and the tool path option (--tool-path) cannot be used together. Specify only one of the options: {0}.</source>
+        <target state="translated">Parametry místní (--local), globální (--global) a cesta nástroje (--tool-path) nejdou použít společně. Zadejte jenom jeden z nich: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateToolFailed">
+        <source>Tool '{0}' failed to update due to the following:</source>
+        <target state="translated">Aktualizace nástroje {0} se nezdařila z následujícího důvodu:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedWorkloadMode">
+        <source>Successfully updated workload install mode to use {0}.</source>
+        <target state="translated">Režim instalace úlohy se úspěšně aktualizoval na {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Usage">
+        <source>Usage</source>
+        <target state="translated">Použití</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserJwtsDefinition">
+        <source>Manage JSON Web Tokens in development.</source>
+        <target state="translated">Spravujte webové tokeny JSON ve vývoji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UserSecretsDefinition">
+        <source>Manage development user secrets.</source>
+        <target state="translated">Spravuje tajné kódy uživatelů pro vývoj.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingCacheForPackInstall">
+        <source>Installing package {0} version {1} from offline cache {2}.</source>
+        <target state="translated">Instaluje se balíček {0} verze {1} z offline mezipaměti {2}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingLaunchSettingsFromMessage">
+        <source>Using launch settings from {0}...</source>
+        <target state="translated">Použití nastavení spuštění z {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VSWorkloadNotRemoved">
+        <source>Workload '{0}' was not removed because it is installed and managed by Visual Studio: '{1}'. Please uninstall this workload using the Visual Studio Installer to fully remove it.</source>
+        <target state="translated">Úloha „{0}“ se neodebrala, protože je nainstalovaná a spravovaná Visual Studio: „{1}“. Pokud chcete tuto úlohu úplně odebrat, odinstalujte ji pomocí Instalační program pro Visual Studio.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Verified">
+        <source>Verified</source>
+        <target state="translated">Ověřeno</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VersionCheckFailure">
+        <source>No version found to check if this is up to date. Please check for updates manually.</source>
+        <target state="translated">Nenašla se žádná verze, díky níž by se ověřilo, jestli je aktuální. Vyhledejte aktualizace ručně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionColumnHeader">
+        <source>Version</source>
+        <target state="translated">Verze</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Versions">
+        <source>Versions</source>
+        <target state="translated">Verze</target>
+        <note>Table lable</note>
+      </trans-unit>
+      <trans-unit id="VsTestDefinition">
+        <source>Run Microsoft Test Engine (VSTest) commands.</source>
+        <target state="translated">Spustí příkazy VSTest (Microsoft Test Engine).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WarningCsFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' looks like a file-based app but the file was not found, and it was treated as an MSBuild argument. Unrecognized arguments: {1}.</source>
+        <target state="translated">Upozornění: {0} vypadá jako souborová aplikace, ale soubor nebyl nalezen a byl považován za argument MSBuild. Nerozpoznané argumenty: {1}.</target>
+        <note>{0} is the .cs file path argument. {1} is the list of unrecognized arguments.</note>
+      </trans-unit>
+      <trans-unit id="WarningFileArgumentPassedToMSBuild">
+        <source>Warning: '{0}' appears to be a file-based app but was treated as an MSBuild argument. To treat it as a file-based app, use 'dotnet {1} {0}' and remove unsupported arguments {2}.</source>
+        <target state="translated">Upozornění: {0} vypadá jako souborová aplikace, ale bylo s ní zacházeno jako s argumentem MSBuild. Pokud ji chcete považovat za aplikaci založenou na souboru, použijte „dotnet {1} {0}“ a odeberte nepodporované argumenty {2}.</target>
+        <note>{0} is the file path argument. {1} is the command name (e.g. build, clean, publish). {2} is the list of unsupported arguments.{Locked="dotnet"}</note>
+      </trans-unit>
+      <trans-unit id="WatchDefinition">
+        <source>Start a file watcher that runs a command when files change.</source>
+        <target state="translated">Spustí sledovací proces souborů, který při změnách souborů spustí příkaz.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadAlreadyInstalled">
+        <source>Workload(s) '{0}' are already installed.</source>
+        <target state="translated">{0} úlohy jsou už nainstalované.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadDefinition">
+        <source>Manage optional workloads.</source>
+        <target state="translated">Spravujte volitelné úlohy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryRecordInvalidIdValue">
+        <source>The ID of a workload history record should be between 1 and the number of workload history records, inclusive.</source>
+        <target state="translated">ID záznamu historie úlohy by mělo být mezi 1 a počtem záznamů historie úlohy včetně.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadHistoryWorkloadSetVersion">
+        <source>Workload Version</source>
+        <target state="translated">Verze úlohy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumn">
+        <source>Installed Workload Id</source>
+        <target state="translated">ID nainstalované úlohy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIdColumnName">
+        <source>Workload ID</source>
+        <target state="translated">ID úlohy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInfoProvider_Message_AddWorkloads">
+        <source>Run 'dotnet workload search' to search workloads available to be installed on your SDK.</source>
+        <target state="translated">Spuštěním příkazu dotnet workload search vyhledejte úlohy, které jsou k dispozici pro instalaci ve vaší sadě SDK.</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadInstallInstallationSucceeded">
+        <source>Successfully installed workload(s) {0}.</source>
+        <target state="translated">Úlohy {0} se úspěšně nainstalovaly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">Vrácení instalace se nepovedlo: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">Instalace úlohy se nepovedla. Vrací se zpět nainstalované balíčky…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallTypeColumn">
+        <source>Install Type</source>
+        <target state="translated">Typ instalace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadCacheDownloadFailed">
+        <source>Download of workload packs to offline cache failed: {0}</source>
+        <target state="translated">Stažení balíčků úloh do offline mezipaměti se nepovedlo: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallWorkloadUpdatesAvailable">
+        <source>Workload updates are available. Run `dotnet workload list` for more information.</source>
+        <target state="translated">Jsou k dispozici aktualizace úloh. Pokud chcete získat další informace, spusťte `dotnet workload list`.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadInstallationFailed">
+        <source>Workload installation failed: {0}</source>
+        <target state="translated">Instalace úlohy se nezdařila: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadIntegrityCheck">
+        <source>Checking the state of installed workloads...</source>
+        <target state="translated">Kontroluje se stav nainstalovaných úloh...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListFooter">
+        <source>Use `dotnet workload search` to find additional workloads to install.</source>
+        <target state="translated">Pokud chcete najít další úlohy, které se mají nainstalovat, použijte `dotnet workload search`.</target>
+        <note>{Locked="dotnet workload search"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadSetVersion">
+        <source>Workload version: {0}</source>
+        <target state="translated">Verze úlohy: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadListWorkloadUpdatesAvailable">
+        <source>Updates are available for the following workload(s): {0}. Run `dotnet workload update` to get the latest.</source>
+        <target state="translated">Aktualizace jsou k dispozici pro následující úlohy: {0}. Pokud chcete získat nejnovější verzi, spusťte aktualizaci úlohy dotnet (`dotnet workload update`).</target>
+        <note>{Locked="dotnet workload update"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestFeatureBandColumn">
+        <source>Manifest feature band</source>
+        <target state="translated">Pásmo funkcí manifestu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestIdColumn">
+        <source>Workload manifest ID</source>
+        <target state="translated">ID manifestu úlohy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationLooseManifests">
+        <source>Configured to use loose manifests when installing new manifests.</source>
+        <target state="translated">Nakonfigurováno pro použití volných manifestů při instalaci nových manifestů</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestInstallationConfigurationWorkloadSets">
+        <source>Configured to use workload sets when installing new manifests.</source>
+        <target state="translated">Nakonfigurováno pro použití sad úloh (workload sets) při instalaci nových manifestů</target>
+        <note>{Locked="workload sets"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadManifestPathColumn">
+        <source>Manifest Path</source>
+        <target state="translated">Cesta manifestu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadManifestVersionColumn">
+        <source>Manifest Version</source>
+        <target state="translated">Verze manifestu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotInstalled">
+        <source>Couldn't find workload ID(s): {0}</source>
+        <target state="translated">Nepovedlo se najít ID úlohy: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotRecognized">
+        <source>Workload ID {0} is not recognized.</source>
+        <target state="translated">ID úlohy {0} nebylo rozpoznáno.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadNotSupportedOnPlatform">
+        <source>Workload ID {0} isn't supported on this platform.</source>
+        <target state="translated">ID úlohy {0} na této platformě není podporované.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadPackAlreadyInstalledMessage">
+        <source>Pack {0} version {1} is already installed.</source>
+        <target state="translated">Sada {0} verze {1} se už nainstalovala.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadRepairFailed">
+        <source>Workload repair failed: {0}</source>
+        <target state="translated">Oprava úlohy se nezdařila: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonInstalled">
+        <source>Using workload version {0}, which was specified in the global.json file at {1}.</source>
+        <target state="translated">Používá se verze úlohy {0}, která byla zadána v souboru global.json na {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadSetFromGlobalJsonNotInstalled">
+        <source>Workload version {0}, which was specified in {1}, was not found. Run "dotnet workload restore" to install this workload version.</source>
+        <target state="translated">Verze {0} úlohy, která byla zadána v {1}, nebyla nalezena. Spuštěním příkazu dotnet workload restore nainstalujte tuto verzi úlohy.</target>
+        <note>{Locked="dotnet workload restore"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSetHasMissingManifests">
+        <source>Workload set version {0} has missing manifests likely removed by package management. Run "dotnet workload repair" to fix this.</source>
+        <target state="translated">Ve verzi sady úloh {0} chybí manifesty, které pravděpodobně odstranila správa balíčků. Pokud chcete tento problém vyřešit, spusťte příkaz dotnet workload repair.</target>
+        <note>{0} is the workload set version. {Locked="dotnet workload repair"}</note>
+      </trans-unit>
+      <trans-unit id="WorkloadSourceColumn">
+        <source>Installation Source</source>
+        <target state="translated">Zdroj instalace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallFailed">
+        <source>Workload uninstallation failed: {0}</source>
+        <target state="translated">Neúspěšná odinstalace úloh: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUninstallUninstallSucceeded">
+        <source>Successfully uninstalled workload(s): {0}</source>
+        <target state="translated">Úspěšně odinstalované úlohy: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateAdManifestsSucceeded">
+        <source>Successfully updated advertising manifests.</source>
+        <target state="translated">Manifesty reklamy se úspěšně aktualizovaly.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateFailed">
+        <source>Workload update failed: {0}</source>
+        <target state="translated">Aktualizace úlohy se nepovedla: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollBackFailedMessage">
+        <source>Installation rollback failed: {0}</source>
+        <target state="translated">Vrácení instalace se nepovedlo: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateRollingBackInstall">
+        <source>Workload installation failed. Rolling back installed packs...</source>
+        <target state="translated">Instalace úlohy se nepovedla. Vrací se zpět nainstalované balíčky…</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateUpdateSucceeded">
+        <source>Successfully updated workload(s): {0}.</source>
+        <target state="translated">Úlohy se úspěšně aktualizovaly: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadUpdateWorkloadCacheDownloadFailed">
+        <source>Failed to download workload update packages to cache: {0}</source>
+        <target state="translated">Nepovedlo se stáhnout balíčky aktualizace úlohy do mezipaměti: {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionNotInstalledShort">
+        <source>(not installed)</source>
+        <target state="translated">(nenainstalováno)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionRequestedNotFound">
+        <source>Workload version {0} not found.</source>
+        <target state="translated">Verze úlohy {0} nebyla nalezena.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WorkloadVersionWithSpecifiedManifestNotFound">
+        <source>No workload version matching {0} was found.</source>
+        <target state="translated">Nenašla se žádná verze úlohy odpovídající {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Workloads">
+        <source>Workloads</source>
+        <target state="translated">Úlohy</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WriteCLIRecordForVisualStudioWorkloadMessage">
+        <source>Writing install records for Visual Studio workloads: '{0}'</source>
+        <target state="translated">Probíhá zápis záznamů o instalaci pro úlohy sady Visual Studio: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WritingPackInstallRecordMessage">
+        <source>Writing workload pack installation record for {0} version {1}...</source>
+        <target state="translated">Zapisuje se záznam instalace sady úloh pro {0} verze {1}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ZeroTestsRan">
+        <source>Zero tests ran</source>
+        <target state="translated">Spustila se nula testů</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

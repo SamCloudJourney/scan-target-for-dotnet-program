@@ -1,0 +1,31 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+namespace Microsoft.DotNet.Cli.Commands.Test;
+
+internal record TestOptions(bool IsHelp, bool IsDiscovery, IReadOnlyDictionary<string, string> EnvironmentVariables);
+
+internal enum ResultsDirectoryLayout
+{
+    Flat,
+    PerModule,
+}
+
+internal record PathOptions(
+    string? ProjectOrSolutionPath,
+    string? SolutionPath,
+    string? TestModules,
+    string? ResultsDirectoryPath,
+    ResultsDirectoryLayout ResultsDirectoryLayout,
+    string? ConfigFilePath,
+    string? DiagnosticOutputDirectoryPath);
+
+internal record BuildOptions(
+    PathOptions PathOptions,
+    bool HasNoRestore,
+    bool HasNoBuild,
+    Utils.VerbosityOptions? Verbosity,
+    bool NoLaunchProfile,
+    bool NoLaunchProfileArguments,
+    List<string> TestApplicationArguments,
+    IEnumerable<string> MSBuildArgs);

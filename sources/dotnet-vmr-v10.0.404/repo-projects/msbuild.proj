@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <PropertyGroup>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' != 'true'">$(BuildArgs) /p:EnableNgenOptimization=false</BuildArgs>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RepositoryReference Include="arcade" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DotNetBuildSourceOnly)' == 'true'">
+    <RepositoryReference Include="roslyn" />
+    <RepositoryReference Include="runtime" />
+    <RepositoryReference Include="source-build-assets" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(BuildOS)' == 'windows' and '$(OfficialBuildId)' != '' and '$(EnableIBCOptimization)' == 'true'">
+    <BuildArgs>$(BuildArgs) /p:VisualStudioIbcSourceBranchName=vs18.6</BuildArgs>
+    <BuildArgs>$(BuildArgs) /p:VisualStudioDropAccessToken=$(IBCDropAccessToken)</BuildArgs>
+    <!-- This is set to the name of the repository that msbuild builds its official build from. -->
+    <BuildArgs>$(BuildArgs) /p:VisualStudioIbcRepositoryName=DotNet-msbuild-Trusted</BuildArgs>
+  </PropertyGroup>
+
+</Project>

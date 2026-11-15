@@ -1,0 +1,34 @@
+{
+  "tool": "Credential Scanner",
+  "suppressions": [
+    {
+      "_justification": "New certificate file with private key used only for testing",
+      "file": [
+        "/src/msbuild/src/Tasks.UnitTests/TestResources/mycert.pfx"
+      ]
+    },
+    {
+      "_justification": "Unit tests use dummy input data.",
+      "file": [
+        "/src/nuget-client/test/NuGet.Core.Tests/NuGet.Protocol.Tests/Plugins/Messages/GetCredentialsResponseTests.cs",
+        "/src/nuget-client/test/NuGet.Core.Tests/NuGet.Protocol.Tests/Plugins/Messages/SetCredentialsRequestTests.cs",
+        "/src/nuget-client/docs/cross-platform-debugging.md"
+      ]
+    },
+    {
+      "_justification": "Third party repositories, no control over the content and these are not actual secrets.",
+      "file": [
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Certs/SelfSigned1024_SHA1.pfx",
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Certs/SelfSigned1024_SHA256.pfx",
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Certs/SelfSigned2048_SHA256.pfx",
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Certs/SelfSigned2048_SHA256_2.pfx",
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Certs/SelfSigned2048_SHA384.pfx",
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Certs/SelfSigned2048_SHA512.pfx",
+        "/src/source-build-assets/src/externalPackages/src/azure-activedirectory-identitymodel-extensions-for-dotnet/test/Microsoft.IdentityModel.TestUtils/KeyingMaterial.cs",
+        "/src/source-build-assets/src/externalPackages/src/humanizer/src/Humanizer.Tests.Uwp/Humanizer.Tests.Uwp_TemporaryKey.pfx",
+        "/src/source-build-assets/src/externalPackages/src/humanizer/src/Humanizer.Tests.Uwp.Runner/Humanizer.Tests.Uwp.Runner_TemporaryKey.pfx",
+        "/src/source-build-assets/src/externalPackages/src/xunit/appveyor.yml"
+      ]
+    }
+  ]
+}

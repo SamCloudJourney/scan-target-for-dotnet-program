@@ -1,0 +1,66 @@
+﻿<Project>
+  <Import Project="Version.Details.props" />
+  <PropertyGroup>
+    <VersionMajor>10</VersionMajor>
+    <VersionMinor>0</VersionMinor>
+    <VersionSDKMinor>3</VersionSDKMinor>
+    <VersionSDKMinorPatch>4</VersionSDKMinorPatch>
+    <VersionFeature>$([System.String]::Copy('$(VersionSDKMinorPatch)').PadLeft(2, '0'))</VersionFeature>
+    <VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionSDKMinor)$(VersionFeature)</VersionPrefix>
+    <PreReleaseVersionLabel>servicing</PreReleaseVersionLabel>
+    <PreReleaseVersionIteration></PreReleaseVersionIteration>
+    <!-- 
+      Allowed values: 'repodefault', 'unstable', 'preview', 'release'
+      'repodefault' uses the repo branding defaults.
+      'unstable' produces assets with the repo specified branding suffix.
+      'preview' produces assets with a '.final' branding suffix.
+      'release' produces assets without a branding suffix.
+    -->
+    <RepoDotNetFinalVersionKind>release</RepoDotNetFinalVersionKind>
+
+    <!-- Arcade features -->
+    <UseVSTestRunner>true</UseVSTestRunner>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!--
+      Building .NET from source depends on several archives, depending on the branch's current
+      source-buildability status.
+
+      PrivateSourceBuiltSdkVersion is the version number of a tar.gz of the source build .NET SDK
+      from the previous release for a particular OS. It is used by CI to validate that the current
+      release can be built with it.
+
+      PrivateSourceBuiltArtifactsVersion is the version number of a tar.gz of .NET build outputs
+      from a previous build needed to build the current version of .NET. This is always defined
+      because .NET needs to be bootstrappable at any point in time.
+
+      PrivateSourceBuiltPrebuiltsVersion is the version number of a tar.gz of assets downloaded
+      from the internet that are needed to build the current version of .NET. Early in the lifecycle
+      of a .NET major or minor release, prebuilts may be needed. When the release is mature, prebuilts
+      are not necessary, and this property is removed from the file.
+    -->
+    <PrivateSourceBuiltSdkVersion>10.0.402-servicing.26505.111</PrivateSourceBuiltSdkVersion>
+    <PrivateSourceBuiltArtifactsVersion>10.0.402-servicing.26505.111</PrivateSourceBuiltArtifactsVersion>
+    <!-- workload manifest version for 1xx SDK feature band, used by 2xx+ branches to include 1xx workloads -->
+    <DotNet1xxWorkloadManifestVersion>$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftNETSdkVersion), '^(\d+\.\d+\.\d+)').Value)</DotNet1xxWorkloadManifestVersion>
+    <!-- arcade-services dependencies -->
+    <MicrosoftDotNetDarcLibVersion>1.1.0-beta.26062.6</MicrosoftDotNetDarcLibVersion>
+    <!-- command-line-api dependencies -->
+    <SystemCommandLineVersion>2.0.0-beta5.25208.1</SystemCommandLineVersion>
+    <!-- msbuild dependencies -->
+    <MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
+    <!-- nuget dependencies -->
+    <NuGetProtocolVersion>7.0.3</NuGetProtocolVersion>
+    <NuGetProjectModelVersion>7.0.3</NuGetProjectModelVersion>
+    <NuGetPackagingVersion>7.0.3</NuGetPackagingVersion>
+    <!-- runtime dependencies -->
+    <MicrosoftExtensionsFileSystemGlobbingVersion>10.0.13</MicrosoftExtensionsFileSystemGlobbingVersion>
+    <MicrosoftExtensionsLoggingConsoleVersion>10.0.13</MicrosoftExtensionsLoggingConsoleVersion>
+    <MicrosoftExtensionsLoggingVersion>10.0.13</MicrosoftExtensionsLoggingVersion>
+    <MicrosoftExtensionsHostingVersion>10.0.13</MicrosoftExtensionsHostingVersion>
+    <SystemSecurityCryptographyXmlVersion>10.0.13</SystemSecurityCryptographyXmlVersion>
+    <!-- external dependencies -->
+    <NewtonsoftJsonVersion>13.0.4</NewtonsoftJsonVersion>
+    <OctokitVersion>14.0.0</OctokitVersion>
+  </PropertyGroup>
+</Project>
