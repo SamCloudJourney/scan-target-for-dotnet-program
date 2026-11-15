@@ -152,5 +152,17 @@
     "owner": "dotnet",
     "regular_files": 7804,
     "archive_sha256": "3e700f760b051ebaed7ef1b1f417bf036de4cd4204cbeada1e950354a59c3b03"
+  },
+  {
+    "name": "aspire-samples",
+    "kind": "samples",
+    "ref": "main",
+    "commit": "4b20948818cebe0f983ce0b7d444042bfb970eba",
+    "path": "documentation-and-samples/microsoft--aspire-samples--main--samples",
+    "files": 1136,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "microsoft",
+    "regular_files": 1136,
+    "archive_sha256": "4c3b0ba05858b8eac9bdb3dfbbccc27d017e9ed29a671797112c6ec32d5861ef"
   }
 ]
