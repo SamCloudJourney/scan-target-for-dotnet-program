@@ -308,5 +308,17 @@
     "owner": "dotnet",
     "regular_files": 76,
     "archive_sha256": "232b6f1fb8c2d760655521db3bd193310576e17174235bb1c8dd30f3c69f5392"
+  },
+  {
+    "name": "fsharp",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "59c747725ef5ec90ce9a9751f9509db13e395f31",
+    "path": "workflow-snapshots/dotnet--fsharp--main--workflow",
+    "files": 123,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 123,
+    "archive_sha256": "27660fa0a83094e0b1bc11ad13967351f6b0f8e497012b744b1d40879341226b"
   }
 ]
