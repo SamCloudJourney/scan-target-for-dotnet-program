@@ -418,5 +418,17 @@
     "owner": "dotnet",
     "regular_files": 35,
     "archive_sha256": "63df05632e5f0552997f5f9d542fb2a670c1ec74a7df643418622473911fc713"
+  },
+  {
+    "name": "maui",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "efe63adf42dd6224d754068ae2de27154c216759",
+    "path": "workflow-snapshots/dotnet--maui--main--workflow",
+    "files": 373,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 373,
+    "archive_sha256": "bf5602ab4294cced505cedff3b079801da4804a5168a1f57a44b5211995e7733"
   }
 ]
