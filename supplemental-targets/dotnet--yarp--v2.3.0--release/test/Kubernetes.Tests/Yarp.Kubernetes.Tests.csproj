@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(TestTFMs)</TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <RootNamespace>Yarp.Kubernetes</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Kubernetes.Controller\Yarp.Kubernetes.Controller.csproj" />
+    <ProjectReference Include="..\Tests.Common\Yarp.Tests.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Moq" Version="$(MoqVersion)" />
+    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+    <PackageReference Include="FluentAssertions.Json" Version="$(FluentAssertionsJsonVersion)" />
+    <PackageReference Include="Polly" Version="$(PollyVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Client\*.yaml" />
+    <None Remove="Certificates\cert.der" />
+    <None Remove="Certificates\cert.pem" />
+    <None Remove="Certificates\key.der" />
+    <None Remove="Certificates\key.pem" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Client\*.yaml" />
+    <EmbeddedResource Include="Certificates\cert.der" />
+    <EmbeddedResource Include="Certificates\cert.pem" />
+    <EmbeddedResource Include="Certificates\key.der" />
+    <EmbeddedResource Include="Certificates\key.pem" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="testassets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ReverseProxy.Tests\Common\TaskExtensions.cs" Link="Common\TaskExtensions.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "BenchmarkApp": {
+      "commandName": "Project",
+      "commandLineArgs": "--urls http://localhost:5000 --clusterUrls http://httpbin.org",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

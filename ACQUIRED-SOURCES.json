@@ -1,0 +1,14 @@
+[
+  {
+    "name": "yarp",
+    "kind": "release",
+    "ref": "v2.3.0",
+    "commit": "4154b6d1eaa0712597e3482f817b400b55268cae",
+    "path": "supplemental-targets/dotnet--yarp--v2.3.0--release",
+    "files": 1017,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 1017,
+    "archive_sha256": "588a2da595a30f7c9ce87b16c6d2fa3d99f17a2a39c9305e93d5379eab033ba5"
+  }
+]
