@@ -224,5 +224,17 @@
     "owner": "dotnet",
     "regular_files": 79,
     "archive_sha256": "23743dc26c961f8c7145911cddaf37d6ac0074aad49106b5364e7cf330f8e78a"
+  },
+  {
+    "name": "sdk",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "5947e1a3ccd91c77991df85a763292e109ef4cc2",
+    "path": "workflow-snapshots/dotnet--sdk--main--workflow",
+    "files": 162,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 162,
+    "archive_sha256": "b72e1c6f5fdc5fa74fc1b41c4ad8b3ccb6e1cb90b587454ba5993e840ef586ec"
   }
 ]
