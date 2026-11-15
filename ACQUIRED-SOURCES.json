@@ -212,5 +212,17 @@
     "owner": "dotnet",
     "regular_files": 166,
     "archive_sha256": "f92a58da424f74b780ec18e98f9fa1ec1b42e3e73364678d42c1e44e81c5e4f0"
+  },
+  {
+    "name": "msbuild",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "36212bbe82870bcb230a5b7a5f4366491ec776c4",
+    "path": "workflow-snapshots/dotnet--msbuild--main--workflow",
+    "files": 79,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 79,
+    "archive_sha256": "23743dc26c961f8c7145911cddaf37d6ac0074aad49106b5364e7cf330f8e78a"
   }
 ]
