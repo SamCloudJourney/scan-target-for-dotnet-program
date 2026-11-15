@@ -176,5 +176,17 @@
     "owner": "dotnet",
     "regular_files": 26019,
     "archive_sha256": "4e91f92f6065b4e87cd71ac7ecda65185b7f375479475beb5de323b4fa6065e4"
+  },
+  {
+    "name": "runtime",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "cfb1959b7b5a36bd4d4e36f141966f6101b616f4",
+    "path": "workflow-snapshots/dotnet--runtime--main--workflow",
+    "files": 157,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 157,
+    "archive_sha256": "36bf584dbad78602afa146cf59d13eac408de7195725e3738464b7ef311784c6"
   }
 ]
