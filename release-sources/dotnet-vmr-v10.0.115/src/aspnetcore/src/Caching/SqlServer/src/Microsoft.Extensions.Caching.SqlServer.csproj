@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Distributed cache implementation of Microsoft.Extensions.Caching.Distributed.IDistributedCache using Microsoft SQL Server.</Description>
+    <TargetFrameworks>$(DefaultNetCoreTargetFramework);$(DefaultNetFxTargetFramework);netstandard2.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageTags>cache;distributedcache;sqlserver</PackageTags>
+    <ExcludeFromSourceOnlyBuild>true</ExcludeFromSourceOnlyBuild>
+    <NoWarn>$(NoWarn);PKG0001</NoWarn>
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.Extensions.Caching.SqlServer.Tests" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == '$(DefaultNetCoreTargetFramework)'">
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="$(SqlClientSystemSecurityCryptographyPkcs9Version)" AllowExplicitReference="true" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == '$(DefaultNetFxTargetFramework)' or '$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="$(SqlClientSystemSecurityCryptographyPkcs8Version)" AllowExplicitReference="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.Extensions.Caching.Abstractions" />
+    <Reference Include="Microsoft.Extensions.Options" />
+    <Reference Include="Microsoft.Data.SqlClient" />
+    <Reference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedSourceRoot)ThrowHelpers\ArgumentNullThrowHelper.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedSourceRoot)ThrowHelpers\ArgumentThrowHelper.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedSourceRoot)CallerArgument\CallerArgumentExpressionAttribute.cs" LinkBase="Shared" />
+  </ItemGroup>
+
+</Project>

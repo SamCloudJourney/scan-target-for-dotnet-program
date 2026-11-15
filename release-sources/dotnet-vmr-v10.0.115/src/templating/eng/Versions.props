@@ -1,0 +1,16 @@
+<Project>
+
+  <Import Project="Version.Details.props" />
+
+  <PropertyGroup>
+    <VersionPrefix>10.0.115</VersionPrefix>
+    <PreReleaseVersionLabel>servicing</PreReleaseVersionLabel>
+    <PreReleaseVersionIteration></PreReleaseVersionIteration>
+    <!-- Allowed values: '', 'prerelease', 'release'. Set to 'release' when stabilizing. -->
+    <DotNetFinalVersionKind></DotNetFinalVersionKind>
+
+    <!-- Opt-in/out repo features -->
+    <UsingToolXliff>true</UsingToolXliff>
+  </PropertyGroup>
+
+</Project>

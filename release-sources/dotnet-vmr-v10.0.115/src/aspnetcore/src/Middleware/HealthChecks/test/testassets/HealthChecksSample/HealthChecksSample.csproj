@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultNetCoreTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="$(SqlClientSystemSecurityCryptographyPkcs9Version)" AllowExplicitReference="true" />
+    <Reference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" />
+    <Reference Include="Microsoft.AspNetCore.Server.Kestrel" />
+    <Reference Include="Microsoft.AspNetCore.StaticFiles" />
+    <Reference Include="Microsoft.Data.SqlClient" />
+    <Reference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <Reference Include="Microsoft.Extensions.Configuration.CommandLine" />
+    <Reference Include="Microsoft.Extensions.Configuration.Json" />
+    <Reference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <Reference Include="Microsoft.Extensions.Logging.Console" />
+    <Reference Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+</Project>

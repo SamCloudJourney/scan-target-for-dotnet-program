@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <PropertyGroup>
+    <!-- Use the repo root build script -->
+    <BuildScript>$(ProjectDirectory)build$(ShellExtension)</BuildScript>
+
+    <!-- Roslyn's build.cmd adds -build automatically. On non-windows, use the default -->
+    <BuildActions Condition="'$(BuildOS)' == 'windows'">$(FlagParameterPrefix)restore</BuildActions>
+    <BuildActions Condition="'$(BuildOS)' == 'windows'">$(BuildActions) $(FlagParameterPrefix)pack</BuildActions>
+    <BuildActions Condition="'$(BuildOS)' == 'windows'">$(BuildActions) $(FlagParameterPrefix)publish</BuildActions>
+    <BuildActions Condition="'$(BuildOS)' == 'windows' and '$(DotNetBuildSign)' == 'true'">$(BuildActions) $(FlagParameterPrefix)sign</BuildActions>
+
+    <!-- TODO: Remove warnaserror=false, https://github.com/dotnet/dotnet/issues/1848 -->
+    <BuildArgs>$(BuildArgs) /p:TreatWarningsAsErrors=false</BuildArgs>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(BuildOS)' == 'windows' and '$(OfficialBuildId)' != ''">
+    <BuildArgs>$(BuildArgs) $(FlagParameterPrefix)officialBuildId $(OfficialBuildId)</BuildArgs>
+    <BuildArgs>$(BuildArgs) $(FlagParameterPrefix)officialSkipTests true</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' != 'true'">$(BuildArgs) $(FlagParameterPrefix)officialSourceBranchName placeholder</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' != 'true'">$(BuildArgs) $(FlagParameterPrefix)officialVisualStudioDropAccessToken placeholder</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' != 'true'">$(BuildArgs) $(FlagParameterPrefix)officialSkipApplyOptimizationData true</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' == 'true'">$(BuildArgs) $(FlagParameterPrefix)officialSourceBranchName release/dev18.0</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' == 'true'">$(BuildArgs) $(FlagParameterPrefix)officialVisualStudioDropAccessToken $(IBCDropAccessToken)</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' == 'true'">$(BuildArgs) $(FlagParameterPrefix)officialSkipApplyOptimizationData false</BuildArgs>
+    <BuildArgs Condition="'$(EnableIBCOptimization)' == 'true'">$(BuildArgs) /p:IgnoreIbcMergeErrors=true</BuildArgs>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="command-line-api" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DotNetBuildSourceOnly)' == 'true'">
+    <RepositoryReference Include="runtime" />
+    <RepositoryReference Include="source-build-assets" />
+    <RepositoryReference Include="symreader" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <SourceBuiltSdkOverride Include="@(WindowsDesktopSdkOverride)" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
+  </ItemGroup>
+
+</Project>

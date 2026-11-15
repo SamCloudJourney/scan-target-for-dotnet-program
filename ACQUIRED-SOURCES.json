@@ -344,5 +344,15 @@
     "owner": "dotnet",
     "regular_files": 29,
     "archive_sha256": "bcc1802677341bc99aa4ea1c8e54ad4e1d24cfbfa8424edfa4e18c6e59645117"
+  },
+  {
+    "owner": "dotnet",
+    "name": "dotnet",
+    "kind": "release",
+    "ref": "v10.0.115",
+    "commit": "8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
+    "path": "release-sources/dotnet-vmr-v10.0.115",
+    "regular_files": 182986,
+    "archive_sha256": "94943b646a01fb3057e72785e9e4a33c4b9b44fe73310032e13171d6079d34e8"
   }
 ]
