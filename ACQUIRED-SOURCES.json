@@ -384,5 +384,15 @@
     "path": "release-sources/aspnetcore-2.3.14",
     "regular_files": 9398,
     "archive_sha256": "61d810e19ccd7262dd986ff1c2066ab190f998fef7918c03cd3f3f825edfa726"
+  },
+  {
+    "owner": "dotnet",
+    "name": "efcore",
+    "kind": "servicing-branch",
+    "ref": "release/2.3",
+    "commit": "b20c9ba19bf5f250f1bdfa25608d3f2d32c4f932",
+    "path": "release-sources/efcore-2.3-servicing",
+    "regular_files": 3178,
+    "archive_sha256": "f760e9c20e98a036bff6bca85094d56a8dd1b9ac016778820b7a90c5d36dcab0"
   }
 ]

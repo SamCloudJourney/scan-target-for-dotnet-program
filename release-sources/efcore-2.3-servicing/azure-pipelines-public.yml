@@ -1,0 +1,44 @@
+parameters:
+# Parameter below is ignored in public builds.
+#
+# Choose whether to run the CodeQL3000 tasks.
+# Manual builds align w/ official builds unless this parameter is true.
+- name: runCodeQL3000
+  default: false
+  displayName: Run CodeQL3000 tasks
+  type: boolean
+
+# Only run CI builds for these branches
+trigger:
+  branches:
+    include:
+    - 'main'
+    - 'release/*'
+# Run PR validation on all branches
+pr:
+  branches:
+    include:
+    - '*'
+
+name: $(Date:yyyyMMdd)-$(Rev:rr)
+
+jobs:
+- template: build/templates/default-build.yml
+  parameters:
+    agentOs: Windows
+    codeSign: true
+    configuration: Release
+    artifacts:
+      publish: true
+      name: packages
+      path: 'artifacts/build/'
+
+- template: build/templates/default-build.yml
+  parameters:
+    agentOs: macOS
+    configuration: Release
+
+- template: build/templates/default-build.yml
+  parameters:
+    agentOs: Linux
+    configuration: Release

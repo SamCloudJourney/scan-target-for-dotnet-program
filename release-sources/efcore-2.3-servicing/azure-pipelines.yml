@@ -1,0 +1,57 @@
+# Only run CI builds for these branches
+trigger:
+  branches:
+    include:
+    - 'main'
+    - 'release/*'
+
+# Run PR validation on all branches
+pr:
+  branches:
+    include:
+    - '*'
+
+name: $(Date:yyyyMMdd)-$(Rev:rr)
+
+resources:
+  repositories:
+  - repository: 1ESPipelineTemplates
+    type: git
+    name: 1ESPipelineTemplates/1ESPipelineTemplates
+    ref: refs/tags/release
+
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
+  parameters:
+    featureFlags:
+      autoBaseline: false
+    sdl:
+      sourceAnalysisPool:
+        name: NetCore1ESPool-Svc-Internal
+        image: 1es-windows-2022
+        os: windows
+      baseline:
+        baselineFile: $(Build.SourcesDirectory)\.config\guardian\.gdnbaselines
+      binskim:
+        scanOutputDirectoryOnly: true
+    stages:
+    - stage: build
+      displayName: Build
+      jobs:
+      - template: build/templates/default-build.yml@self
+        parameters:
+          agentOs: Windows
+          codeSign: true
+          configuration: Release
+          artifacts:
+            publish: true
+            name: packages
+            path: 'artifacts/build/'
+      - template: build/templates/default-build.yml@self
+        parameters:
+          agentOs: macOS
+          configuration: Release
+      - template: build/templates/default-build.yml@self
+        parameters:
+          agentOs: Linux
+          configuration: Release
