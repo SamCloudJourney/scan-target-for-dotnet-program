@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+
+  <!-- TFMs and their permutations -->
+  <PropertyGroup>
+    <TargetFrameworkName>net</TargetFrameworkName>
+    <TargetFrameworkMajorVersion>11</TargetFrameworkMajorVersion>
+    <TargetFrameworkMinorVersion>0</TargetFrameworkMinorVersion>
+    <TargetFrameworkVersion>$(TargetFrameworkMajorVersion).$(TargetFrameworkMinorVersion)</TargetFrameworkVersion>
+
+    <!-- The latest TFM we're targeting overall -->
+    <LatestTargetFramework>$(TargetFrameworkName)$(TargetFrameworkVersion)</LatestTargetFramework>
+    <!-- All the .NET TFMs we're building -->
+    <SupportedNetCoreTargetFrameworks>$(LatestTargetFramework)</SupportedNetCoreTargetFrameworks>
+    <NetCoreTargetFrameworks>$(SupportedNetCoreTargetFrameworks);net10.0;net9.0;net8.0</NetCoreTargetFrameworks>
+
+    <!-- The minimum supported .NET version for external consumers. This is used for packaging control, see Packaging.targets -->
+    <MinimumSupportedTfmForPackaging>net8.0</MinimumSupportedTfmForPackaging>
+
+    <!-- Limit the .NET TFMs when .targetframeworks is defined -->
+    <!--
+      When .targetframeworks exists, only the TFMs listed in this file will be built unless for the projects
+      which have mandatory TFMs. Variables named $(Conditional[TFM]) will include this TFM only if it should
+      be built. In projects that can optionally target the TFM use this variable instead of the TFM.
+    -->
+    <CustomTargetFrameworks Condition="Exists('$(MSBuildThisFileDirectory)\.targetframeworks')">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)\.targetframeworks').Trim())</CustomTargetFrameworks>
+    <SupportedNetCoreTargetFrameworks Condition="'$(CustomTargetFrameworks)' != ''">$(LatestTargetFramework)</SupportedNetCoreTargetFrameworks>
+    <NetCoreTargetFrameworks Condition="'$(CustomTargetFrameworks)' != ''">$(SupportedNetCoreTargetFrameworks)</NetCoreTargetFrameworks>
+    <NetCoreTargetFrameworks Condition="'$(CustomTargetFrameworks)' != '' AND $(CustomTargetFrameworks.Contains('net10.0'))">$(NetCoreTargetFrameworks);net10.0</NetCoreTargetFrameworks>
+    <NetCoreTargetFrameworks Condition="'$(CustomTargetFrameworks)' != '' AND $(CustomTargetFrameworks.Contains('net9.0'))">$(NetCoreTargetFrameworks);net9.0</NetCoreTargetFrameworks>
+    <NetCoreTargetFrameworks Condition="'$(CustomTargetFrameworks)' != '' AND $(CustomTargetFrameworks.Contains('net8.0'))">$(NetCoreTargetFrameworks);net8.0</NetCoreTargetFrameworks>
+    <ConditionalNet462 Condition="'$(CustomTargetFrameworks)' == '' OR $(CustomTargetFrameworks.Contains('net462'))">;net462</ConditionalNet462>
+
+    <!-- All the .NET TFMs we're testing against -->
+    <TestNetCoreTargetFrameworks>$(NetCoreTargetFrameworks)</TestNetCoreTargetFrameworks>
+  </PropertyGroup>
+
+  <!-- Internal branches don't use package source mapping feature due to internal feeds, so disable NU1507 warning saying it should be used. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU1507</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <Deterministic>true</Deterministic>
+    <Features>debug-determinism</Features>
+
+    <EnableXlfLocalization>false</EnableXlfLocalization>
+    <UpdateXlfOnBuild>false</UpdateXlfOnBuild>
+
+    <!--
+      Opt Arcade-driven (restore.cmd, official build, and CI build) restores into using NuGet's static-graph restore
+      (https://learn.microsoft.com/nuget/reference/msbuild-targets#restoring-with-msbuild-static-graph-evaluation),
+      which uses MSBuild's static-graph-construction features to speed up the restore operation.
+     -->
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+
+    <!-- These are explicitly set in src/Analyzers and src/Generators -->
+    <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
+
+    <!-- Allow SourceLink to work for strongly types resource files (SR) by embedding generated files into the PDBs -->
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- Opt in to build acceleration in VS (from 17.5 onwards): https://github.com/dotnet/project-system/blob/main/docs/build-acceleration.md -->
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+
+    <!-- This repo introduces a replacement generator, we don't use the one from dotnet/runtime -->
+    <DisableMicrosoftExtensionsLoggingSourceGenerator>true</DisableMicrosoftExtensionsLoggingSourceGenerator>
+  </PropertyGroup>
+
+  <!-- https://github.com/dotnet/aspnetcore/blob/72b0269372a/eng/Common.props#L3-L6 -->
+  <PropertyGroup>
+    <TargetOsName Condition=" '$(TargetOsName)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">win</TargetOsName>
+    <IsWindowsBuild>false</IsWindowsBuild>
+    <IsWindowsBuild Condition=" '$(TargetOsName)' == 'win' ">true</IsWindowsBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(DotNetBuildOffline)' == 'true'">
+    <!--
+      Arcade has a special version prop for CodeAnalysis.CSharp in GenFacades
+      to try to match the version loaded by msbuild.  In the offline build, this
+      is simply the source-built version.
+    -->
+    <MsbuildTaskMicrosoftCodeAnalysisCSharpVersion>$(MicrosoftCodeAnalysisCSharpVersion)</MsbuildTaskMicrosoftCodeAnalysisCSharpVersion>
+  </PropertyGroup>
+
+  <!-- Test configuration -->
+  <PropertyGroup>
+    <!-- Disable building Integration Test projects in LUT. -->
+    <BuildForLiveUnitTesting Condition="'$(BuildForLiveUnitTesting)' == '' and '$(IsIntegrationTestProject)' == 'true'">false</BuildForLiveUnitTesting>
+
+    <!-- Redirect test logs into a subfolder -->
+    <TestResultsLogDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsLogDir)', 'TestLogs'))</TestResultsLogDir>
+
+    <!--
+      Run tests with the VS Test Runner (dotnet test) instead of the XUnit Test runner (dotnet exec).
+      This is needed to produce Cobertura code coverage. See the targets file to more information.
+    -->
+    <UseVSTestRunner Condition="'$(TestRunnerName)' != 'XUnitV3'">true</UseVSTestRunner>
+  </PropertyGroup>
+
+  <!-- Enable the Evaluation report builds on all CI builds -->
+  <PropertyGroup>
+    <EnableEvaluationReportBuild Condition="'$(ContinuousIntegrationBuild)'=='true'">true</EnableEvaluationReportBuild>
+
+    <!--
+      ProjectStaging.props depends on the $(Stage) property, which is defined in the project file.
+      It also controls $(SuppressFinalPackageVersion) which controls how versions are defined in  Arcade's Version.BeforeCommonTargets.targets.
+
+      Normally, we'd import custom props in Directory.Build.props but it is imported before the project.
+      We can't move the props into ProjectStaging.targets as it is imported after Version.BeforeCommonTargets.targets
+      is imported, which is too late. This allows us to import the props at the right time.
+      -->
+    <BeforeMicrosoftNETSdkTargets>
+      $(BeforeMicrosoftNETSdkTargets);
+      $(MSBuildThisFileDirectory)\eng\MSBuild\ProjectStaging.props
+    </BeforeMicrosoftNETSdkTargets>
+  </PropertyGroup>
+
+  <!-- Common properties -->
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Analyzers.props" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Packaging.props" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\LegacySupport.props" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Shared.props" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Generators.props" />
+</Project>

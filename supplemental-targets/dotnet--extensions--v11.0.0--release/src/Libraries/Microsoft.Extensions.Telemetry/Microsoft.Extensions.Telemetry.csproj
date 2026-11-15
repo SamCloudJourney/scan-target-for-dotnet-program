@@ -1,0 +1,59 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Microsoft.Extensions.Diagnostics</RootNamespace>
+    <TargetFrameworks>$(NetCoreTargetFrameworks);netstandard2.0;net462</TargetFrameworks>
+    <Description>Provides canonical implementations of telemetry abstractions.</Description>
+    <Workstream>Telemetry</Workstream>
+    <!-- disable "Published symbols cannot be deleted to maintain compatibility" because we have different APIs for different TFMs -->
+    <NoWarn Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">$(NoWarn);LA0006</NoWarn>
+    <!-- disable "CS0436: Type conflicts with imported type" for the ObsoleteAttribute class in netstandard2.0 and net462" -->
+    <NoWarn Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">$(NoWarn);CS0436</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InjectExperimentalAttributeOnLegacy>true</InjectExperimentalAttributeOnLegacy>
+    <InjectSharedDiagnosticIds>true</InjectSharedDiagnosticIds>
+    <InjectSharedText>true</InjectSharedText>
+    <InjectGetOrAddOnLegacy>true</InjectGetOrAddOnLegacy>
+    <InjectSharedDataValidation>true</InjectSharedDataValidation>
+    <InjectSharedLogBuffering>true</InjectSharedLogBuffering>
+    <InjectSharedMemoization>true</InjectSharedMemoization>
+    <InjectSharedNumericExtensions>true</InjectSharedNumericExtensions>
+    <InjectSharedPools>true</InjectSharedPools>
+    <InjectSharedRentedSpan>true</InjectSharedRentedSpan>
+    <InjectObsoleteAttributeOnLegacy>true</InjectObsoleteAttributeOnLegacy>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <UseLoggingGenerator>true</UseLoggingGenerator>
+</PropertyGroup>
+
+  <PropertyGroup>
+    <Stage>normal</Stage>
+    <MinCodeCoverage>93</MinCodeCoverage>
+    <MinMutationScore>90</MinMutationScore>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.Extensions.DependencyInjection.AutoActivation\Microsoft.Extensions.DependencyInjection.AutoActivation.csproj" />
+    <ProjectReference Include="..\Microsoft.Extensions.AmbientMetadata.Application\Microsoft.Extensions.AmbientMetadata.Application.csproj" />
+    <ProjectReference Include="..\Microsoft.Extensions.Telemetry.Abstractions\Microsoft.Extensions.Telemetry.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
+    <PackageReference Include="System.Collections.Immutable" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleToTest Include="$(AssemblyName).Tests" />
+    <InternalsVisibleToTest Include="Microsoft.AspNetCore.Diagnostics.Middleware.Tests" />
+    <InternalsVisibleToTest Include="Microsoft.Extensions.Http.Diagnostics.Tests" />
+    <InternalsVisibleToTest Include="Microsoft.Extensions.Http.Diagnostics.PerformanceTests" />
+    <InternalsVisibleToTest Include="Microsoft.Extensions.Telemetry.PerformanceTests" />
+    <InternalsVisibleToDynamicProxyGenAssembly2 Include="*" />
+
+    <InternalsVisibleTo Include="Microsoft.Extensions.Http.Diagnostics" />
+    <InternalsVisibleTo Include="Microsoft.AspNetCore.Diagnostics.Middleware" />
+  </ItemGroup>
+</Project>

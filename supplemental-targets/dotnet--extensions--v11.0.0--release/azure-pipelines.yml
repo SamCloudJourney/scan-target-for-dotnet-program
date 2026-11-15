@@ -1,0 +1,353 @@
+# Setting batch to true, triggers one build at a time.
+# if there is a push while a build in progress, it will wait,
+# until the running build finishes, and produce a build with all the changes
+# that happened during the last build.
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - release/*
+      - internal/release/*
+      - validation/*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - eng/Version.Details.xml
+      - .github/*
+      - docs/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - LICENSE.TXT
+      - PATENTS.TXT
+      - THIRD-PARTY-NOTICES.TXT
+
+pr:
+  branches:
+    include:
+      - main
+      - release/*
+      - internal/release/*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - eng/Version.Details.xml
+      - .github/*
+      - docs/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - LICENSE.TXT
+      - PATENTS.TXT
+      - THIRD-PARTY-NOTICES.TXT
+
+parameters:
+  - name: runTests
+    displayName: Run Tests
+    type: boolean
+    default: false
+
+variables:
+  - name: _TeamName
+    value: dotnet-extensions
+  - name: NativeToolsOnMachine
+    value: true
+  - name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+    value: true
+
+  - name: SkipQualityGates
+    value: false
+
+  - name: runAsPublic
+    value: ${{ eq(variables['System.TeamProject'], 'public') }}
+
+  - name: _BuildConfig
+    value: Release
+  - name: isOfficialBuild
+    value: ${{ and(ne(variables['runAsPublic'], 'true'), notin(variables['Build.Reason'], 'PullRequest')) }}
+  - name: Build.Arcade.ArtifactsPath
+    value: $(Build.SourcesDirectory)/artifacts/
+  - name: Build.Arcade.LogsPath
+    value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
+  - name: Build.Arcade.TestResultsPath
+    value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
+  - name: Build.Arcade.VSIXOutputPath
+    value: $(Build.Arcade.ArtifactsPath)VSIX
+  - name: _WindowsBuildScript
+    value: $(Build.SourcesDirectory)/build.cmd -ci -NativeToolsOnMachine
+
+  # Enable extraction of published outputs for analysis
+  - name: GDN_EXTRACT_TOOLS
+    value: 'binskim,bandit,roslynanalyzers'
+
+  - name: GDN_EXTRACT_FILTER
+    value: 'f|**/*.zip;f|**/*.nupkg;f|**/*.vsix;f|**/*.cspkg;f|**/*.sfpkg;f|**/*.package'
+
+  - ${{ if or(startswith(variables['Build.SourceBranch'], 'refs/heads/release/'), startswith(variables['Build.SourceBranch'], 'refs/heads/internal/release/'), startswith(variables['Build.SourceBranch'], 'refs/heads/validation/'), eq(variables['Build.Reason'], 'Manual')) }}:
+    - name: PostBuildSign
+      value: false
+  - ${{ else }}:
+    - name: PostBuildSign
+      value: true
+
+  # Produce test-signed build for PR and Public builds
+  - ${{ if or(eq(variables['runAsPublic'], 'true'), eq(variables['Build.Reason'], 'PullRequest')) }}:
+    # needed for darc (dependency flow) publishing
+    - name: _PublishArgs
+      value: ''
+    - name: _OfficialBuildIdArgs
+      value: ''
+    # needed for signing
+    - name: _SignType
+      value: test
+    - name: _SignArgs
+      value: ''
+    - name: _Sign
+      value: false
+
+  # Set up non-PR build from internal project
+  - ${{ if and(ne(variables['runAsPublic'], 'true'), ne(variables['Build.Reason'], 'PullRequest')) }}:
+    # needed for darc (dependency flow) publishing
+    - name: _PublishArgs
+      value: >-
+            /p:DotNetPublishUsingPipelines=true
+    - name: _OfficialBuildIdArgs
+      value: /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
+    # needed for signing
+    - name: _SignType
+      value: real
+    - name: _SignArgs
+      value: /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName) /p:Sign=$(_Sign) /p:DotNetPublishUsingPipelines=true
+    - name: _Sign
+      value: true
+
+  # Enable source index only for main branch builds
+  - name: sourceIndexCondition
+    value: |
+      and(
+        succeeded(),
+        or(
+          eq(variables['forceEnableSourceIndex'], 'true'),
+          and(
+            ne(variables['runAsPublic'], 'true'),
+            notin(variables['Build.Reason'], 'PullRequest'),
+            eq(variables['Build.SourceBranch'], 'refs/heads/main')
+          )
+        )
+      )
+
+resources:
+  repositories:
+  - repository: 1ESPipelineTemplates
+    type: git
+    name: 1ESPipelineTemplates/1ESPipelineTemplates
+    ref: refs/tags/release
+
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
+  parameters:
+    settings:
+      networkIsolationPolicy: Permissive, CFSClean, CFSClean2
+    featureFlags:
+      binskimScanAllExtensions: true
+    sdl:
+      policheck:
+        enabled: true
+        exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
+      sourceAnalysisPool:
+        name: NetCore1ESPool-Internal
+        image: windows.vs2022.amd64
+        os: windows
+      tsa:
+        enabled: true
+    customBuildTags:
+    - ES365AIMigrationTooling
+
+    stages:
+    - stage: build
+      displayName: Build
+      variables:
+      - template: /eng/common/templates-official/variables/pool-providers.yml@self
+      jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          artifacts:
+            publish:
+              logs: true
+              manifests: true
+          enableMicrobuild: true
+          enableTelemetry: true
+          enableSourceIndex: true
+          sourceIndexParams:
+            condition: ${{ variables['sourceIndexCondition'] }}
+            sourceIndexBuildCommand: ''
+            preSteps:
+            - template: /eng/pipelines/templates/RestoreAndBuild.yml
+              parameters:
+                buildScript: $(_WindowsBuildScript)
+                buildConfig: Debug
+                repoLogPath: $(Build.SourcesDirectory)/artifacts/log/Debug
+          runAsPublic: ${{ variables['runAsPublic'] }}
+          # Publish test logs
+          enablePublishTestResults: true
+          # Publish NuGet packages using v3
+          # https://github.com/dotnet/arcade/blob/main/Documentation/CorePackages/Publishing.md#basic-onboarding-scenario-for-new-repositories-to-the-current-publishing-version-v3
+          enablePublishUsingPipelines: true
+          workspace:
+            clean: all
+
+          jobs:
+
+          # ----------------------------------------------------------------
+          # This job build and run tests on Windows
+          # ----------------------------------------------------------------
+          - job: Windows
+            timeoutInMinutes: 180
+            testResultsFormat: VSTest
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022.amd64
+              os: windows
+
+            variables:
+            - _buildScript: $(_WindowsBuildScript)
+
+            templateContext:
+              outputs:
+              - output: pipelineArtifact
+                displayName: 'Publish Azure DevOps extension artifacts'
+                targetPath: '$(Build.Arcade.VSIXOutputPath)'
+                artifactName: 'VSIXArtifacts'
+                condition: always()
+                continueOnError: true
+              - output: pipelineArtifact
+                displayName: 'Publish Packages'
+                targetPath: '$(Build.Arcade.ArtifactsPath)packages'
+                artifactName: 'PackageArtifacts_Windows'
+                condition: always()
+                continueOnError: true
+
+            preSteps:
+            - checkout: self
+              clean: true
+              persistCredentials: true
+              fetchDepth: 1
+
+            steps:
+            - template: /eng/pipelines/templates/BuildAndTest.yml
+              parameters:
+                buildScript: $(_buildScript)
+                buildConfig: $(_BuildConfig)
+                repoLogPath: $(Build.Arcade.LogsPath)
+                repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                skipTests: ${{ not(parameters.runTests) }}
+                skipQualityGates: ${{ eq(variables['SkipQualityGates'], 'true') }}
+                isWindows: true
+
+          # ----------------------------------------------------------------
+          # This job build and run tests on Ubuntu
+          # ----------------------------------------------------------------
+          - job: Ubuntu
+            timeoutInMinutes: 180
+            testResultsFormat: VSTest
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-ubuntu-2204
+              os: linux
+
+            variables:
+            - _buildScript: $(Build.SourcesDirectory)/build.sh --ci
+
+            preSteps:
+            - checkout: self
+              clean: true
+              persistCredentials: true
+              fetchDepth: 1
+
+            steps:
+            - template: /eng/pipelines/templates/BuildAndTest.yml
+              parameters:
+                buildScript: $(_buildScript)
+                buildConfig: $(_BuildConfig)
+                repoLogPath: $(Build.Arcade.LogsPath)
+                repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                skipTests: ${{ not(parameters.runTests) }}
+                skipQualityGates: ${{ eq(variables['SkipQualityGates'], 'true') }}
+                isWindows: false
+
+    # Publish and validation steps. Only run in official builds
+    - ${{ if and(ne(variables['runAsPublic'], 'true'), notin(variables['Build.Reason'], 'PullRequest')) }}:
+      - template: /eng/common/templates-official/post-build/post-build.yml@self
+        parameters:
+          validateDependsOn:
+          - build
+          publishingInfraVersion: 3
+          enableSymbolValidation: false
+          enableSigningValidation: false
+          enableNugetValidation: false
+          enableSourceLinkValidation: false
+          # these param values come from the DotNet-Winforms-SDLValidation-Params azdo variable group
+          SDLValidationParameters:
+            enable: false
+            params: ' -SourceToolsList $(_TsaSourceToolsList)
+              -TsaInstanceURL $(_TsaInstanceURL)
+              -TsaProjectName $(_TsaProjectName)
+              -TsaNotificationEmail $(_TsaNotificationEmail)
+              -TsaCodebaseAdmin $(_TsaCodebaseAdmin)
+              -TsaBugAreaPath $(_TsaBugAreaPath)
+              -TsaIterationPath $(_TsaIterationPath)
+              -TsaRepositoryName $(_TsaRepositoryName)
+              -TsaCodebaseName $(_TsaCodebaseName)
+              -TsaOnboard $(_TsaOnboard)
+              -TsaPublish $(_TsaPublish)'
+
+      - stage: publishAzureDevOpsExtension
+        displayName: Publish Azure DevOps extension
+        trigger: manual
+        jobs:
+        - job: publishAzureDevOpsExtension
+          displayName: Publish Azure DevOps extension
+          pool:
+            name: NetCore1ESPool-Internal
+            image: windows.vs2022.amd64
+            os: windows
+
+          steps:
+          - checkout: none
+
+          # Install NodeJS to support TfxInstaller
+          - task: NodeTool@0
+            inputs:
+              versionSpec: 24.x
+
+          - task: TfxInstaller@5
+            displayName: Install TFX CLI (tfx)
+            
+          - download: current
+            artifact: VSIXArtifacts
+            displayName: Download signed Azure DevOps extension
+
+          - pwsh: |
+              $vsixFiles = @(Get-ChildItem '$(Pipeline.Workspace)\VSIXArtifacts' -Filter '*.vsix' -File -Recurse)
+              if ($vsixFiles.Count -ne 1) {
+                  throw "Expected exactly one signed VSIX artifact, but found $($vsixFiles.Count)."
+              }
+
+              $publishDirectory = New-Item '$(Pipeline.Workspace)\AzureDevOpsExtension' -ItemType Directory -Force
+              Copy-Item $vsixFiles[0].FullName (Join-Path $publishDirectory 'Microsoft.Extensions.AI.Evaluation.Reporting.vsix')
+            displayName: Prepare signed Azure DevOps extension
+
+          - task: 1ES.PublishAzureDevOpsExtension@1
+            displayName: Publish Extension
+            inputs:
+              targetPath: '$(Pipeline.Workspace)\AzureDevOpsExtension'
+              connectedServiceNameAzureRM: arcade-extensions-marketplace-publish
+              fileType: vsix
+              vsixFile: '$(Pipeline.Workspace)\AzureDevOpsExtension\Microsoft.Extensions.AI.Evaluation.Reporting.vsix'
+              useV5: true
+              validateExtension: false

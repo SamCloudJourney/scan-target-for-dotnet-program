@@ -1,0 +1,279 @@
+{
+  "Name": "Microsoft.Extensions.Diagnostics.ResourceMonitoring, Version=10.7.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+  "Types": [
+    {
+      "Type": "interface Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitor",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitor.GetUtilization(System.TimeSpan window);",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "interface Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder.AddPublisher<T>();",
+          "Stage": "Obsolete"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder.Services { get; }",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "interface Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceUtilizationPublisher",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "System.Threading.Tasks.ValueTask Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceUtilizationPublisher.PublishAsync(Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization utilization, System.Threading.CancellationToken cancellationToken);",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "interface Microsoft.Extensions.Diagnostics.ResourceMonitoring.ISnapshotProvider",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot Microsoft.Extensions.Diagnostics.ResourceMonitoring.ISnapshotProvider.GetSnapshot();",
+          "Stage": "Obsolete"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources Microsoft.Extensions.Diagnostics.ResourceMonitoring.ISnapshotProvider.Resources { get; }",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "static class Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringBuilderExtensions",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "static Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringBuilderExtensions.ConfigureMonitor(this Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder builder, System.Action<Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions> configure);",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringBuilderExtensions.ConfigureMonitor(this Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder builder, Microsoft.Extensions.Configuration.IConfigurationSection section);",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "class Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.ResourceMonitoringOptions();",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.CollectionWindow { get; set; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.CpuConsumptionRefreshInterval { get; set; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "bool Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.EnableSystemDiskIoMetrics { get; set; }",
+          "Stage": "Experimental"
+        },
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.MemoryConsumptionRefreshInterval { get; set; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.PublishingWindow { get; set; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.SamplingInterval { get; set; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "System.Collections.Generic.ISet<string> Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.SourceIpAddresses { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "bool Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.UseLinuxCalculationV2 { get; set; }",
+          "Stage": "Experimental"
+        },
+        {
+          "Member": "bool Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.UseZeroToOneRangeForLinuxMetrics { get; set; }",
+          "Stage": "Experimental"
+        },
+        {
+          "Member": "bool Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceMonitoringOptions.UseZeroToOneRangeForMetrics { get; set; }",
+          "Stage": "Experimental"
+        }
+      ]
+    },
+    {
+      "Type": "static class Microsoft.Extensions.DependencyInjection.ResourceMonitoringServiceCollectionExtensions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "static Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.DependencyInjection.ResourceMonitoringServiceCollectionExtensions.AddResourceMonitoring(this Microsoft.Extensions.DependencyInjection.IServiceCollection services);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.DependencyInjection.ResourceMonitoringServiceCollectionExtensions.AddResourceMonitoring(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.Extensions.Diagnostics.ResourceMonitoring.IResourceMonitorBuilder> configure);",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "sealed class Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota.ResourceQuota();",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "double Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota.BaselineCpuInCores { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "ulong Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota.BaselineMemoryInBytes { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "double Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota.MaxCpuInCores { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "ulong Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota.MaxMemoryInBytes { get; set; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "abstract class Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuotaProvider",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuotaProvider.ResourceQuotaProvider();",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "abstract Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuota Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceQuotaProvider.GetResourceQuota();",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "readonly struct Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.ResourceUtilization(double cpuUsedPercentage, ulong memoryUsedInBytes, Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources systemResources);",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.ResourceUtilization();",
+          "Stage": "Obsolete"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "double Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.CpuUsedPercentage { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "ulong Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.MemoryUsedInBytes { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "double Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.MemoryUsedPercentage { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.Snapshot { get; }",
+          "Stage": "Experimental"
+        },
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources Microsoft.Extensions.Diagnostics.ResourceMonitoring.ResourceUtilization.SystemResources { get; }",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "readonly struct Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot.Snapshot(System.TimeSpan totalTimeSinceStart, System.TimeSpan kernelTimeSinceStart, System.TimeSpan userTimeSinceStart, ulong memoryUsageInBytes);",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot.Snapshot();",
+          "Stage": "Obsolete"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot.KernelTimeSinceStart { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "ulong Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot.MemoryUsageInBytes { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot.TotalTimeSinceStart { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "System.TimeSpan Microsoft.Extensions.Diagnostics.ResourceMonitoring.Snapshot.UserTimeSinceStart { get; }",
+          "Stage": "Obsolete"
+        }
+      ]
+    },
+    {
+      "Type": "readonly struct Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources",
+      "Stage": "Obsolete",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources.SystemResources(double guaranteedCpuUnits, double maximumCpuUnits, ulong guaranteedMemoryInBytes, ulong maximumMemoryInBytes);",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources.SystemResources();",
+          "Stage": "Obsolete"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "double Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources.GuaranteedCpuUnits { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "ulong Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources.GuaranteedMemoryInBytes { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "double Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources.MaximumCpuUnits { get; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "ulong Microsoft.Extensions.Diagnostics.ResourceMonitoring.SystemResources.MaximumMemoryInBytes { get; }",
+          "Stage": "Obsolete"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Import Project="Sdk.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Analyzers.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Packaging.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\LegacySupport.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Shared.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\Generators.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\ProjectStaging.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)\eng\MSBuild\StrongName.targets" />
+
+  <PropertyGroup>
+    <!-- Workaround https://github.com/dotnet/sdk/issues/51265 - can be removed when updating to .NET 10.0.100 (GA) SDK -->
+    <RestoreEnablePackagePruning Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">false</RestoreEnablePackagePruning>
+  </PropertyGroup>
+  
+  <!-- Warning stuff -->
+  <PropertyGroup>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);NETSDK1138;MSB3270</MSBuildWarningsAsMessages>
+    <WarningLevel>5</WarningLevel>
+
+    <!-- This is false for local development, but set to true in the CI system -->
+    <TreatWarningsAsErrors Condition=" '$(TreatWarningsAsErrors)' == '' ">false</TreatWarningsAsErrors>
+
+    <!-- Prevent analyzer crashes from stopping things -->
+    <NoWarn>$(NoWarn);AD0001</NoWarn>
+
+    <!-- Experimental warnings are for customers, not for this repo -->
+    <NoWarn>$(NoWarn);EXTEXP0001;EXTEXP0002;EXTEXP0003;EXTEXP0004;EXTEXP0005;EXTEXP0006;EXTEXP0007;EXTEXP0008;EXTEXP0009;EXTEXP0010;EXTEXP0011;EXTEXP0012;EXTEXP0013;EXTEXP0014;EXTEXP0015;EXTEXP0016;EXTEXP0017;EXTEXP0018;EXTEXP0019;MEVD9001;MEDE0001</NoWarn>
+
+    <!-- Obsoletion warnings are for customers, not for this repo -->
+    <NoWarn>$(NoWarn);EXTOBS0001;</NoWarn>
+
+    <!-- NU5104: A stable release of a package should not have a prerelease dependency -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+
+    <NoWarn Condition="'$(GenerateDocumentationFile)' != 'true'">$(NoWarn);SA1600;SA0001</NoWarn>
+
+    <!-- Conflicts with SA1405: Debug.Assert should provide message text -->
+    <NoWarn>$(NoWarn);S3236</NoWarn>
+
+    <!-- Legacy targets do not support attributes for a nullable context thus suppressing null check warnings -->
+    <NoWarn Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0'">$(NoWarn);CA1062</NoWarn>
+
+    <!-- Async method lacks 'await' operators and will run synchronously (The C# compiler has already removed it) -->
+    <NoWarn>$(NoWarn);CS1998</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="('$(Stage)' == 'normal' OR '$(Stage)' == 'obsolete') AND '$(OutputType)' != 'Exe' AND '$(IsPackable)' == 'true' AND '$(Api)' != 'false'">
+    <AdditionalFiles Include="$(MSBuildProjectName).json" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target
+    Name="AddApiBaselineFilesToRoot"
+    Condition="('$(Stage)' == 'normal' OR '$(Stage)'=='obsolete') AND '$(OutputType)' != 'Exe' AND '$(IsPackable)' == 'true' AND '$(Api)' != 'false'"
+    BeforeTargets="BeforeCompile">
+      <WriteLinesToFile
+        File="$(MSBuildProjectName).json"
+        Lines=""
+        Condition="!Exists('$(MSBuildProjectName).json')" />
+  </Target>
+
+  <ItemGroup Condition="'$(Stage)' == 'dev' AND '$(OutputType)' != 'Exe' AND '$(Api)' != 'false'">
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExperimentalAttribute">
+      <_Parameter1>$(StageDevDiagnosticId)</_Parameter1>
+      <_Parameter2>UrlFormat = "https://aka.ms/dotnet-extensions-warnings/{0}"</_Parameter2>
+      <_Parameter2_IsLiteral>true</_Parameter2_IsLiteral>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RepoOriginalSourceRevisionId)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>OriginalRepoCommitHash</_Parameter1>
+      <_Parameter2>$(RepoOriginalSourceRevisionId)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <Target Name="AddInternalsVisibleToDynamicProxyGenAssembly2" BeforeTargets="BeforeCompile">
+    <ItemGroup Condition="'@(InternalsVisibleToDynamicProxyGenAssembly2->Count())' &gt; 0">
+      <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+        <_Parameter1 Condition="'$(SignArtifacts)' == 'true' ">DynamicProxyGenAssembly2, PublicKey=0024000004800000940000000602000000240000525341310004000001000100c547cac37abd99c8db225ef2f6c8a3602f3b3606cc9891605d02baa56104f4cfc0734aa39b93bf7852f7d9266654753cc297e7d2edfe0bac1cdcf9f717241550e0a7b191195b7667bb4f64bcb8e2121380fd1d9d46ad2d92d2d15605093924cceaf74c4861eff62abf69b9291ed0a340e113be11e6a7d3113e92484cf7045cc7</_Parameter1>
+        <_Parameter1 Condition="'$(SignArtifacts)' != 'true' ">DynamicProxyGenAssembly2</_Parameter1>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="AddInternalsVisibleToTest" Condition="'$(BuildTests)'!='false'" BeforeTargets="BeforeCompile">
+    <ItemGroup Condition="'@(InternalsVisibleToTest->Count())' &gt; 0">
+      <InternalsVisibleTo Include="%(InternalsVisibleToTest.Identity)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_ConfigureTestRunnerAdditionalArguments" BeforeTargets="_InnerGetTestsToRun">
+    <PropertyGroup>
+      <!-- The blame options are only supported by VSTest, not by Microsoft.Testing.Platform (used by xUnit v3) -->
+      <_BlameArgs Condition="'$(UseMicrosoftTestingPlatformRunner)' != 'true'">--blame --blame-crash --blame-crash-dump-type full --blame-hang --blame-hang-dump-type full --blame-hang-timeout 6m</_BlameArgs>
+
+      <!-- This property is used by the Arcade SDK while bootstrapping the VS Test runner -->
+      <TestRunnerAdditionalArguments>$(TestRunnerAdditionalArguments) $(_BlameArgs)</TestRunnerAdditionalArguments>
+    </PropertyGroup>
+  </Target>
+
+  <!-- This target will make sure that projects targeting net462 will also have the Microsoft.Extensions.Logging.Abstractions analyzer removed. -->
+  <Target Name="_Microsoft_Extensions_Logging_AbstractionsRemoveAnalyzers"
+          Condition="'$(DisableMicrosoftExtensionsLoggingSourceGenerator)' == 'true'"
+          AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <_Microsoft_Extensions_Logging_AbstractionsAnalyzer Include="@(Analyzer)" Condition="'%(Analyzer.NuGetPackageId)' == 'Microsoft.Extensions.Logging.Abstractions' Or
+                                                                                           '%(Analyzer.AssemblyName)' == 'Microsoft.Extensions.Logging.Generators'" />
+    </ItemGroup>
+
+    <!-- Remove Microsoft.Extensions.Logging.Abstractions Analyzer -->
+    <ItemGroup>
+      <Analyzer Remove="@(_Microsoft_Extensions_Logging_AbstractionsAnalyzer)" />
+    </ItemGroup>
+  </Target>
+</Project>

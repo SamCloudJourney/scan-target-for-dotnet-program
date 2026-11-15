@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <Api>false</Api>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Stop complaining about enabling /doc for tests -->
+    <NoWarn>$(NoWarn);RT0000</NoWarn>
+  </PropertyGroup>
+</Project>

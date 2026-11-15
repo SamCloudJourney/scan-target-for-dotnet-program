@@ -1,0 +1,57 @@
+<Project>
+  <ItemGroup Condition="'$(InjectSharedDiagnosticIds)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\DiagnosticIds\*.cs" LinkBase="Shared\DiagnosticIds" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedThrow)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\Throw\*.cs" LinkBase="Shared\Throw" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedEmptyCollections)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\EmptyCollections\*.cs" LinkBase="Shared\EmptyCollections" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedInstruments)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\Instruments\*.cs" LinkBase="Shared\Instruments" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedRentedSpan)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\RentedSpan\*.cs" LinkBase="Shared\RentedSpan" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedServerSentEvents)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\ServerSentEvents\*.cs" LinkBase="Shared\ServerSentEvents" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedNumericExtensions)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\NumericExtensions\*.cs" LinkBase="Shared\NumericExtensions" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(InjectSharedDebugger)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\Debugger\*.cs" LinkBase="Shared\Debugger" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedMemoization)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\Memoization\*.cs" LinkBase="Shared\Memoization" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedDataValidation)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\Data.Validation\*.cs" LinkBase="Shared\Data.Validation" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedPools)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\Pools\*.cs" LinkBase="Shared\Pools" />
+    <PackageReference Condition="'$(SkipSharedPoolsReferences)' != 'true'" Include="Microsoft.Extensions.ObjectPool" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedBufferWriterPool)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\BufferWriterPool\*.cs" LinkBase="Shared\Pools" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectStringSplitExtensions)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\StringSplit\*.cs" LinkBase="Shared\StringSplit" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(InjectSharedLogBuffering)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)\..\..\src\Shared\LogBuffering\*.cs" LinkBase="Shared\LogBuffering" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,300 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
+#if !NETCOREAPP3_1_OR_GREATER
+using System.Buffers;
+#endif
+
+namespace Microsoft.Extensions.Compliance.Redaction;
+
+/// <summary>
+/// Enables the redaction of potentially sensitive data.
+/// </summary>
+public abstract class Redactor
+{
+#if NET6_0_OR_GREATER
+    private const int MaximumStackAllocation = 256;
+#endif
+
+    /// <summary>
+    /// Redacts potentially sensitive data.
+    /// </summary>
+    /// <param name="source">Value to redact.</param>
+    /// <returns>Redacted value.</returns>
+    public string Redact(ReadOnlySpan<char> source)
+    {
+        if (source.IsEmpty)
+        {
+            return string.Empty;
+        }
+
+        int length = GetRedactedLength(source);
+
+#if NETCOREAPP3_1_OR_GREATER
+        unsafe
+        {
+#pragma warning disable 8500
+            return string.Create(
+                length,
+                (this, (IntPtr)(&source)),
+                static (destination, state) => state.Item1.Redact(*(ReadOnlySpan<char>*)state.Item2, destination));
+#pragma warning restore 8500
+        }
+#else
+        var buffer = ArrayPool<char>.Shared.Rent(length);
+
+        try
+        {
+            var charsWritten = Redact(source, buffer);
+            var redactedString = new string(buffer, 0, charsWritten);
+
+            return redactedString;
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+#endif
+    }
+
+    /// <summary>
+    /// Redacts potentially sensitive data.
+    /// </summary>
+    /// <param name="source">Value to redact.</param>
+    /// <param name="destination">Buffer to store redacted value.</param>
+    /// <returns>Number of characters produced when redacting the given source input.</returns>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is too small.</exception>
+    public abstract int Redact(ReadOnlySpan<char> source, Span<char> destination);
+
+    /// <summary>
+    /// Redacts potentially sensitive data.
+    /// </summary>
+    /// <param name="source">Value to redact.</param>
+    /// <param name="destination">Buffer to redact into.</param>
+    /// <remarks>
+    /// Returns 0 when <paramref name="source"/> is <see langword="null"/>.
+    /// </remarks>
+    /// <returns>Number of characters written to the buffer.</returns>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is too small.</exception>
+    public int Redact(string? source, Span<char> destination) => Redact(source.AsSpan(), destination);
+
+    /// <summary>
+    /// Redacts potentially sensitive data.
+    /// </summary>
+    /// <param name="source">Value to redact.</param>
+    /// <returns>Redacted value.</returns>
+    /// <remarks>
+    /// Returns an empty string when <paramref name="source"/> is <see langword="null"/>.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    public virtual string Redact(string? source) => Redact(source.AsSpan());
+
+    /// <summary>
+    /// Redacts potentially sensitive data.
+    /// </summary>
+    /// <typeparam name="T">Type of value to redact.</typeparam>
+    /// <param name="value">Value to redact.</param>
+    /// <param name="format">
+    /// The optional format that selects the specific formatting operation performed. Refer to the
+    /// documentation of the type being formatted to understand the values you can supply here.
+    /// </param>
+    /// <param name="provider">Format provider used to produce a string representing the value.</param>
+    /// <returns>Redacted value.</returns>
+    [SkipLocalsInit]
+    [SuppressMessage("Minor Code Smell", "S3247:Duplicate casts should not be made", Justification = "Avoid pattern matching to improve jitted code")]
+    public string Redact<T>(T value, string? format = null, IFormatProvider? provider = null)
+    {
+#if NET6_0_OR_GREATER
+        if (value is ISpanFormattable)
+        {
+            Span<char> buffer = stackalloc char[MaximumStackAllocation];
+
+            // Stryker disable all : Cannot kill the mutant because the only difference is allocating buffer on stack or renting it.
+            // Null forgiving operator: The null case is checked with default equality comparer, but compiler doesn't understand it.
+            if (((ISpanFormattable)value).TryFormat(buffer, out int written, format.AsSpan(), provider))
+            {
+                // Stryker enable all : Cannot kill the mutant because the only difference is allocating buffer on stack or renting it.
+
+                var formatted = buffer.Slice(0, written);
+                int length = GetRedactedLength(formatted);
+
+                unsafe
+                {
+#pragma warning disable 8500
+                    return string.Create(
+                        length,
+                        (this, (IntPtr)(&formatted)),
+                        static (destination, state) => state.Item1.Redact(*(ReadOnlySpan<char>*)state.Item2, destination));
+#pragma warning restore 8500
+                }
+            }
+        }
+#endif
+
+        if (value is IFormattable)
+        {
+            return Redact(((IFormattable)value).ToString(format, provider));
+        }
+
+        if (value is char[])
+        {
+            // An attempt to call value.ToString() on a char[] will produce a string "System.Char[]" and all redaction will be attempted on it,
+            // instead of the provided array. This will lead to incorrectly allocated buffers.
+            //
+            // NB: not using pattern matching as it is recognized by the JIT and since this is a generic type, the JIT ends up generating code
+            // without any of those conditional statements being present. But this only happens when not using pattern matching.
+            return Redact(((char[])(object)value).AsSpan());
+        }
+
+        return Redact(value?.ToString());
+    }
+
+    /// <summary>
+    /// Redacts potentially sensitive data.
+    /// </summary>
+    /// <typeparam name="T">Type of value to redact.</typeparam>
+    /// <param name="value">Value to redact.</param>
+    /// <param name="destination">Buffer to redact into.</param>
+    /// <param name="format">
+    /// The optional format string that selects the specific formatting operation performed. Refer to the
+    /// documentation of the type being formatted to understand the values you can supply here.
+    /// </param>
+    /// <param name="provider">Format provider used to produce a string representing the value.</param>
+    /// <returns>Number of characters written to the buffer.</returns>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is too small.</exception>
+    [SkipLocalsInit]
+    [SuppressMessage("Minor Code Smell", "S3247:Duplicate casts should not be made", Justification = "Avoid pattern matching to improve jitted code")]
+    public int Redact<T>(T value, Span<char> destination, string? format = null, IFormatProvider? provider = null)
+    {
+#if NET6_0_OR_GREATER
+        if (value is ISpanFormattable)
+        {
+            Span<char> buffer = stackalloc char[MaximumStackAllocation];
+
+            // Stryker disable all : Cannot kill the mutant because the only difference is allocating buffer on stack or renting it.
+            if (((ISpanFormattable)value).TryFormat(buffer, out int written, format.AsSpan(), provider))
+            {
+                // Stryker enable all : Cannot kill the mutant because the only difference is allocating buffer on stack or renting it.
+                var formatted = buffer.Slice(0, written);
+
+                return Redact(formatted, destination);
+            }
+        }
+#endif
+
+        if (value is IFormattable)
+        {
+            return Redact(((IFormattable)value).ToString(format, provider), destination);
+        }
+
+        if (value is char[])
+        {
+            // An attempt to call value.ToString() on a char[] will produce a string "System.Char[]" and all redaction will be attempted on it,
+            // instead of the provided array. This will lead to incorrectly allocated buffers.
+            //
+            // NB: not using pattern matching as it is recognized by the JIT and since this is a generic type, the JIT ends up generating code
+            // without any of those conditional statements being present. But this only happens when not using pattern matching.
+            return Redact(((char[])(object)value).AsSpan(), destination);
+        }
+
+        return Redact(value?.ToString(), destination);
+    }
+
+    /// <summary>
+    /// Tries to redact potentially sensitive data.
+    /// </summary>
+    /// <typeparam name="T">The type of value to redact.</typeparam>
+    /// <param name="value">The value to redact.</param>
+    /// <param name="destination">The buffer to redact into.</param>
+    /// <param name="charsWritten">When this method returns, contains the number of redacted characters that were written to the destination buffer.</param>
+    /// <param name="format">
+    /// The format string that selects the specific formatting operation performed. Refer to the
+    /// documentation of the type being formatted to understand the values you can supply here.
+    /// </param>
+    /// <param name="provider">The format provider used to produce a string representing the value.</param>
+    /// <returns><see langword="true"/> if the destination buffer was large enough, otherwise <see langword="false"/>.</returns>
+    [SkipLocalsInit]
+    [SuppressMessage("Minor Code Smell", "S3247:Duplicate casts should not be made", Justification = "Avoid pattern matching to improve jitted code")]
+    public bool TryRedact<T>(T value, Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider = null)
+    {
+#if NET6_0_OR_GREATER
+        if (value is ISpanFormattable)
+        {
+            Span<char> buffer = stackalloc char[MaximumStackAllocation];
+
+            // Stryker disable all : Cannot kill the mutant because the only difference is allocating buffer on stack or renting it.
+            if (((ISpanFormattable)value).TryFormat(buffer, out int written, format, provider))
+            {
+                // Stryker enable all : Cannot kill the mutant because the only difference is allocating buffer on stack or renting it.
+                var formatted = buffer.Slice(0, written);
+
+                int rlen = GetRedactedLength(formatted);
+                if (rlen > destination.Length)
+                {
+                    charsWritten = 0;
+                    return false;
+                }
+
+                charsWritten = Redact(formatted, destination);
+                return true;
+            }
+        }
+#endif
+
+        ReadOnlySpan<char> ros = default;
+        if (value is IFormattable)
+        {
+            var fmt = format.Length > 0 ? format.ToString() : string.Empty;
+            var str = ((IFormattable)value).ToString(fmt, provider);
+            if (str != null)
+            {
+                ros = str.AsSpan();
+            }
+        }
+        else if (value is char[])
+        {
+            // An attempt to call value.ToString() on a char[] will produce the string "System.Char[]" and redaction will be attempted on it,
+            // instead of the provided array.
+            //
+            // Not using pattern matching as it is recognized by the JIT and since this is a generic type, the JIT ends up generating code
+            // without any of those conditional statements being present. But this only happens when not using pattern matching.
+            ros = ((char[])(object)value).AsSpan();
+        }
+        else
+        {
+            var str = value?.ToString();
+            if (str != null)
+            {
+                ros = str.AsSpan();
+            }
+        }
+
+        int len = GetRedactedLength(ros);
+        if (len > destination.Length)
+        {
+            charsWritten = 0;
+            return false;
+        }
+
+        charsWritten = Redact(ros, destination);
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the number of characters produced by redacting the input.
+    /// </summary>
+    /// <param name="input">Value to be redacted.</param>
+    /// <returns>The number of characters produced by redacting the input.</returns>
+    public abstract int GetRedactedLength(ReadOnlySpan<char> input);
+
+    /// <summary>
+    /// Gets the number of characters produced by redacting the input.
+    /// </summary>
+    /// <param name="input">Value to be redacted.</param>
+    /// <returns>Minimum buffer size.</returns>
+    public int GetRedactedLength(string? input) => GetRedactedLength(input.AsSpan());
+}

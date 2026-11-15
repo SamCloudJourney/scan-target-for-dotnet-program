@@ -1,0 +1,139 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods
+#pragma warning disable CA1031 // Do not catch general exception types
+#pragma warning disable S108 // Nested blocks of code should not be left empty
+
+namespace Microsoft.Extensions.AI;
+
+/// <summary>
+/// An <see cref="HttpMessageHandler"/> that checks the request body against an expected one
+/// and sends back an expected response.
+/// </summary>
+public sealed class VerbatimHttpHandler : DelegatingHandler
+{
+    private readonly string _expectedOutput;
+    private readonly bool _validateExpectedResponse;
+    private readonly HttpHandlerExpectedInput _expectedInput;
+
+    public VerbatimHttpHandler(string expectedInput, string expectedOutput, bool validateExpectedResponse = false)
+        : this(new HttpHandlerExpectedInput { Body = expectedInput }, expectedOutput, validateExpectedResponse)
+    {
+    }
+
+    public VerbatimHttpHandler(HttpHandlerExpectedInput expectedInput, string expectedOutput, bool validateExpectedResponse = false)
+        : base(new HttpClientHandler())
+    {
+        _expectedOutput = expectedOutput;
+        _validateExpectedResponse = validateExpectedResponse;
+        _expectedInput = expectedInput;
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (_expectedInput.Body is not null)
+        {
+            Assert.NotNull(request.Content);
+
+            string? actualInput = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Assert.NotNull(actualInput);
+            AssertEqualNormalized(_expectedInput.Body, actualInput);
+
+            if (_validateExpectedResponse)
+            {
+                ByteArrayContent newContent = new(Encoding.UTF8.GetBytes(actualInput));
+                foreach (var header in request.Content.Headers)
+                {
+                    newContent.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+
+                request.Content = newContent;
+            }
+        }
+
+        if (_expectedInput.Uri is not null)
+        {
+            Assert.Equal(_expectedInput.Uri, request.RequestUri);
+        }
+
+        if (_expectedInput.Method is not null)
+        {
+            Assert.Equal(_expectedInput.Method, request.Method);
+        }
+
+        if (_validateExpectedResponse)
+        {
+            using var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            string? actualOutput = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            Assert.NotNull(actualOutput);
+            AssertEqualNormalized(_expectedOutput, actualOutput);
+        }
+
+        return new() { Content = new StringContent(_expectedOutput) };
+    }
+
+    [return: NotNullIfNotNull(nameof(text))]
+    public static string? RemoveWhiteSpace(string? text)
+    {
+        if (text is null)
+        {
+            return null;
+        }
+
+        text = text.Replace("\\r", "").Replace("\\n", "").Replace("\\t", "");
+
+        return Regex.Replace(text, @"\s*", string.Empty);
+    }
+
+    private static void AssertEqualNormalized(string expected, string actual)
+    {
+        expected = RemoveWhiteSpace(expected);
+        actual = RemoveWhiteSpace(actual);
+
+        // First try to compare as JSON.
+        JsonNode? expectedNode = null;
+        JsonNode? actualNode = null;
+        try
+        {
+            expectedNode = JsonNode.Parse(expected);
+            actualNode = JsonNode.Parse(actual);
+        }
+        catch
+        {
+        }
+
+        if (expectedNode is not null && actualNode is not null)
+        {
+            if (!JsonNode.DeepEquals(expectedNode, actualNode))
+            {
+                FailNotEqual(expected, actual);
+            }
+
+            return;
+        }
+
+        // Legitimately may not have been JSON. Fall back to whitespace normalization.
+        FailNotEqual(expected, actual);
+    }
+
+    private static void FailNotEqual(string expected, string actual) =>
+        Assert.Fail(
+            $"Expected:{Environment.NewLine}" +
+            $"{expected}{Environment.NewLine}" +
+            $"Actual:{Environment.NewLine}" +
+            $"{actual}");
+}

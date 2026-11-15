@@ -1,0 +1,54 @@
+<Project>
+
+  <!-- Pack analyzers -->
+  <PropertyGroup>
+    <BeforePack>IncludeAnalyzersInPackage;$(BeforePack)</BeforePack>
+    <BuildAnalyzerReferences>$(BuildProjectReferences)</BuildAnalyzerReferences>
+    <BuildAnalyzerReferences Condition="'$(BuildingInsideVisualStudio)' == 'true'">false</BuildAnalyzerReferences>
+  </PropertyGroup>
+
+  <!-- packaging control -->
+  <PropertyGroup>
+    <IsPackable Condition="'$(Stage)' == ''">false</IsPackable>
+    <BeforePack>$(BeforePack);_VerifyMinimumSupportedTfmForPackagingIsUsed</BeforePack>
+    <IsPackNet462 Condition="'$(MinimumSupportedTfmForPackaging)' != '' and
+                             '$(ConditionalNet462)' != '' and
+                             ($(TargetFrameworks.Contains('$(MinimumSupportedTfmForPackaging)')) and $(TargetFrameworks.Contains('$(ConditionalNet462)')))"
+                  >true</IsPackNet462>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(IsPackable)' == 'true' and '$(IsShipping)' == 'true' ">
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Condition=" '$(IsPackable)' == 'true' and '$(IsShipping)' == 'true' " Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+
+  <PropertyGroup Condition=" '$(EnablePackageValidation)' != 'false' and '$(IsPackable)' == 'true' and '$(IsShipping)' == 'true' and '$(Api)' != 'false' ">
+    <!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/overview -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+
+    <!-- Temporarily use a different version for MEVD, delete after it's on the same train -->
+    <PackageValidationBaselineVersion Condition="'$(Stage)' == 'normal' and '$(MSBuildProjectName)' == 'Microsoft.Extensions.VectorData.Abstractions' and '$(PackageValidationBaselineVersion)' == ''">10.1.0</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion Condition="'$(Stage)' == 'normal' and '$(PackageValidationBaselineVersion)' == ''">10.4.0</PackageValidationBaselineVersion>
+  </PropertyGroup>
+
+  <!-- Verify that the minimum supported TFM is actually used. Not applicable for project template packages. -->
+  <Target Name="_VerifyMinimumSupportedTfmForPackagingIsUsed"
+          Condition="'$(IsPackable)' == 'true' and '$(PackageType)' != 'Template' and '$(DisableMinimumSupportedTfmCompatErrors)' != 'true'">
+    <Error Text="$TargetFrameworks ('$(TargetFrameworks)') does not contain $MinimumSupportedTfmForPackaging ('$(MinimumSupportedTfmForPackaging)'). This is ignored for PackageType=Template or if DisableMinimumSupportedTfmCompatErrors=true."
+           Condition="!$(TargetFrameworks.Contains('$(MinimumSupportedTfmForPackaging)'))" />
+  </Target>
+
+  <!-- Extract the PackageId and PackageVersion. Used to resolve the version in project templates builds. -->
+  <Target Name="GetProjectPackageVersion" Returns="@(ProjectPackageVersion)">
+    <ItemGroup>
+      <ProjectPackageVersion Include="$(PackageId)"
+                             Version="$(Version)"
+                             Project="$(MSBuildProjectFullPath)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

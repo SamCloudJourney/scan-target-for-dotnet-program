@@ -1,0 +1,8 @@
+# The project templates include hard-coded launchSettings.json files
+!**/templates/**/Properties/launchSettings.json
+
+# Templates include JS dependencies in dist folders.
+!**/templates/**/dist/*
+
+# Templates include solution files for Aspire configurations
+!**/templates/**/*.sln

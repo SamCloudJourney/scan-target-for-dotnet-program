@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Microsoft.AspNetCore.HeaderParsing</RootNamespace>
+    <Description>Strong type header parsing</Description>
+    <PackageTags>$(PackageTags);aspnetcore</PackageTags>
+    <Workstream>Fundamentals</Workstream>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>$(NetCoreTargetFrameworks)</TargetFrameworks>
+    <!-- using the ConfigurationBinder source generator is blocked by https://github.com/dotnet/runtime/issues/94547, which was only fixed in 9.0+ -->
+    <EnableConfigurationBindingGenerator Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">true</EnableConfigurationBindingGenerator>
+    <!-- This is needed until we get a build with https://github.com/dotnet/sdk/pull/50662. .NET 10 RC2 should have the fix. -->
+    <InterceptorsNamespaces Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(InterceptorsNamespaces);Microsoft.Extensions.Configuration.Binder.SourceGeneration</InterceptorsNamespaces>
+    <UseLoggingGenerator>true</UseLoggingGenerator>
+    <UseMetricsGenerator>true</UseMetricsGenerator>
+    <InjectExperimentalAttributeOnLegacy>true</InjectExperimentalAttributeOnLegacy>
+    <InjectGetOrAddOnLegacy>true</InjectGetOrAddOnLegacy>
+
+    <IsAotCompatible Condition="'$(EnableConfigurationBindingGenerator)' != 'true'">false</IsAotCompatible>
+    <NoWarn Condition="'$(EnableConfigurationBindingGenerator)' != 'true'">$(NoWarn);IL2026</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Stage>normal</Stage>
+    <MinCodeCoverage>100</MinCodeCoverage>
+    <MinMutationScore>91</MinMutationScore>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.Extensions.Telemetry.Abstractions\Microsoft.Extensions.Telemetry.Abstractions.csproj" />
+    <ProjectReference Include="..\Microsoft.Extensions.ObjectPool.DependencyInjection\Microsoft.Extensions.ObjectPool.DependencyInjection.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleToTest Include="$(AssemblyName).Tests" />
+    <InternalsVisibleToDynamicProxyGenAssembly2 Include="*" />
+  </ItemGroup>
+</Project>

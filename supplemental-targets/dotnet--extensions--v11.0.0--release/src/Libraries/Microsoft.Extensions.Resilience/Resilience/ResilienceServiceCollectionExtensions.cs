@@ -1,0 +1,55 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Linq;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
+using Microsoft.Extensions.Http.Diagnostics;
+using Microsoft.Extensions.Resilience.Internal;
+using Microsoft.Shared.Diagnostics;
+using Polly.Telemetry;
+
+namespace Microsoft.Extensions.DependencyInjection;
+
+/// <summary>
+/// Extension class for the Service Collection DI container.
+/// </summary>
+public static class ResilienceServiceCollectionExtensions
+{
+    /// <summary>
+    /// Adds resilience enrichers.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    /// <returns>The input <paramref name="services"/>.</returns>
+    /// <remarks>
+    /// This method adds additional dimensions on top of the default ones that are built-in to the Polly library. These include:
+    /// <list type="bullet">
+    ///   <item>
+    ///   Exception enrichment based on <see cref="IExceptionSummarizer"/>.
+    ///   </item>
+    ///   <item>
+    ///   Request metadata enrichment based on <see cref="RequestMetadata"/>.
+    ///   </item>
+    /// </list>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
+    public static IServiceCollection AddResilienceEnricher(this IServiceCollection services)
+    {
+        _ = Throw.IfNull(services);
+
+        // let's make this call idempotent by checking if ResilienceEnricher is already added
+        if (services.Any(s => s.ServiceType == typeof(ResilienceMetricsEnricher)))
+        {
+            return services;
+        }
+
+        services.TryAddSingleton<ResilienceMetricsEnricher>();
+
+        _ = services
+            .AddOptionsWithValidateOnStart<TelemetryOptions>()
+            .Configure<ResilienceMetricsEnricher>((options, enricher) => options.MeteringEnrichers.Add(enricher));
+
+        return services;
+    }
+}

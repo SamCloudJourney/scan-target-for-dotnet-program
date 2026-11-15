@@ -1,0 +1,100 @@
+Origin:
+  AssemblyName: Microsoft.Analyzers.Local
+  Version: 42.42.42.42424
+Diagnostics:
+  LA0002:
+    Metadata:
+      Category: Performance
+      Title: Use 'Microsoft.Shared.Text.NumericExtensions.ToInvariantString' for improved performance
+      Description: "'Microsoft.Shared.Text.NumericExtensions.ToInvariantString' provides caching for common numeric values, avoiding the need to allocate new strings in many situations"
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      performance:
+        Severity: Warning
+  LA0001:
+    Metadata:
+      Category: Performance
+      Title: Use the 'Microsoft.Shared.Diagnostics.Throws' class instead of explicitly throwing exception for improved performance
+      Description: Recommends replacing explicit argument throwing with the more efficient 'Microsoft.Shared.Diagnostics.Throws' class
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      performance:
+        Severity: Warning
+  LA0000:
+    Metadata:
+      Category: Performance
+      Title: Use the 'Microsoft.Shared.Diagnostics.Throws' class instead of explicitly throwing exception for improved performance
+      Description: Recommends replacing explicit argument throwing with the more efficient 'Microsoft.Extensions.Diagnostics.Throws' class
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      performance:
+        Severity: Warning
+  LA0003:
+    Metadata:
+      Category: Correctness
+      Title: Newly added symbols must be marked as experimental
+      Description: Symbols being added to the public API of an assembly must be marked as experimental until they have been appoved
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      api:
+        Severity: Warning
+  LA0004:
+    Metadata:
+      Category: Correctness
+      Title: Experimental symbols cannot be marked as obsolete
+      Description: Symbols being added to the public API of an assembly cannot be marked as obsolete
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      api:
+        Severity: Warning
+  LA0005:
+    Metadata:
+      Category: Correctness
+      Title: Published symbols cannot be marked experimental
+      Description: Previously published symbols in the public API of an assembly cannot be marked experimental
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      api:
+        Severity: Warning
+  LA0006:
+    Metadata:
+      Category: Correctness
+      Title: Published symbols cannot be deleted to maintain compatibility
+      Description: Published symbols cannot be deleted to maintain compatibility
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      api:
+        Severity: Warning
+  LA0007:
+    Metadata:
+      Category: Correctness
+      Title: Published symbols cannot be changed to maintain compatibility
+      Description: Published symbols cannot change to maintain compatibility
+      DefaultSeverity: Warning
+    Tier: 1
+    Attributes:
+      general:
+        Severity: None
+      api:
+        Severity: Warning

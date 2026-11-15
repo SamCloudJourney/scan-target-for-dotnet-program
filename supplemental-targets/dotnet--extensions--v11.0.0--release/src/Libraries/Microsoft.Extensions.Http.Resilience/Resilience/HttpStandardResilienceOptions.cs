@@ -1,0 +1,98 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Http.Resilience.Internal;
+using Microsoft.Extensions.Options;
+using Polly.Timeout;
+
+namespace Microsoft.Extensions.Http.Resilience;
+
+/// <summary>
+/// Options for resilience strategies for usage in HTTP scenarios.
+/// </summary>
+/// <remarks>
+/// These options represent configuration for five chained resilience strategies in this order (from the outermost to the innermost):
+/// <para>
+/// Bulkhead -> Total Request Timeout -> Retry -> Circuit Breaker -> Attempt Timeout.
+/// </para>
+/// The configuration of each pipeline is initialized with the default options per type. The request goes through these strategies:
+/// <list type="number">
+/// <item><description>Total request timeout pipeline applies an overall timeout to the execution,
+/// ensuring that the request including hedging attempts, does not exceed the configured limit.</description></item>
+/// <item><description>The retry pipeline retries the request in case the dependency is slow or returns a transient error.</description></item>
+/// <item><description>The bulkhead pipeline limits the maximum number of concurrent requests being send to the dependency.</description></item>
+/// <item><description>The circuit breaker blocks the execution if too many direct failures or timeouts are detected.</description></item>
+/// <item><description>The attempt timeout pipeline limits each request attempt duration and throws if its exceeded.</description></item>
+/// </list>
+/// </remarks>
+public class HttpStandardResilienceOptions
+{
+    /// <summary>
+    /// Gets or sets the bulkhead options.
+    /// </summary>
+    /// <remarks>
+    /// By default, this property is initialized with a unique instance of <see cref="HttpRateLimiterStrategyOptions"/> using default properties values.
+    /// </remarks>
+    [Required]
+    [ValidateObjectMembers]
+    public HttpRateLimiterStrategyOptions RateLimiter { get; set; } = new HttpRateLimiterStrategyOptions
+    {
+        Name = StandardPipelineNames.RateLimiter
+    };
+
+    /// <summary>
+    /// Gets or sets the timeout Strategy options for the total timeout applied on the request's execution.
+    /// </summary>
+    /// <remarks>
+    /// By default, this property is initialized with a unique instance of <see cref="HttpTimeoutStrategyOptions"/>.
+    /// </remarks>
+    [Required]
+    [ValidateObjectMembers]
+    public HttpTimeoutStrategyOptions TotalRequestTimeout { get; set; } = new HttpTimeoutStrategyOptions
+    {
+        Name = StandardPipelineNames.TotalRequestTimeout
+    };
+
+    /// <summary>
+    /// Gets or sets the retry pipeline options.
+    /// </summary>
+    /// <remarks>
+    /// By default, this property is initialized with a unique instance of <see cref="HttpRetryStrategyOptions"/> using default properties values.
+    /// </remarks>
+    [Required]
+    [ValidateObjectMembers]
+    public HttpRetryStrategyOptions Retry { get; set; } = new HttpRetryStrategyOptions
+    {
+        Name = StandardPipelineNames.Retry
+    };
+
+    /// <summary>
+    /// Gets or sets the circuit breaker options.
+    /// </summary>
+    /// <remarks>
+    /// By default, this property is initialized with a unique instance of <see cref="HttpCircuitBreakerStrategyOptions"/> using default properties values.
+    /// </remarks>
+    [Required]
+    [ValidateObjectMembers]
+    public HttpCircuitBreakerStrategyOptions CircuitBreaker { get; set; } = new HttpCircuitBreakerStrategyOptions
+    {
+        Name = StandardPipelineNames.CircuitBreaker
+    };
+
+    /// <summary>
+    /// Gets or sets the options for the timeout pipeline applied per each request attempt.
+    /// </summary>
+    /// <remarks>
+    /// By default, this property is initialized with a unique instance of <see cref="HttpTimeoutStrategyOptions"/>
+    /// using custom <see cref="TimeoutStrategyOptions.Timeout"/> of 10 seconds.
+    /// </remarks>
+    [Required]
+    [ValidateObjectMembers]
+    public HttpTimeoutStrategyOptions AttemptTimeout { get; set; } = new()
+    {
+        Timeout = TimeSpan.FromSeconds(10),
+        Name = StandardPipelineNames.AttemptTimeout
+    };
+}

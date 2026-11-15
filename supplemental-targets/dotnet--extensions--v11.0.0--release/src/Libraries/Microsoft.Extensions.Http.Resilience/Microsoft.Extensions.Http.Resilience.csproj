@@ -1,0 +1,59 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Microsoft.Extensions.Http.Resilience</RootNamespace>
+    <TargetFrameworks>$(NetCoreTargetFrameworks);netstandard2.0;net462</TargetFrameworks>
+    <Description>Resilience mechanisms for HttpClient.</Description>
+    <Workstream>Resilience</Workstream>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <UseLoggingGenerator>true</UseLoggingGenerator>
+    <UseMetricsGenerator>true</UseMetricsGenerator>
+    <InjectSharedNumericExtensions>true</InjectSharedNumericExtensions>
+    <InjectSharedThrow>true</InjectSharedThrow>
+    <InjectDiagnosticAttributesOnLegacy>true</InjectDiagnosticAttributesOnLegacy>
+    <InjectTrimAttributesOnLegacy>true</InjectTrimAttributesOnLegacy>
+    <InjectSharedDataValidation>true</InjectSharedDataValidation>
+    <InjectSharedPools>true</InjectSharedPools>
+    <InjectSharedDiagnosticIds>true</InjectSharedDiagnosticIds>
+    <InjectExperimentalAttributeOnLegacy>true</InjectExperimentalAttributeOnLegacy>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Stage>normal</Stage>
+    <MinCodeCoverage>97</MinCodeCoverage>
+    <MinMutationScore>100</MinMutationScore>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Disable "Published symbols cannot be deleted to maintain compatibility" warning
+         because we have different APIs for different TFMs. -->
+    <NoWarn Condition="'$(TargetFramework)' == 'netstandard2.0' OR '$(TargetFramework)' == 'net462'">$(NoWarn);LA0006</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.Extensions.Resilience\Microsoft.Extensions.Resilience.csproj" />
+    <ProjectReference Include="..\Microsoft.Extensions.Http.Diagnostics\Microsoft.Extensions.Http.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleToTest Include="$(AssemblyName).Tests" />
+    <InternalsVisibleToDynamicProxyGenAssembly2 Include="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="buildTransitive\**\*"
+          CopyToOutputDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="buildTransitive\$(MinimumSupportedTfmForPackaging)\"
+          Condition="'$(MinimumSupportedTfmForPackaging)' != '' and $(TargetFrameworks.Contains('$(MinimumSupportedTfmForPackaging)'))" />
+
+    <!-- Copy buildTransitive files to net462 so they are imported by consumers targeting that framework. -->
+    <None Include="buildTransitive\**\*"
+          CopyToOutputDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="buildTransitive\net462\"
+          Condition="'$(IsPackNet462)' == 'true'" />
+  </ItemGroup>
+</Project>

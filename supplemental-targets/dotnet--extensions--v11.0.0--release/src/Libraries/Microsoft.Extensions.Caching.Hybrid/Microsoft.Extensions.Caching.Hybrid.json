@@ -1,0 +1,103 @@
+{
+  "Name": "Microsoft.Extensions.Caching.Hybrid, Version=9.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+  "Types": [
+    {
+      "Type": "static class Microsoft.Extensions.DependencyInjection.HybridCacheBuilderExtensions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheBuilderExtensions.AddSerializer<T>(this Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder builder, Microsoft.Extensions.Caching.Hybrid.IHybridCacheSerializer<T> serializer);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheBuilderExtensions.AddSerializer<T, TImplementation>(this Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder builder);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheBuilderExtensions.AddSerializerFactory(this Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder builder, Microsoft.Extensions.Caching.Hybrid.IHybridCacheSerializerFactory factory);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheBuilderExtensions.AddSerializerFactory<TImplementation>(this Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder builder);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "class Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.HybridCacheOptions();",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions? Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.DefaultEntryOptions { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "bool Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.DisableCompression { get; set; }",
+          "Stage": "Obsolete"
+        },
+        {
+          "Member": "object? Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.DistributedCacheServiceKey { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "int Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.MaximumKeyLength { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "long Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.MaximumPayloadBytes { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "bool Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions.ReportTagMetrics { get; set; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "static class Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions.AddHybridCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions> setupAction);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions.AddHybridCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions.AddKeyedHybridCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, object? serviceKey, System.Action<Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions> setupAction);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions.AddKeyedHybridCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, object? serviceKey, string optionsName, System.Action<Microsoft.Extensions.Caching.Hybrid.HybridCacheOptions> setupAction);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions.AddKeyedHybridCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, object? serviceKey);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder Microsoft.Extensions.DependencyInjection.HybridCacheServiceExtensions.AddKeyedHybridCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, object? serviceKey, string optionsName);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "interface Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder",
+      "Stage": "Stable",
+      "Properties": [
+        {
+          "Member": "Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder.Services { get; }",
+          "Stage": "Stable"
+        }
+      ]
+    }
+  ]
+}

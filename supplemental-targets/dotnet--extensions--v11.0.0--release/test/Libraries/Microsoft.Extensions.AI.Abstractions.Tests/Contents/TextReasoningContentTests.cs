@@ -1,0 +1,95 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json;
+using Xunit;
+
+namespace Microsoft.Extensions.AI;
+
+public class TextReasoningContentTests
+{
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("text")]
+    public void Constructor_String_PropsDefault(string? text)
+    {
+        TextReasoningContent c = new(text);
+        Assert.Null(c.RawRepresentation);
+        Assert.Null(c.AdditionalProperties);
+        Assert.Null(c.ProtectedData);
+        Assert.Equal(text ?? string.Empty, c.Text);
+    }
+
+    [Fact]
+    public void Constructor_PropsRoundtrip()
+    {
+        TextReasoningContent c = new(null);
+
+        Assert.Null(c.RawRepresentation);
+        object raw = new();
+        c.RawRepresentation = raw;
+        Assert.Same(raw, c.RawRepresentation);
+
+        Assert.Null(c.AdditionalProperties);
+        AdditionalPropertiesDictionary props = new() { { "key", "value" } };
+        c.AdditionalProperties = props;
+        Assert.Same(props, c.AdditionalProperties);
+
+        Assert.Equal(string.Empty, c.Text);
+        c.Text = "text";
+        Assert.Equal("text", c.Text);
+        Assert.Equal("text", c.ToString());
+
+        c.Text = null;
+        Assert.Equal(string.Empty, c.Text);
+        Assert.Equal(string.Empty, c.ToString());
+
+        c.Text = string.Empty;
+        Assert.Equal(string.Empty, c.Text);
+        Assert.Equal(string.Empty, c.ToString());
+
+        Assert.Null(c.ProtectedData);
+        c.ProtectedData = "protected";
+        Assert.Equal("protected", c.ProtectedData);
+        c.ProtectedData = null;
+        Assert.Null(c.ProtectedData);
+    }
+
+    [Fact]
+    public void Serialization_Roundtrips()
+    {
+        var content = new TextReasoningContent("reasoning text") { ProtectedData = "protected" };
+
+        var json = JsonSerializer.Serialize(content, AIJsonUtilities.DefaultOptions);
+        var deserializedContent = JsonSerializer.Deserialize<TextReasoningContent>(json, AIJsonUtilities.DefaultOptions);
+
+        Assert.NotNull(deserializedContent);
+        Assert.Equal(content.Text, deserializedContent.Text);
+        Assert.Equal("protected", deserializedContent.ProtectedData);
+    }
+
+    [Fact]
+    public void JsonDeserialization_KnownPayload()
+    {
+        const string Json = """
+            {
+              "$type": "reasoning",
+              "text": "reasoning text",
+              "protectedData": "protected",
+              "additionalProperties": {
+                "key": "val"
+              }
+            }
+            """;
+
+        AIContent? result = JsonSerializer.Deserialize<AIContent>(Json, AIJsonUtilities.DefaultOptions);
+
+        Assert.NotNull(result);
+        var reasoning = Assert.IsType<TextReasoningContent>(result);
+        Assert.Equal("reasoning text", reasoning.Text);
+        Assert.Equal("protected", reasoning.ProtectedData);
+        Assert.NotNull(reasoning.AdditionalProperties);
+        Assert.Equal("val", reasoning.AdditionalProperties["key"]?.ToString());
+    }
+}

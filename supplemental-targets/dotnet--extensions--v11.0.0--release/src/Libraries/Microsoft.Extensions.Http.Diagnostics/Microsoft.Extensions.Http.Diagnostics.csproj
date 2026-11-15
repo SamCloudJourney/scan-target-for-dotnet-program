@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Microsoft.Extensions.Http.Diagnostics</RootNamespace>
+    <Description>Telemetry support for HTTP Client.</Description>
+    <Workstream>Telemetry</Workstream>
+    <TargetFrameworks>$(NetCoreTargetFrameworks);netstandard2.0;net462</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- disable Published symbols cannot be deleted to maintain compatibility" because we have different APIs for different TFMs -->
+    <NoWarn Condition="'$(TargetFramework)' == 'net462'">$(NoWarn);LA0006</NoWarn>
+
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <UseLoggingGenerator>true</UseLoggingGenerator>
+    <UseMetricsReportsGenerator>true</UseMetricsReportsGenerator>
+    <InjectGetOrAddOnLegacy>false</InjectGetOrAddOnLegacy>
+    <InjectTaskWaitAsyncOnLegacy>true</InjectTaskWaitAsyncOnLegacy>
+    <InjectTrimAttributesOnLegacy>false</InjectTrimAttributesOnLegacy>
+    <InjectSharedDebugger>true</InjectSharedDebugger>
+    <InjectSharedDataValidation>false</InjectSharedDataValidation>
+    <InjectSharedPools>false</InjectSharedPools>
+    <InjectSharedBufferWriterPool>true</InjectSharedBufferWriterPool>
+    <InjectSharedThrow>false</InjectSharedThrow>
+    <InjectSharedNumericExtensions>true</InjectSharedNumericExtensions>
+    <InjectSharedEmptyCollections>true</InjectSharedEmptyCollections>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Stage>normal</Stage>
+    <MinCodeCoverage>91</MinCodeCoverage>
+    <MinMutationScore>78</MinMutationScore>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.Extensions.Compliance.Redaction\Microsoft.Extensions.Compliance.Redaction.csproj" />
+    <ProjectReference Include="..\Microsoft.Extensions.Telemetry\Microsoft.Extensions.Telemetry.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Pipelines" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleToDynamicProxyGenAssembly2 Include="*" />
+    <InternalsVisibleToTest Include="$(AssemblyName).Tests" />
+    <InternalsVisibleToTest Include="Microsoft.Extensions.Http.Diagnostics.PerformanceTests" />
+  </ItemGroup>
+</Project>

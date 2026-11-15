@@ -92,5 +92,17 @@
     "owner": "dotnet",
     "regular_files": 4163,
     "archive_sha256": "d934de1e08964d206baa55319cff2e644e298283519786bbaf8b08d951f0a73a"
+  },
+  {
+    "name": "extensions",
+    "kind": "release",
+    "ref": "v11.0.0",
+    "commit": "c60d72e7973a90cd4e4300d9153e97b93315e4b7",
+    "path": "supplemental-targets/dotnet--extensions--v11.0.0--release",
+    "files": 3789,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 3789,
+    "archive_sha256": "94fcedfba00310d00bda9af19f976790dccabe27798d5970248a3da4dbbf8095"
   }
 ]

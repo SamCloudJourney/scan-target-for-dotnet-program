@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ApiChief</AssemblyName>
+    <RootNamespace>ApiChief</RootNamespace>
+    <Description>Tool to help with .NET API management activities</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="System.CommandLine.NamingConventionBinder" />
+    <PackageReference Include="ICSharpCode.Decompiler" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageType>Template</PackageType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>Project templates for Microsoft.Extensions.AI.</Description>
+    <PackageTags>dotnet-new;templates;ai</PackageTags>
+
+    <Stage>preview</Stage>
+    <PreReleaseVersionIteration>3</PreReleaseVersionIteration>
+    <Workstream>AI</Workstream>
+    <MinCodeCoverage>0</MinCodeCoverage>
+    <MinMutationScore>0</MinMutationScore>
+
+    <IsPackable>true</IsPackable>
+    <IsProjectReferenceProvider>false</IsProjectReferenceProvider>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.AI\Microsoft.Extensions.AI.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.AI.OpenAI\Microsoft.Extensions.AI.OpenAI.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.Http.Diagnostics\Microsoft.Extensions.Http.Diagnostics.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.Http.Resilience\Microsoft.Extensions.Http.Resilience.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.DataIngestion\Microsoft.Extensions.DataIngestion.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.DataIngestion.Markdig\Microsoft.Extensions.DataIngestion.Markdig.csproj" />
+    <ProjectReference Include="$(SrcLibrariesDir)\Microsoft.Extensions.DataIngestion.MarkItDown\Microsoft.Extensions.DataIngestion.MarkItDown.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="**\*" />
+
+    <Content
+      Include="templates\**\*"
+      Exclude="templates\**\*.csproj-in"
+      PackagePath="content" />
+
+    <TemplateContent
+      Include="templates\**\*.csproj-in"
+      ChangeExtension=".csproj"
+      PackagePath="content" />
+
+    <None
+      Include="THIRD-PARTY-NOTICES.TXT"
+      Pack="true"
+      PackagePath="." />
+  </ItemGroup>
+</Project>

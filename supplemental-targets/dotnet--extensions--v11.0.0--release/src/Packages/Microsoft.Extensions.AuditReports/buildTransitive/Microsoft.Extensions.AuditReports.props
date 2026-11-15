@@ -1,0 +1,26 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(GenerateComplianceReport)' == ''">
+    <GenerateComplianceReport Condition="'$(DesignTimeBuild)' == 'true' OR '$(BuildingProject)' != 'true'">false</GenerateComplianceReport>
+    <GenerateComplianceReport Condition="'$(DesignTimeBuild)' != 'true' OR '$(BuildingProject)' == 'true'">true</GenerateComplianceReport>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GenerateMetricsReport)' == ''">
+    <GenerateMetricsReport Condition="'$(DesignTimeBuild)' == 'true' OR '$(BuildingProject)' != 'true'">false</GenerateMetricsReport>
+    <GenerateMetricsReport Condition="'$(DesignTimeBuild)' != 'true' OR '$(BuildingProject)' == 'true'">true</GenerateMetricsReport>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GenerateMetadataReport)' == ''">
+    <GenerateMetadataReport Condition="'$(DesignTimeBuild)' == 'true' OR '$(BuildingProject)' != 'true'">false</GenerateMetadataReport>
+    <GenerateMetadataReport Condition="'$(DesignTimeBuild)' != 'true' OR '$(BuildingProject)' == 'true'">true</GenerateMetadataReport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="GenerateMetadataReport" />
+    <CompilerVisibleProperty Include="GenerateComplianceReport" />
+    <CompilerVisibleProperty Include="ComplianceReportOutputPath" />
+    <CompilerVisibleProperty Include="GenerateMetricsReport" />
+    <CompilerVisibleProperty Include="MetadataReportOutputPath" />
+    <CompilerVisibleProperty Include="MetricsReportOutputPath" />
+    <CompilerVisibleProperty Include="OutputPath" />
+  </ItemGroup>
+</Project>

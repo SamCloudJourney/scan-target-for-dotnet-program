@@ -1,0 +1,304 @@
+{
+  "Name": "Microsoft.AspNetCore.HeaderParsing, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+  "Types": [
+    {
+      "Type": "static class Microsoft.AspNetCore.HeaderParsing.CommonHeaders",
+      "Stage": "Stable",
+      "Properties": [
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.MediaTypeHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.Accept { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.StringWithQualityHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.AcceptEncoding { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.StringWithQualityHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.AcceptLanguage { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<Microsoft.Net.Http.Headers.CacheControlHeaderValue> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.CacheControl { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<Microsoft.Net.Http.Headers.ContentDispositionHeaderValue> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.ContentDisposition { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<Microsoft.Net.Http.Headers.MediaTypeHeaderValue> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.ContentType { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.CookieHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.Cookie { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.DateTimeOffset> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.Date { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<Microsoft.AspNetCore.HeaderParsing.HostHeaderValue> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.Host { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.EntityTagHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.IfMatch { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.EntityTagHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.IfModifiedSince { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<Microsoft.Net.Http.Headers.EntityTagHeaderValue>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.IfNoneMatch { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<Microsoft.Net.Http.Headers.RangeConditionHeaderValue> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.IfRange { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.DateTimeOffset> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.IfUnmodifiedSince { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<Microsoft.Net.Http.Headers.RangeHeaderValue> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.Range { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Uri> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.Referer { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderSetup<System.Collections.Generic.IReadOnlyList<System.Net.IPAddress>> Microsoft.AspNetCore.HeaderParsing.CommonHeaders.XForwardedFor { get; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "sealed class Microsoft.AspNetCore.HeaderParsing.HeaderKey<T> where T : notnull",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "override string Microsoft.AspNetCore.HeaderParsing.HeaderKey<T>.ToString();",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "string Microsoft.AspNetCore.HeaderParsing.HeaderKey<T>.Name { get; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "abstract class Microsoft.AspNetCore.HeaderParsing.HeaderParser<T> where T : notnull",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HeaderParser<T>.HeaderParser();",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "abstract bool Microsoft.AspNetCore.HeaderParsing.HeaderParser<T>.TryParse(Microsoft.Extensions.Primitives.StringValues values, out T? result, out string? error);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "sealed class Microsoft.AspNetCore.HeaderParsing.HeaderParsingFeature",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "bool Microsoft.AspNetCore.HeaderParsing.HeaderParsingFeature.TryGetHeaderValue<T>(Microsoft.AspNetCore.HeaderParsing.HeaderKey<T> header, out T? value);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "bool Microsoft.AspNetCore.HeaderParsing.HeaderParsingFeature.TryGetHeaderValue<T>(Microsoft.AspNetCore.HeaderParsing.HeaderKey<T> header, out T? value, out Microsoft.AspNetCore.HeaderParsing.ParsingResult result);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "static class Microsoft.AspNetCore.Http.HeaderParsingHttpRequestExtensions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "static Microsoft.AspNetCore.HeaderParsing.HeaderParsingFeature Microsoft.AspNetCore.Http.HeaderParsingHttpRequestExtensions.GetHeaderParsing(this Microsoft.AspNetCore.Http.HttpRequest request);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static bool Microsoft.AspNetCore.Http.HeaderParsingHttpRequestExtensions.TryGetHeaderValue<T>(this Microsoft.AspNetCore.Http.HttpRequest request, Microsoft.AspNetCore.HeaderParsing.HeaderKey<T> header, out T? value);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static bool Microsoft.AspNetCore.Http.HeaderParsingHttpRequestExtensions.TryGetHeaderValue<T>(this Microsoft.AspNetCore.Http.HttpRequest request, Microsoft.AspNetCore.HeaderParsing.HeaderKey<T> header, out T? value, out Microsoft.AspNetCore.HeaderParsing.ParsingResult result);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "class Microsoft.AspNetCore.HeaderParsing.HeaderParsingOptions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HeaderParsingOptions.HeaderParsingOptions();",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "int Microsoft.AspNetCore.HeaderParsing.HeaderParsingOptions.DefaultMaxCachedValuesPerHeader { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Microsoft.AspNetCore.HeaderParsing.HeaderParsingOptions.DefaultValues { get; set; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "System.Collections.Generic.IDictionary<string, int> Microsoft.AspNetCore.HeaderParsing.HeaderParsingOptions.MaxCachedValuesPerHeader { get; set; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "static class Microsoft.Extensions.DependencyInjection.HeaderParsingServiceCollectionExtensions",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "static Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.DependencyInjection.HeaderParsingServiceCollectionExtensions.AddHeaderParsing(this Microsoft.Extensions.DependencyInjection.IServiceCollection services);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.DependencyInjection.HeaderParsingServiceCollectionExtensions.AddHeaderParsing(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.AspNetCore.HeaderParsing.HeaderParsingOptions> configure);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static Microsoft.Extensions.DependencyInjection.IServiceCollection Microsoft.Extensions.DependencyInjection.HeaderParsingServiceCollectionExtensions.AddHeaderParsing(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Microsoft.Extensions.Configuration.IConfigurationSection section);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "class Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader> where THeader : notnull",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader>.HeaderSetup(string headerName, System.Type parserType, bool cacheable = false);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader>.HeaderSetup(string headerName, Microsoft.AspNetCore.HeaderParsing.HeaderParser<THeader> instance, bool cacheable = false);",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "bool Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader>.Cacheable { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "string Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader>.HeaderName { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HeaderParser<THeader>? Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader>.ParserInstance { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "System.Type? Microsoft.AspNetCore.HeaderParsing.HeaderSetup<THeader>.ParserType { get; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "readonly struct Microsoft.AspNetCore.HeaderParsing.HostHeaderValue : System.IEquatable<Microsoft.AspNetCore.HeaderParsing.HostHeaderValue>",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.HostHeaderValue(string host, int? port);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.HostHeaderValue();",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "bool Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.Equals(Microsoft.AspNetCore.HeaderParsing.HostHeaderValue other);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "override bool Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.Equals(object? obj);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "override int Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.GetHashCode();",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static bool Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.operator ==(Microsoft.AspNetCore.HeaderParsing.HostHeaderValue left, Microsoft.AspNetCore.HeaderParsing.HostHeaderValue right);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static bool Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.operator !=(Microsoft.AspNetCore.HeaderParsing.HostHeaderValue left, Microsoft.AspNetCore.HeaderParsing.HostHeaderValue right);",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "override string Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.ToString();",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "static bool Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.TryParse(string value, out Microsoft.AspNetCore.HeaderParsing.HostHeaderValue result);",
+          "Stage": "Stable"
+        }
+      ],
+      "Properties": [
+        {
+          "Member": "string Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.Host { get; }",
+          "Stage": "Stable"
+        },
+        {
+          "Member": "int? Microsoft.AspNetCore.HeaderParsing.HostHeaderValue.Port { get; }",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "interface Microsoft.AspNetCore.HeaderParsing.IHeaderRegistry",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.HeaderKey<T> Microsoft.AspNetCore.HeaderParsing.IHeaderRegistry.Register<T>(Microsoft.AspNetCore.HeaderParsing.HeaderSetup<T> setup);",
+          "Stage": "Stable"
+        }
+      ]
+    },
+    {
+      "Type": "enum Microsoft.AspNetCore.HeaderParsing.ParsingResult",
+      "Stage": "Stable",
+      "Methods": [
+        {
+          "Member": "Microsoft.AspNetCore.HeaderParsing.ParsingResult.ParsingResult();",
+          "Stage": "Stable"
+        }
+      ],
+      "Fields": [
+        {
+          "Member": "const Microsoft.AspNetCore.HeaderParsing.ParsingResult Microsoft.AspNetCore.HeaderParsing.ParsingResult.Error",
+          "Stage": "Stable",
+          "Value": "1"
+        },
+        {
+          "Member": "const Microsoft.AspNetCore.HeaderParsing.ParsingResult Microsoft.AspNetCore.HeaderParsing.ParsingResult.NotFound",
+          "Stage": "Stable",
+          "Value": "2"
+        },
+        {
+          "Member": "const Microsoft.AspNetCore.HeaderParsing.ParsingResult Microsoft.AspNetCore.HeaderParsing.ParsingResult.Success",
+          "Stage": "Stable",
+          "Value": "0"
+        }
+      ]
+    }
+  ]
+}

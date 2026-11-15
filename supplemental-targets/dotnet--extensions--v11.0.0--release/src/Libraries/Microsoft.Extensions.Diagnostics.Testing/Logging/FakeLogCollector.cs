@@ -1,0 +1,168 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using Microsoft.Shared.Diagnostics;
+
+namespace Microsoft.Extensions.Logging.Testing;
+
+/// <summary>
+/// Collects log records sent to the fake logger.
+/// </summary>
+[DebuggerDisplay("Count = {Count}, LatestRecord = {LatestRecord}")]
+[DebuggerTypeProxy(typeof(FakeLogCollectorDebugView))]
+public partial class FakeLogCollector
+{
+    private readonly List<FakeLogRecord> _records = [];
+    private readonly FakeLogCollectorOptions _options;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FakeLogCollector"/> class.
+    /// </summary>
+    /// <param name="options">The options to control which log records to retain.</param>
+    public FakeLogCollector(IOptions<FakeLogCollectorOptions> options)
+    {
+        _options = Throw.IfNullOrMemberNull(options, options?.Value);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FakeLogCollector"/> class.
+    /// </summary>
+    public FakeLogCollector()
+    {
+        _options = new FakeLogCollectorOptions();
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="FakeLogCollector"/> class.
+    /// </summary>
+    /// <param name="options">The options to control which log records to retain.</param>
+    /// <returns>The collector.</returns>
+    public static FakeLogCollector Create(FakeLogCollectorOptions options)
+    {
+        return new FakeLogCollector(Options.Options.Create(Throw.IfNull(options)));
+    }
+
+    /// <summary>
+    /// Removes all accumulated log records from the collector.
+    /// </summary>
+    public void Clear()
+    {
+        lock (_records)
+        {
+            ClearRecordsCore();
+        }
+    }
+
+    private void ClearRecordsCore()
+    {
+        _records.Clear();
+        _ = Interlocked.Increment(ref _recordCollectionVersion);
+    }
+
+    /// <summary>
+    /// Gets the records that are held by the collector.
+    /// </summary>
+    /// <param name="clear"><see langword="true" /> to atomically clear the set of accumulated log records; otherwise, <see langword="false" />.</param>
+    /// <returns>
+    /// The list of records tracked to date by the collector.
+    /// </returns>
+    public IReadOnlyList<FakeLogRecord> GetSnapshot(bool clear = false)
+    {
+        lock (_records)
+        {
+            var records = _records.ToArray();
+            if (clear)
+            {
+                ClearRecordsCore();
+            }
+
+            return records;
+        }
+    }
+
+    /// <summary>
+    /// Gets the latest record that was created.
+    /// </summary>
+    /// <returns>
+    /// The latest log record created.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">No records have been captured.</exception>
+    public FakeLogRecord LatestRecord
+    {
+        get
+        {
+            lock (_records)
+            {
+                if (_records.Count == 0)
+                {
+                    Throw.InvalidOperationException("No records logged.");
+                }
+
+                return _records[_records.Count - 1];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the number of log records captured by this collector.
+    /// </summary>
+    public int Count => _records.Count;
+
+    internal void AddRecord(FakeLogRecord record)
+    {
+        if (_options.FilteredLevels.Count > 0 && !_options.FilteredLevels.Contains(record.Level))
+        {
+            // level not being collected
+            return;
+        }
+
+        if (_options.FilteredCategories.Count > 0)
+        {
+            if (record.Category == null || !_options.FilteredCategories.Contains(record.Category))
+            {
+                // no category specified, or not in the list of allowed categories
+                return;
+            }
+        }
+
+        if (!record.LevelEnabled && !_options.CollectRecordsForDisabledLogLevels)
+        {
+            // record is not enabled and we're not collecting disabled records
+            return;
+        }
+
+        var customFilter = _options.CustomFilter;
+        if (customFilter is not null && !customFilter(record))
+        {
+            // record was filtered out by a custom filter
+            return;
+        }
+
+        TaskCompletionSource<object?>? logEnumerationSharedWaiterToWake = null;
+
+        lock (_records)
+        {
+            _records.Add(record);
+
+            if (_waitingEnumeratorCount > 0)
+            {
+                logEnumerationSharedWaiterToWake = _logEnumerationSharedWaiter;
+                _logEnumerationSharedWaiter = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _waitingEnumeratorCount = 0;
+            }
+        }
+
+        // it is possible the task was already completed, but it does not matter and we can avoid locking
+        _ = logEnumerationSharedWaiterToWake?.TrySetResult(null);
+
+        _options.OutputSink?.Invoke(_options.OutputFormatter(record));
+    }
+
+    internal TimeProvider TimeProvider => _options.TimeProvider;
+}
