@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html lang="@GlobalizationHelpers.GetHtmlLanguageName(System.Globalization.CultureInfo.CurrentUICulture)">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="aspire-version" content="@VersionHelpers.DashboardDisplayVersion" />
+    <meta name="dotnet-runtime-version" content="@VersionHelpers.RuntimeFrameworkDescription" />
+    <meta name="dotnet-runtime-mode" content="@VersionHelpers.RuntimeMode" />
+    <base href="/" />
+    <link rel="icon" type="image/x-icon" href="@Assets["favicon.ico"]" />
+    <link rel="stylesheet" href="@Assets["_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css"]" />
+    <link rel="stylesheet" href="@Assets["css/design.css"]" />
+    <link rel="stylesheet" href="@Assets["css/controls.css"]" />
+    <link rel="stylesheet" href="@Assets["css/layout.css"]" />
+    <link rel="stylesheet" href="@Assets["css/highlight.css"]" />
+    <link rel="stylesheet" href="@Assets["css/markdown.css"]" />
+    <link rel="stylesheet" href="@Assets["Aspire.Dashboard.styles.css"]" />
+    <script src="@Assets["js/app-theme-bootstrap.js"]"></script>
+
+    <HeadOutlet @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+</head>
+
+<body>
+    <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+    <ReconnectModal />
+    <script src="@Assets["js/imask-7.6.1.min.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="@Assets["js/app.js"]"></script>
+    <script src="@Assets["js/app-reconnect.js"]"></script>
+
+    <script src="@Assets["js/app-theme.js"]" type="module"></script>
+    <script src="@Assets["js/app-scroll.js"]" type="module"></script>
+    <script src="@Assets["_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js"]" type="module"></script>
+</body>
+</html>

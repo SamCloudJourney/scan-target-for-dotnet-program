@@ -1,0 +1,53 @@
+<Project>
+  <!--
+    Set $(InstallBrowsersForPlaywright) to 'true' to install browsers for Playwright.
+    @(BrowserForPlaywrightToInstall) is a list of browsers to install, defaulting to only `chromium`.
+  -->
+
+  <ItemGroup>
+    <BrowsersForPlaywrightToInstall Include="chromium" />
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="Playwright" />
+
+    <PackageReference Include="Microsoft.Playwright" />
+  </ItemGroup>
+
+  <Target Name="ProvisionBrowsersForPlaywright" AfterTargets="Build" Condition="'$(InstallBrowsersForPlaywright)' == 'true' and @(BrowsersForPlaywrightToInstall->Count()) > 0">
+    <PropertyGroup>
+      <_MicrosoftPlaywrightDllPath>$(OutputPath)/Microsoft.Playwright.dll</_MicrosoftPlaywrightDllPath>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_MicrosoftPlaywrightDllPath)')"
+           Text="Could not find %24(_MicrosoftPlaywrightDllPath)=$(_MicrosoftPlaywrightDllPath). This expects the project to reference the Microsoft.Playwright nuget." />
+
+    <ItemGroup>
+      <_EnvVarsForPlaywrightInstall Include="PLAYWRIGHT_BROWSERS_PATH=$(PlaywrightDependenciesDirectory)" />
+      <_EnvVarsForPlaywrightInstall Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true" />
+      <!-- Increase the download timeout from the default 30s to 120s to avoid transient CI failures -->
+      <_EnvVarsForPlaywrightInstall Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT=120000" />
+    </ItemGroup>
+
+    <!-- Build the install command once so the initial attempt and retry cannot drift apart -->
+    <PropertyGroup>
+      <_PlaywrightInstallCommand>dotnet exec --runtimeconfig $(MSBuildThisFileDirectory)Microsoft.Playwright.runtimeconfig.json $(_MicrosoftPlaywrightDllPath) install @(BrowsersForPlaywrightToInstall, ' ')</_PlaywrightInstallCommand>
+    </PropertyGroup>
+
+    <!-- Playwright's install command tries multiple CDN mirrors internally and writes error
+         messages to stderr for mirrors that fail, even when it ultimately succeeds via a
+         fallback mirror. IgnoreStandardErrorWarningFormat prevents MSBuild from promoting
+         those transient error messages into build errors while the exit code still drives
+         overall success/failure. -->
+
+    <!-- First attempt ignores the exit code; if it fails, retry once and fail the build on the second failure -->
+    <Exec Command="$(_PlaywrightInstallCommand)"
+          EnvironmentVariables="@(_EnvVarsForPlaywrightInstall)"
+          IgnoreExitCode="true"
+          IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ExitCode" PropertyName="_PlaywrightInstallExitCode1" />
+    </Exec>
+
+    <Exec Condition="'$(_PlaywrightInstallExitCode1)' != '0'"
+          Command="$(_PlaywrightInstallCommand)"
+          EnvironmentVariables="@(_EnvVarsForPlaywrightInstall)"
+          IgnoreStandardErrorWarningFormat="true" />
+  </Target>
+</Project>

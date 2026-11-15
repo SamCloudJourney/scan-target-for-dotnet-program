@@ -1,0 +1,400 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Globalization;
+using Aspire.Cli.Backchannel;
+using Aspire.Cli.Commands;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Tests.TestServices;
+using Aspire.Cli.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
+
+namespace Aspire.Cli.Tests.Commands;
+
+public class WaitCommandTests(ITestOutputHelper outputHelper)
+{
+    [Fact]
+    public async Task WaitCommand_Help_Works()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_RequiresResourceArgument()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait");
+
+        // Missing required argument should fail
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.NotEqual(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_AcceptsResourceArgument()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myresource --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_AcceptsProjectOption()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myresource --apphost /path/to/project.csproj --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_AcceptsStatusOption()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myresource --status up --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_AcceptsTimeoutOption()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myresource --timeout 60 --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Theory]
+    [InlineData("healthy")]
+    [InlineData("up")]
+    [InlineData("down")]
+    public async Task WaitCommand_AcceptsAllStatusValues(string status)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"wait myresource --status {status} --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Theory]
+    [InlineData("Healthy")]
+    [InlineData("UP")]
+    [InlineData("Down")]
+    public async Task WaitCommand_StatusIsCaseInsensitive(string status)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse($"wait myresource --status {status} --help");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_ResourceNotFound_ReturnsFailure()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            WaitForResourceResult = new WaitForResourceResponse
+            {
+                Success = false,
+                ResourceNotFound = true,
+                ErrorMessage = "Resource 'nonexistent' was not found."
+            }
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+            options.InteractionServiceFactory = _ => interactionService;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait nonexistent --timeout 5");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.WaitResourceFailed, exitCode);
+        Assert.Equal(
+            [
+                SharedCommandStrings.ScanningForRunningAppHosts,
+                string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, "nonexistent", "healthy")
+            ],
+            interactionService.ShownStatuses);
+        Assert.Equal(
+            [string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceNotFound, "nonexistent")],
+            interactionService.DisplayedErrors);
+        Assert.Equal([""], interactionService.DisplayedPlainText);
+        Assert.Empty(interactionService.DisplayedSuccess);
+    }
+
+    [Fact]
+    public async Task WaitCommand_ResourceRunning_WaitForUp_ReturnsSuccess()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var timeProvider = new FakeTimeProvider();
+        var backchannel = new TestAppHostAuxiliaryBackchannel();
+        backchannel.WaitForResourceHandler = (_, _, _, _) =>
+        {
+            timeProvider.Advance(TimeSpan.FromSeconds(2.5));
+            return Task.FromResult(new WaitForResourceResponse { Success = true, State = "Running" });
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+            options.InteractionServiceFactory = _ => interactionService;
+            options.TimeProvider = timeProvider;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myapp --status up --timeout 5");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Equal(
+            [
+                SharedCommandStrings.ScanningForRunningAppHosts,
+                string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, "myapp", "up (running)")
+            ],
+            interactionService.ShownStatuses);
+        Assert.Empty(interactionService.DisplayedErrors);
+        Assert.Equal([""], interactionService.DisplayedPlainText);
+        Assert.Equal(
+            [string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceReachedTargetStatus, "myapp", "up (running)", 2.5)],
+            interactionService.DisplayedSuccess);
+    }
+
+    [Fact]
+    public async Task WaitCommand_ResourceHealthy_WaitForHealthy_ReturnsSuccess()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            WaitForResourceResult = new WaitForResourceResponse { Success = true, State = "Running", HealthStatus = "Healthy" }
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait mydb --status healthy --timeout 5");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_Timeout_ReturnsTimeoutExitCode()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            WaitForResourceResult = new WaitForResourceResponse
+            {
+                Success = false,
+                TimedOut = true,
+                ErrorMessage = "Timed out waiting for resource 'mydb'."
+            }
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+            options.InteractionServiceFactory = _ => interactionService;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait mydb --status healthy --timeout 2");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.WaitTimeout, exitCode);
+        Assert.Equal(
+            [
+                SharedCommandStrings.ScanningForRunningAppHosts,
+                string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, "mydb", "healthy")
+            ],
+            interactionService.ShownStatuses);
+        Assert.Equal(
+            [string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitTimedOut, "mydb", "healthy", 2)],
+            interactionService.DisplayedErrors);
+        Assert.Equal([""], interactionService.DisplayedPlainText);
+        Assert.Empty(interactionService.DisplayedSuccess);
+    }
+
+    [Fact]
+    public async Task WaitCommand_ResourceExited_WaitForDown_ReturnsSuccess()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            WaitForResourceResult = new WaitForResourceResponse { Success = true, State = "Exited" }
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait worker --status down --timeout 5");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Fact]
+    public async Task WaitCommand_ResourceFailedToStart_WaitForUp_ReturnsFailure()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            WaitForResourceResult = new WaitForResourceResponse
+            {
+                Success = false,
+                State = "FailedToStart",
+                ErrorMessage = "Resource 'myapp' failed to start."
+            }
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+            options.InteractionServiceFactory = _ => interactionService;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myapp --status up --timeout 5");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.WaitResourceFailed, exitCode);
+        Assert.Equal(
+            [
+                SharedCommandStrings.ScanningForRunningAppHosts,
+                string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, "myapp", "up (running)")
+            ],
+            interactionService.ShownStatuses);
+        Assert.Equal(
+            [string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceEnteredFailedState, "myapp", "FailedToStart")],
+            interactionService.DisplayedErrors);
+        Assert.Equal([""], interactionService.DisplayedPlainText);
+        Assert.Empty(interactionService.DisplayedSuccess);
+    }
+
+    [Fact]
+    public async Task WaitCommand_ResourceFailedToStart_WaitForDown_ReturnsFailure()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            WaitForResourceResult = new WaitForResourceResponse
+            {
+                Success = true,
+                State = "FailedToStart"
+            }
+        };
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        monitor.AddConnection("/tmp/test.sock", backchannel);
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+            options.InteractionServiceFactory = _ => interactionService;
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("wait myapp --status down --timeout 5");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(CliExitCodes.WaitResourceFailed, exitCode);
+        Assert.Equal(
+            [
+                SharedCommandStrings.ScanningForRunningAppHosts,
+                string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.WaitingForResource, "myapp", "down")
+            ],
+            interactionService.ShownStatuses);
+        Assert.Equal(
+            [string.Format(CultureInfo.CurrentCulture, WaitCommandStrings.ResourceEnteredFailedState, "myapp", "FailedToStart")],
+            interactionService.DisplayedErrors);
+        Assert.Equal([""], interactionService.DisplayedPlainText);
+        Assert.Empty(interactionService.DisplayedSuccess);
+    }
+}

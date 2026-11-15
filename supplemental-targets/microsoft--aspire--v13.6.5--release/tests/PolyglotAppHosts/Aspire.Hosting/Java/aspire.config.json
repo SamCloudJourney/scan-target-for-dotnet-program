@@ -1,0 +1,16 @@
+{
+  "appHost": {
+    "path": "AppHost.java",
+    "language": "java"
+  },
+  "features": {
+    "experimentalPolyglot:java": true
+  },
+  "packages": {
+    "Aspire.Hosting.Azure.Provisioning.ContainerService": "",
+    "Aspire.Hosting": "",
+    "Aspire.Hosting.Azure.Kubernetes": "",
+    "Aspire.Hosting.Azure.Network": "",
+    "Aspire.Hosting.Redis": ""
+  }
+}

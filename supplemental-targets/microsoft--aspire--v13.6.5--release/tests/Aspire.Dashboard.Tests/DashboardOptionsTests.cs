@@ -1,0 +1,705 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
+using Aspire.Dashboard.Authentication;
+using Aspire.Dashboard.Configuration;
+using Aspire.Hosting;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Xunit;
+using OpenIdConnectOptions = Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions;
+
+namespace Aspire.Dashboard.Tests;
+
+public sealed class DashboardOptionsTests
+{
+    private static DashboardOptions GetValidOptions()
+    {
+        // The minimal set of options required to pass validation.
+        return new()
+        {
+            Frontend =
+            {
+                AuthMode = FrontendAuthMode.Unsecured,
+                EndpointUrls = "http://localhost:5000"
+            },
+            Otlp =
+            {
+                AuthMode = OtlpAuthMode.Unsecured,
+                GrpcEndpointUrl = "http://localhost:4317"
+            },
+        };
+    }
+
+    [Fact]
+    public void ValidOptions_AreValid()
+    {
+        var result = new ValidateDashboardOptions().Validate(null, GetValidOptions());
+
+        Assert.Null(result.FailureMessage);
+        Assert.True(result.Succeeded);
+        Assert.Equal(DashboardPersistenceMode.None, GetValidOptions().Data.PersistenceMode);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DebugSessionOptions_ServerCertificate_LoadsPublicCertificate(bool pem)
+    {
+        using var certificate = TestCertificateLoader.GetTestCertificate();
+        var data = pem ? Encoding.UTF8.GetBytes(certificate.ExportCertificatePem()) : certificate.RawData;
+        var options = new DebugSessionOptions { ServerCertificate = Convert.ToBase64String(data) };
+
+        Assert.True(options.TryParseOptions(out var errorMessage), errorMessage);
+        Assert.Null(errorMessage);
+        using var loadedCertificate = options.GetServerCertificate();
+        Assert.NotNull(loadedCertificate);
+        Assert.Equal(certificate.RawData, loadedCertificate.RawData);
+        Assert.False(loadedCertificate.HasPrivateKey);
+    }
+
+    [Theory]
+    [InlineData(X509ContentType.Pkcs12)]
+    [InlineData(X509ContentType.Pkcs7)]
+    public void DebugSessionOptions_ServerCertificate_RejectsCertificateContainer(X509ContentType contentType)
+    {
+        using var certificate = TestCertificateLoader.GetTestCertificate();
+        using var publicCertificate = X509CertificateLoader.LoadCertificate(certificate.RawData);
+        var data = new X509Certificate2Collection(publicCertificate).Export(contentType)!;
+        var options = new DebugSessionOptions { ServerCertificate = Convert.ToBase64String(data) };
+
+        Assert.False(options.TryParseOptions(out var errorMessage));
+        Assert.StartsWith("Error reading server certificate as X509Certificate2: ", errorMessage);
+        Assert.Null(options.GetServerCertificate());
+    }
+
+    [Theory]
+    [InlineData("not base64", "Error converting server certificate payload from base64 to bytes: ")]
+    [InlineData("AQID", "Error reading server certificate as X509Certificate2: ")]
+    public void DebugSessionOptions_ServerCertificate_InvalidPayload(string payload, string errorPrefix)
+    {
+        var options = new DebugSessionOptions { ServerCertificate = payload };
+
+        Assert.False(options.TryParseOptions(out var errorMessage));
+        Assert.StartsWith(errorPrefix, errorMessage);
+        Assert.Null(options.GetServerCertificate());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void DebugSessionOptions_ServerCertificate_NotConfigured(string? payload)
+    {
+        var options = new DebugSessionOptions { ServerCertificate = payload };
+
+        Assert.True(options.TryParseOptions(out var errorMessage), errorMessage);
+        Assert.Null(errorMessage);
+        Assert.Null(options.GetServerCertificate());
+    }
+
+    [Fact]
+    public void PostConfigure_MapsDashboardRunStorageEnvironmentAliases()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [DashboardConfigNames.DashboardApplicationName.EnvVarName] = "My Dashboard",
+                [DashboardConfigNames.DashboardDataDirectoryName.EnvVarName] = "/data/.aspire/dashboard",
+                [DashboardConfigNames.DashboardPersistenceModeName.EnvVarName] = "resume"
+            })
+            .Build();
+        var options = new DashboardOptions
+        {
+            ApplicationName = "Section Name",
+            Data = new DashboardDataOptions { Directory = "/section/path" }
+        };
+
+        new PostConfigureDashboardOptions(configuration).PostConfigure(null, options);
+
+        Assert.Equal("My Dashboard", options.ApplicationName);
+        Assert.Equal("/data/.aspire/dashboard", options.Data.Directory);
+        Assert.Equal(DashboardPersistenceMode.Resume, options.Data.PersistenceMode);
+    }
+
+    [Fact]
+    public void PostConfigure_InvalidDashboardPersistenceMode_IsInvalid()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [DashboardConfigNames.DashboardPersistenceModeName.EnvVarName] = "invalid"
+            })
+            .Build();
+        var options = GetValidOptions();
+
+        new PostConfigureDashboardOptions(configuration).PostConfigure(null, options);
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(
+            "Failed to parse dashboard persistence mode 'invalid'. Possible values: None, Run, Resume.",
+            result.FailureMessage);
+    }
+
+    [Theory]
+    [InlineData(null, "Aspire")]
+    [InlineData("", "Aspire")]
+    [InlineData(" ", "Aspire")]
+    [InlineData("My application", "My application")]
+    public void ApplicationName_GetApplicationNameOrDefault(string? applicationName, string expected)
+    {
+        var options = new DashboardOptions { ApplicationName = applicationName };
+
+        Assert.Equal(expected, options.GetApplicationNameOrDefault());
+    }
+
+    #region Frontend options
+
+    [Fact]
+    public void FrontendOptions_EmptyEndpointUrl()
+    {
+        var options = GetValidOptions();
+        options.Frontend.EndpointUrls = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("One or more frontend endpoint URLs are not configured. Specify an ASPNETCORE_URLS value.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void FrontendOptions_InvalidUrl()
+    {
+        var options = GetValidOptions();
+        options.Frontend.EndpointUrls = "invalid";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Failed to parse frontend endpoint URLs 'invalid'.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void FrontendOptions_ValidAndInvalidUrl()
+    {
+        var options = GetValidOptions();
+        options.Frontend.EndpointUrls = "http://localhost:5000;invalid";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Failed to parse frontend endpoint URLs 'http://localhost:5000;invalid'.", result.FailureMessage);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void FrontendOptions_MaxConsoleLogCount(int limit)
+    {
+        var options = GetValidOptions();
+        options.Frontend.MaxConsoleLogCount = limit;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"{DashboardConfigNames.DashboardFrontendMaxConsoleLogCountName.ConfigKey} must be greater than zero.", result.FailureMessage);
+    }
+
+    #endregion
+
+    #region Resource service client options
+
+    [Fact]
+    public void ResourceServiceClientOptions_InvalidUrl()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "invalid";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Failed to parse resource service client endpoint URL 'invalid'.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_ApiKeyMode_Empty()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.ApiKey;
+        options.ResourceServiceClient.ApiKey = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey} is \"{nameof(ResourceClientAuthMode.ApiKey)}\", but no {DashboardConfigNames.ResourceServiceClientApiKeyName.ConfigKey} is configured.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_FileSource_FilePathEmpty()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificate.Source = DashboardClientCertificateSource.File;
+        options.ResourceServiceClient.ClientCertificate.FilePath = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"File\", but no {DashboardConfigNames.ResourceServiceClientCertificateFilePathName.ConfigKey} is configured.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_KeyStoreSource_SubjectEmpty()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificate.Source = DashboardClientCertificateSource.KeyStore;
+        options.ResourceServiceClient.ClientCertificate.Subject = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"KeyStore\", but no {DashboardConfigNames.ResourceServiceClientCertificateSubjectName.ConfigKey} is configured.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_NullSource()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificate.Source = null;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"The resource service client is configured to use certificates, but no certificate source is specified. Specify {DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey}. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_InvalidSource()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificate.Source = (DashboardClientCertificateSource)int.MaxValue;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificate.Source}", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_NullMode()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = null;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"Resource service client authentication is not configured. Specify {DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(ResourceClientAuthMode).GetEnumNames())}", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_InvalidMode()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = (ResourceClientAuthMode)int.MaxValue;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"Unexpected resource service client authentication mode: {int.MaxValue}", result.FailureMessage);
+    }
+
+    #endregion
+
+    #region OTLP options
+
+    [Fact]
+    public void OtlpOptions_NeitherEndpointSet_Succeeds()
+    {
+        // OTLP endpoints are optional - telemetry can be imported via the UI
+        var options = GetValidOptions();
+        options.Otlp.GrpcEndpointUrl = null;
+        options.Otlp.HttpEndpointUrl = null;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(result.FailureMessage);
+    }
+
+    [Fact]
+    public void OtlpOptions_gRPC_InvalidUrl()
+    {
+        var options = GetValidOptions();
+        options.Otlp.GrpcEndpointUrl = "invalid";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Failed to parse OTLP gRPC endpoint URL 'invalid'.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void OtlpOptions_HTTP_InvalidUrl()
+    {
+        var options = GetValidOptions();
+        options.Otlp.HttpEndpointUrl = "invalid";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Failed to parse OTLP HTTP endpoint URL 'invalid'.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void OtlpOptions_ApiKeyMode_NullSecondaryApiKey_Succeeds()
+    {
+        var options = GetValidOptions();
+        options.Otlp.AuthMode = OtlpAuthMode.ApiKey;
+        options.Otlp.PrimaryApiKey = "primary";
+        options.Otlp.SecondaryApiKey = null;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(result.FailureMessage);
+    }
+
+    [Fact]
+    public void OtlpOptions_ApiKeyMode_EmptyPrimaryApiKey_Fails()
+    {
+        var options = GetValidOptions();
+        options.Otlp.AuthMode = OtlpAuthMode.ApiKey;
+        options.Otlp.PrimaryApiKey = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"PrimaryApiKey is required when OTLP authentication mode is API key. Specify a {DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey} value.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void OtlpOptions_ApiKeyMode_EmptySecondaryApiKey_Fails()
+    {
+        var options = GetValidOptions();
+        options.Otlp.AuthMode = OtlpAuthMode.ApiKey;
+        options.Otlp.PrimaryApiKey = "primary";
+        options.Otlp.SecondaryApiKey = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"SecondaryApiKey must not be empty when OTLP authentication mode is API key. Remove {DashboardConfigNames.DashboardOtlpSecondaryApiKeyName.ConfigKey} or specify a non-empty value.", result.FailureMessage);
+    }
+
+    [Fact]
+    public async Task OtlpOptions_SuppressUnsecuredMessage_LegacyName()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessageName.ConfigKey, "true"),
+        ]));
+        var options = app.Services.GetService<IOptionsMonitor<DashboardOptions>>()!;
+
+        Assert.True(options.CurrentValue.Otlp.SuppressUnsecuredMessage);
+    }
+
+    #endregion
+
+    #region OpenIDConnect options
+
+    [Theory]
+    [InlineData("My application", "my-application")]
+    [InlineData("<> /", "aspire")]
+    [InlineData("abcdefghijklmnopqrstuvwxyz1234567890", "abcdefghijklmnopqrstuvwxyz123456")]
+    public void AuthCookieNames_IncludeSanitizedApplicationNameAndHash(string applicationName, string expectedApplicationName)
+    {
+        var (authCookieName, httpAuthCookieName) = DashboardAuthenticationCookieNames.Create(applicationName);
+
+        Assert.Matches($"^\\.Aspire\\.Dashboard\\.Auth\\.{expectedApplicationName}-[a-f0-9]{{16}}$", authCookieName);
+        Assert.Matches($"^\\.Aspire\\.Dashboard\\.Auth\\.Http\\.{expectedApplicationName}-[a-f0-9]{{16}}$", httpAuthCookieName);
+    }
+
+    [Fact]
+    public void AuthCookieNames_HashFullApplicationName()
+    {
+        var first = DashboardAuthenticationCookieNames.Create($"{new string('a', 32)}-first");
+        var second = DashboardAuthenticationCookieNames.Create($"{new string('a', 32)}-second");
+
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
+    public async Task AntiforgeryCookieName_IncludesApplicationNameAndHash()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new(DashboardConfigNames.DashboardApplicationName.ConfigKey, "My application"),
+        ]));
+
+        var options = app.Services.GetRequiredService<IOptions<AntiforgeryOptions>>().Value;
+
+        Assert.Matches("^\\.Aspire\\.Dashboard\\.Antiforgery\\.my-application-[a-f0-9]{16}$", options.Cookie.Name);
+    }
+
+    [Fact]
+    public void OpenIdConnectOptions_NoNameClaimType()
+    {
+        var options = GetValidOptions();
+        options.Frontend.AuthMode = FrontendAuthMode.OpenIdConnect;
+        options.Frontend.OpenIdConnect.NameClaimType = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("OpenID Connect claim type for name not configured. Specify a Dashboard:Frontend:OpenIdConnect:NameClaimType value.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void OpenIdConnectOptions_NoUserNameClaimType()
+    {
+        var options = GetValidOptions();
+        options.Frontend.AuthMode = FrontendAuthMode.OpenIdConnect;
+        options.Frontend.OpenIdConnect.UsernameClaimType = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("OpenID Connect claim type for username not configured. Specify a Dashboard:Frontend:OpenIdConnect:UsernameClaimType value.", result.FailureMessage);
+    }
+
+    [Theory]
+    [InlineData("", "role", "OpenID Connect claim action type not configured. Specify a Dashboard:Frontend:OpenIdConnect:ClaimActions:0:ClaimType value.")]
+    [InlineData("role", "", "OpenID Connect claim action JSON key not configured. Specify a Dashboard:Frontend:OpenIdConnect:ClaimActions:0:JsonKey value.")]
+    public void OpenIdConnectOptions_ClaimActionRequiredValueMissing(string claimType, string jsonKey, string expectedMessage)
+    {
+        var options = GetValidOptions();
+        options.Frontend.AuthMode = FrontendAuthMode.OpenIdConnect;
+        options.Frontend.OpenIdConnect.ClaimActions.Add(new ClaimAction
+        {
+            ClaimType = claimType,
+            JsonKey = jsonKey
+        });
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(expectedMessage, result.FailureMessage);
+    }
+
+    [Fact]
+    public async Task OpenIdConnectOptions_ClaimActions_MapJsonKeyTestAsync()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new("Authentication:Schemes:OpenIdConnect:Authority", "https://id.aspire.dev/"),
+            new("Authentication:Schemes:OpenIdConnect:ClientId", "aspire-dashboard"),
+            new("Dashboard:Frontend:AuthMode", "OpenIdConnect"),
+            new("Dashboard:Frontend:OpenIdConnect:ClaimActions:0:ClaimType", "role"),
+            new("Dashboard:Frontend:OpenIdConnect:ClaimActions:0:JsonKey", "role"),
+            new("Dashboard:Frontend:OpenIdConnect:RequiredClaimType", "role")
+        ]));
+        var openIdConnectAuthOptions = app.Services.GetService<IOptionsMonitor<OpenIdConnectOptions>>()?.Get(OpenIdConnectDefaults.AuthenticationScheme);
+        Assert.NotNull(openIdConnectAuthOptions);
+        Assert.NotEmpty(openIdConnectAuthOptions.ClaimActions);
+        var claimAction = openIdConnectAuthOptions.ClaimActions.FirstOrDefault(x => x.ClaimType == "role");
+        Assert.NotNull(claimAction);
+        Assert.Equal("role", claimAction.ClaimType);
+        var jsonElement = JsonDocument.Parse("""
+                           {
+                             "role": ["admin", "test"]
+                           }
+                           """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        claimAction.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("role", "admin"));
+        Assert.True(claimIdentity.HasClaim("role", "test"));
+    }
+
+    [Fact]
+    public async Task OpenIdConnectOptions_UsesDashboardCookieManager()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new("Authentication:Schemes:OpenIdConnect:Authority", "https://id.aspire.dev/"),
+            new("Authentication:Schemes:OpenIdConnect:ClientId", "aspire-dashboard"),
+            new("Dashboard:Frontend:AuthMode", "OpenIdConnect"),
+            new("Dashboard:ApplicationName", "Test application")
+        ]));
+        var cookieOptions = app.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(CookieAuthenticationDefaults.AuthenticationScheme);
+        Assert.StartsWith(".Aspire.Dashboard.Auth.test-application-", cookieOptions.Cookie.Name, StringComparison.Ordinal);
+
+        var httpContext = new DefaultHttpContext();
+        cookieOptions.CookieManager.AppendResponseCookie(httpContext, cookieOptions.Cookie.Name!, "value", new CookieOptions());
+        var httpCookie = Assert.Single(httpContext.Response.Headers.SetCookie);
+        Assert.StartsWith(".Aspire.Dashboard.Auth.Http.test-application-", httpCookie, StringComparison.Ordinal);
+
+        var httpsContext = new DefaultHttpContext();
+        httpsContext.Request.Scheme = "https";
+        cookieOptions.CookieManager.AppendResponseCookie(httpsContext, cookieOptions.Cookie.Name!, "value", new CookieOptions());
+        var httpsCookie = Assert.Single(httpsContext.Response.Headers.SetCookie);
+        Assert.StartsWith(".Aspire.Dashboard.Auth.test-application-", httpsCookie, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapJsonKeyTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "role",
+            JsonKey = "role"
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == ClaimValueTypes.String);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "role": ["admin", "test"]
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("role", "admin"));
+        Assert.True(claimIdentity.HasClaim("role", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapUniqueJsonKeyTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "name",
+            JsonKey = "name",
+            IsUnique = true
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == ClaimValueTypes.String);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "name": "test"
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity(
+        [
+            new Claim("name", "test")
+        ]);
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.Single(claimIdentity.Claims);
+        Assert.True(claimIdentity.HasClaim("name", "test"));
+
+        var emptyClaimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, emptyClaimIdentity, "test");
+        Assert.Single(emptyClaimIdentity.Claims);
+        Assert.True(emptyClaimIdentity.HasClaim("name", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapJsonSubKeyTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "name",
+            JsonKey = "profile",
+            SubKey = "name"
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == ClaimValueTypes.String);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "profile": {
+                                                 "name": "test"
+                                               }
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity(
+        [
+            new Claim("name", "test")
+        ]);
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("name", "test"));
+
+        var emptyClaimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, emptyClaimIdentity, "test");
+        Assert.Single(emptyClaimIdentity.Claims);
+        Assert.True(emptyClaimIdentity.HasClaim("name", "test"));
+    }
+
+    [Fact]
+    public void GetOidcClaimActionConfigure_MapJsonKey_ValueTypeTest()
+    {
+        var claimAction = new ClaimAction
+        {
+            ClaimType = "sub",
+            JsonKey = "userId",
+            ValueType = ClaimValueTypes.Integer,
+            IsUnique = true
+        };
+        var oidcOption = new OpenIdConnectOptions();
+        oidcOption.ClaimActions.Clear();
+        var configure = DashboardWebApplication.GetOidcClaimActionConfigure(claimAction);
+        configure(oidcOption);
+        Assert.Single(oidcOption.ClaimActions);
+        Assert.Contains(oidcOption.ClaimActions, x => x.ClaimType == claimAction.ClaimType && x.ValueType == claimAction.ValueType);
+        var action = oidcOption.ClaimActions.FirstOrDefault(x => x.ClaimType == claimAction.ClaimType);
+        Assert.NotNull(action);
+        var jsonElement = JsonDocument.Parse("""
+                                             {
+                                               "userId": "1"
+                                             }
+                                             """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        action.Run(jsonElement, claimIdentity, "test");
+        Assert.NotEmpty(claimIdentity.Claims);
+        Assert.True(claimIdentity.HasClaim("sub", "1"));
+    }
+
+    #endregion
+}

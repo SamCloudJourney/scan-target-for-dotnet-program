@@ -1,0 +1,15 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Packages.Versions.props" />
+
+  <!--
+    Aspire package versions are dynamically computed and included in the generated
+    Directory.Packages.Versions.props file. They are produced by calling the GetPackageName
+    target on each packable src project, which returns the per-project PackageVersion computed by
+    the Arcade SDK (respecting SuppressFinalPackageVersion, StabilizePackageVersion, etc.).
+    See _GeneratePackagesVersionsProps target in Aspire.RepoTesting.targets for details.
+  -->
+
+  <ItemGroup Label="For tests">
+    <PackageVersion Include="mstest.testadapter" Version="$(MSTestTestAdapterVersion)" />
+  </ItemGroup>
+</Project>

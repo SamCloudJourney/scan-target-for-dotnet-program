@@ -1,0 +1,1168 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Globalization;
+using System.Threading.Channels;
+using Aspire.Dashboard.Components.Controls;
+using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Components.Tests.Shared;
+using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Tests.Shared;
+using Aspire.Dashboard.Utils;
+using Aspire.Shared.ConsoleLogs;
+using Aspire.Tests.Shared.DashboardModel;
+using Bunit;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
+using Microsoft.FluentUI.AspNetCore.Components;
+using Xunit;
+
+namespace Aspire.Dashboard.Components.Tests.Pages;
+
+[UseCulture("en-US")]
+public partial class ConsoleLogsTests : DashboardTestContext
+{
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public ConsoleLogsTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
+    [Fact]
+    public async Task NoResourceName_SingleResource_RedirectToResource()
+    {
+        // Arrange
+        ILogger logger = null!;
+        var subscribedResourceNamesChannel = Channel.CreateUnbounded<string>();
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                logger.LogInformation($"Requesting logs for: {name}");
+                subscribedResourceNamesChannel.Writer.TryWrite(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+
+        var targetLocationTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var changeHandler = navigationManager.RegisterLocationChangingHandler(c =>
+        {
+            targetLocationTcs.SetResult(c.TargetLocation);
+            return ValueTask.CompletedTask;
+        });
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act 1
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert 1
+        Assert.Equal("/consolelogs/resource/test-resource", await targetLocationTcs.Task.DefaultTimeout());
+    }
+
+    [Fact]
+    public async Task ResourceName_SubscribeOnLoadAndChange_SubscribeConsoleLogsOnce()
+    {
+        // Arrange
+        ILogger logger = null!;
+        var subscribedResourceNamesChannel = Channel.CreateUnbounded<string>();
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var testResource2 = ModelTestHelpers.CreateResource(resourceName: "test-resource2", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                logger.LogInformation($"Requesting logs for: {name}");
+                subscribedResourceNamesChannel.Writer.TryWrite(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource, testResource2]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: "test-resource"));
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act 1
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert 1
+        logger.LogInformation("Waiting for selected resource.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Test content", IsErrorMessage: false)]);
+        consoleLogsChannel.Writer.Complete();
+
+        logger.LogInformation("Waiting for finish message.");
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)]);
+
+        var subscribedResourceName1 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal("test-resource", subscribedResourceName1);
+
+        navigationManager.LocationChanged += (sender, e) =>
+        {
+            var expectedUrl = DashboardUrls.ConsoleLogsUrl(resource: "test-resource2");
+            Assert.EndsWith(expectedUrl, e.Location);
+
+            cut.Render(builder =>
+            {
+                builder.Add(m => m.ResourceName, "test-resource2");
+            });
+        };
+        consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+
+        // Act 2
+        logger.LogInformation("Changing resource.");
+        var resourceSelect = cut.FindComponent<ResourceSelect>();
+        var selectedResource = resourceSelect.Instance.Resources!.Single(resource => resource.Name == "test-resource2");
+        var innerSelect = resourceSelect.FindComponent<FluentSelect<SelectViewModel<ResourceTypeDetails>, SelectViewModel<ResourceTypeDetails>>>();
+        await innerSelect.InvokeAsync(() => innerSelect.Instance.ValueChanged.InvokeAsync(selectedResource));
+
+        // Assert 2
+        logger.LogInformation("Waiting for selected resource.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource2.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResourceName2 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal("test-resource2", subscribedResourceName2);
+
+        subscribedResourceNamesChannel.Writer.Complete();
+        Assert.False(await subscribedResourceNamesChannel.Reader.WaitToReadAsync().DefaultTimeout());
+    }
+
+    [Fact]
+    public async Task ToggleHiddenResources_HiddenResourceVisibilityAndSelection_WorksCorrectly()
+    {
+        // Arrange
+        var regularResource1 = ModelTestHelpers.CreateResource(resourceName: "regular-resource1", state: KnownResourceState.Running);
+        var regularResource2 = ModelTestHelpers.CreateResource(resourceName: "regular-resource2", state: KnownResourceState.Running);
+        var hiddenResource = ModelTestHelpers.CreateResource(resourceName: "hidden-resource", state: KnownResourceState.Running, hidden: true);
+
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [regularResource1, regularResource2, hiddenResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act & Assert 1: Render component - initially hidden resource should not be visible
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+
+        // Wait for resources to load - use resource select component as proxy
+        cut.WaitForAssertion(() =>
+        {
+            var resourceSelect = cut.FindComponent<ResourceSelect>();
+            // Should have "All" + 2 regular resources when resources are loaded
+            Assert.Equal(3, resourceSelect.Instance.Resources!.Count());
+        });
+
+        // Initially, hidden resources should not be shown
+        var resourceSelect = cut.FindComponent<ResourceSelect>();
+        // Should have "All" + 2 regular resources (hidden resource filtered out)
+        Assert.Collection(
+            resourceSelect.Instance.Resources!,
+            resource => Assert.Equal(Resources.ControlsStrings.LabelAll, resource.Name),
+            resource => Assert.Equal("regular-resource1", resource.Name),
+            resource => Assert.Equal("regular-resource2", resource.Name));
+
+        // Act & Assert 2: Click the settings menu button to show the menu, then click "Show hidden resources"
+        var settingsMenuButton = cut.Find("fluent-button[title='" + Resources.ConsoleLogs.ConsoleLogsSettings + "']");
+        Assert.NotNull(settingsMenuButton);
+        settingsMenuButton.Click();
+
+        // Find and click the "Show hidden resources" menu item
+        var settingsMenu = cut.FindComponents<AspireMenu>().Single(m => m.Instance.Items.Any(i => i.Text == Resources.ControlsStrings.ShowHiddenResources));
+        var showHiddenMenuItem = settingsMenu.Instance.Items.Single(i => i.Text == Resources.ControlsStrings.ShowHiddenResources);
+        Assert.NotNull(showHiddenMenuItem.OnClick);
+        await cut.InvokeAsync(() => settingsMenu.Instance.OpenChanged.InvokeAsync(false));
+        await cut.InvokeAsync(showHiddenMenuItem.OnClick);
+        cut.Render();
+
+        // Wait for UI to update
+        cut.WaitForAssertion(() =>
+        {
+            // Should now have "All" + all three resources
+            Assert.Equal(
+                new[] { Resources.ControlsStrings.LabelAll, "regular-resource1", "regular-resource2", "hidden-resource" }.Order(),
+                cut.FindComponent<ResourceSelect>().Instance.Resources!.Select(resource => resource.Name).Order());
+        });
+
+        // Act & Assert 3: Click "Hide hidden resources" to hide them again
+        // Note: We stay on "All" view to test the hide functionality
+        cut.WaitForAssertion(() => Assert.False(settingsMenu.Instance.Open));
+        settingsMenuButton.Click();
+        settingsMenu = cut.FindComponents<AspireMenu>().Single(m => m.Instance.Items.Any(i => i.Text == Resources.ControlsStrings.HideHiddenResources));
+        var hideHiddenMenuItem = settingsMenu.Instance.Items.Single(i => i.Text == Resources.ControlsStrings.HideHiddenResources);
+        Assert.NotNull(hideHiddenMenuItem.OnClick);
+        await cut.InvokeAsync(() => settingsMenu.Instance.OpenChanged.InvokeAsync(false));
+        await cut.InvokeAsync(hideHiddenMenuItem.OnClick);
+        cut.Render();
+
+        // Wait for UI to update - hidden resource should be filtered out
+        cut.WaitForAssertion(() =>
+        {
+            // Should be back to "All" + 2 regular resources only
+            Assert.Equal(
+                new[] { Resources.ControlsStrings.LabelAll, "regular-resource1", "regular-resource2" }.Order(),
+                cut.FindComponent<ResourceSelect>().Instance.Resources!.Select(resource => resource.Name).Order());
+        });
+    }
+
+    [Fact]
+    public void ToggleHiddenResourcesMenuItem_WhenSingleResourceSelected_NotShown()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var hiddenResource = ModelTestHelpers.CreateResource(resourceName: "hidden-resource", state: KnownResourceState.Running, hidden: true);
+
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource, hiddenResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act: Render component with a specific resource selected
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, viewport);
+            builder.Add(p => p.ResourceName, "test-resource");
+        });
+
+        var instance = cut.Instance;
+
+        // Wait for resources to load and specific resource to be selected
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource?.Id?.InstanceId == "test-resource");
+
+        // Act: Click the settings menu button
+        var settingsMenuButton = cut.Find("fluent-button[title='" + Resources.ConsoleLogs.ConsoleLogsSettings + "']");
+        Assert.NotNull(settingsMenuButton);
+        settingsMenuButton.Click();
+
+        // Assert: The "Show hidden resources" / "Hide hidden resources" menu item should NOT be present
+        cut.WaitForAssertion(() =>
+        {
+            var menuItems = cut.FindAll("fluent-menu-item");
+            var hiddenResourcesMenuItems = menuItems.Where(item =>
+            {
+                var text = item.TextContent;
+                return text.Contains(Resources.ControlsStrings.ShowHiddenResources) ||
+                       text.Contains(Resources.ControlsStrings.HideHiddenResources);
+            }).ToList();
+
+            Assert.Empty(hiddenResourcesMenuItems);
+        });
+    }
+
+    [Fact]
+    public async Task ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        logger.LogInformation("Log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
+    }
+
+    [Fact]
+    public async Task CurrentRun_SubscribesToLiveConsoleLogs()
+    {
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var liveSubscriptionTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var liveConsoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var repositoryConsoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var repositorySubscriptionCount = 0;
+        var liveClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: resourceName =>
+            {
+                liveSubscriptionTcs.TrySetResult(resourceName);
+                return liveConsoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+        var currentResourceRepository = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ =>
+            {
+                Interlocked.Increment(ref repositorySubscriptionCount);
+                return repositoryConsoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(liveClient, resourceRepository: currentResourceRepository);
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var cut = RenderConsoleLogsPage(viewport, testResource.Name);
+
+        Assert.Equal(testResource.Name, await liveSubscriptionTcs.Task.DefaultTimeout());
+        Assert.Equal(0, Volatile.Read(ref repositorySubscriptionCount));
+
+        liveConsoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Live log", IsErrorMessage: false)]);
+        cut.WaitForState(() => cut.Instance._logEntries.EntriesCount == 1);
+        Assert.Equal("Live log", Assert.Single(cut.Instance._logEntries.GetEntries()).RawContent);
+    }
+
+    [Theory]
+    [InlineData(false, "Console logs weren't captured for this run. Console logs are only captured if this page is visited while the AppHost is running.")]
+    [InlineData(true, "No logs found")]
+    public void HistoricalRun_NoLogs_DisplaysCaptureStatus(bool consoleLogsWereLoaded, string expectedMessage)
+    {
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        testResource.ConsoleLogsLoaded = consoleLogsWereLoaded;
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ => Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(),
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>,
+            initialResources: [testResource],
+            isReadOnly: true);
+        SetupConsoleLogsServices(dashboardClient);
+
+        var cut = RenderConsoleLogsPage(CreateViewport(isDesktop: true), testResource.Name);
+
+        var emptyMessage = cut.WaitForElement(".console-empty-message", TimeSpan.FromSeconds(3));
+        Assert.Equal(expectedMessage, emptyMessage.TextContent.Trim());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SearchFilter_UpdatesLogViewerFilterAndVisibleLogs(bool isDesktop)
+    {
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+        var viewport = CreateViewport(isDesktop);
+        SetupConsoleLogsServices(dashboardClient);
+        var dialogProvider = isDesktop ? null : RenderDialogProvider(viewport);
+
+        var cut = RenderConsoleLogsPage(viewport, resourceName: "test-resource");
+        var instance = cut.Instance;
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+
+        consoleLogsChannel.Writer.TryWrite([
+            new ResourceLogLine(1, "apple log", IsErrorMessage: false),
+            new ResourceLogLine(2, "banana log", IsErrorMessage: false)
+        ]);
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".log-content").Count));
+
+        var search = isDesktop
+            ? Assert.Single(cut.FindComponents<FluentTextInput>())
+            : OpenMobileToolbarAndFindSearch(cut, dialogProvider!);
+        await cut.InvokeAsync(() => search.Instance.ValueChanged.InvokeAsync("banana"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var logViewer = Assert.Single(cut.FindComponents<LogViewer>());
+            Assert.Equal("banana", logViewer.Instance.FilterText);
+
+            var content = Assert.Single(cut.FindAll(".log-content"));
+            Assert.Contains("banana log", content.TextContent);
+        });
+    }
+
+    [Fact]
+    public void SearchFilter_MobileHasVisibleLabel()
+    {
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+        var viewport = CreateViewport(isDesktop: false);
+        SetupConsoleLogsServices(dashboardClient);
+        var dialogProvider = RenderDialogProvider(viewport);
+
+        var cut = RenderConsoleLogsPage(viewport, resourceName: "test-resource");
+        cut.WaitForState(() => cut.Instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ControlsStrings>>();
+        var search = OpenMobileToolbarAndFindSearch(cut, dialogProvider);
+
+        Assert.Equal(loc[nameof(Resources.ControlsStrings.FilterPlaceholder)].Value, search.Instance.Label);
+    }
+
+    [Fact]
+    public async Task ReadingLogs_ErrorDuringRead_SetStatusAndLog()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        logger.LogInformation("Throw error from console logs subscription.");
+        consoleLogsChannel.Writer.Complete(new InvalidOperationException("Error!"));
+
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsErrorWatchingLogs)]);
+    }
+
+    [Fact]
+    public async Task ReadingLogs_ErrorDuringReadAfterDispose_StatusUnchanged()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        await instance.DisposeAsync().DefaultTimeout();
+
+        logger.LogInformation("Throw error from console logs subscription.");
+        consoleLogsChannel.Writer.Complete(new InvalidOperationException("Error!"));
+
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+    }
+
+    [Fact]
+    public async Task ClearLogEntries_AllResources_LogsFilteredOut()
+    {
+        // Arrange
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+        var timeProvider = new TestTimeProvider();
+
+        SetupConsoleLogsServices(dashboardClient, timeProvider: timeProvider);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Waiting for selected resource.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        logger.LogInformation("Log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "2025-02-08T10:16:08Z Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
+
+        // Set current time to the date of the first entry so all entries are cleared.
+        var earliestEntry = instance._logEntries.GetEntries()[0];
+        timeProvider.UtcNow = earliestEntry.Timestamp!.Value;
+
+        logger.LogInformation("Clear current entries.");
+        cut.Find(".clear-button").Click();
+
+        cut.WaitForElement("#clear-menu-all");
+        var clearMenu = cut.FindComponents<AspireMenu>().Single(m => m.Instance.Items.Any(i => i.Id == "clear-menu-all"));
+        var clearAllMenuItem = clearMenu.Instance.Items.Single(i => i.Id == "clear-menu-all");
+        Assert.NotNull(clearAllMenuItem.OnClick);
+        await cut.InvokeAsync(clearAllMenuItem.OnClick);
+        cut.Render();
+
+        cut.WaitForState(() => instance._logEntries.EntriesCount == 0);
+        var clearedConsoleLogs = Assert.Single(dashboardClient.ClearedConsoleLogs);
+        Assert.Collection(
+            clearedConsoleLogs.ResourceNames,
+            resourceName => Assert.Equal(testResource.Name, resourceName));
+        Assert.Equal(timeProvider.UtcNow.UtcDateTime, clearedConsoleLogs.ClearDate);
+
+        logger.LogInformation("New log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, "2025-03-08T10:16:08Z Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
+    }
+
+    [Fact]
+    public async Task ClearLogEntries_SelectedResource_DeletesPersistedLogsAndUpdatesFilter()
+    {
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var selectedResource = ModelTestHelpers.CreateResource(resourceName: "selected-resource", state: KnownResourceState.Running);
+        var otherResource = ModelTestHelpers.CreateResource(resourceName: "other-resource", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [selectedResource, otherResource]);
+        var timeProvider = new TestTimeProvider
+        {
+            UtcNow = new DateTime(2025, 2, 8, 10, 16, 8, DateTimeKind.Utc)
+        };
+        SetupConsoleLogsServices(dashboardClient, timeProvider: timeProvider);
+
+        var cut = RenderConsoleLogsPage(CreateViewport(isDesktop: true), selectedResource.Name);
+        cut.WaitForState(() => cut.Instance.PageViewModel.SelectedResource.Id?.InstanceId == selectedResource.Name);
+
+        cut.Find(".clear-button").Click();
+        cut.WaitForElement("#clear-menu-resource");
+        var clearMenu = cut.FindComponents<AspireMenu>().Single(menu => menu.Instance.Items.Any(item => item.Id == "clear-menu-resource"));
+        var clearResourceMenuItem = clearMenu.Instance.Items.Single(item => item.Id == "clear-menu-resource");
+        Assert.NotNull(clearResourceMenuItem.OnClick);
+        await cut.InvokeAsync(clearResourceMenuItem.OnClick);
+
+        var clearedConsoleLogs = Assert.Single(dashboardClient.ClearedConsoleLogs);
+        Assert.Collection(
+            clearedConsoleLogs.ResourceNames,
+            resourceName => Assert.Equal(selectedResource.Name, resourceName));
+        Assert.Equal(timeProvider.UtcNow.UtcDateTime, clearedConsoleLogs.ClearDate);
+        Assert.Equal(timeProvider.UtcNow.UtcDateTime, Services.GetRequiredService<ConsoleLogsManager>().GetFilterDate(selectedResource.Name));
+        Assert.Null(Services.GetRequiredService<ConsoleLogsManager>().GetFilterDate(otherResource.Name));
+    }
+
+    [Fact]
+    public async Task ConsoleLogsManager_ClearLogs_LogsFilteredOutAsync()
+    {
+        // Arrange
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+        var timeProvider = new TestTimeProvider();
+
+        SetupConsoleLogsServices(dashboardClient, timeProvider: timeProvider);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+        var consoleLogsManager = Services.GetRequiredService<ConsoleLogsManager>();
+
+        // Act
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        Assert.Single(consoleLogsManager.GetSubscriptions());
+
+        logger.LogInformation("Waiting for selected resource.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        logger.LogInformation("Log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "2025-02-08T10:16:08Z Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
+
+        // Set current time to the date of the first entry so all entries are cleared.
+        var earliestEntry = instance._logEntries.GetEntries()[0];
+        timeProvider.UtcNow = earliestEntry.Timestamp!.Value;
+
+        await consoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = earliestEntry.Timestamp!.Value, FilterResourceLogsDates = new Dictionary<string, DateTime>() });
+
+        cut.WaitForState(() => instance._logEntries.EntriesCount == 0);
+
+        logger.LogInformation("New log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, "2025-03-08T10:16:08Z Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
+    }
+
+    [Fact]
+    public async Task NavigateBack_AfterLogsDeleted_ReplayedLogsBeforeClearDateRemainFiltered()
+    {
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+        SetupConsoleLogsServices(dashboardClient);
+
+        var clearDate = new DateTime(2025, 2, 8, 10, 16, 8, DateTimeKind.Utc);
+        await dashboardClient.ClearConsoleLogsAsync([testResource.Name], clearDate);
+        var consoleLogsManager = Services.GetRequiredService<ConsoleLogsManager>();
+        await consoleLogsManager.UpdateFiltersAsync(ConsoleLogsFilters.Default.WithResourceCleared(testResource.Name, clearDate));
+
+        var cut = RenderConsoleLogsPage(CreateViewport(isDesktop: true), testResource.Name);
+        cut.WaitForState(() => cut.Instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+
+        var clearedLog = "2025-02-08T10:16:08Z Cleared log";
+        var newLog = "2025-02-08T10:16:09Z New log";
+        consoleLogsChannel.Writer.TryWrite([
+            new ResourceLogLine(1, clearedLog, IsErrorMessage: false),
+            new ResourceLogLine(2, newLog, IsErrorMessage: false)
+        ]);
+
+        cut.WaitForAssertion(() =>
+        {
+            var logEntry = Assert.Single(cut.Instance._logEntries.GetEntries());
+            Assert.Equal(newLog, logEntry.RawContent);
+        });
+    }
+
+    [Fact]
+    public void MenuButtons_SelectedResourceChanged_ButtonsUpdated()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            state: KnownResourceState.Running,
+            commands: [new CommandViewModel("test-name", CommandViewModelState.Enabled, "test-displayname", "test-displaydescription", confirmationMessage: "", argumentInputs: [], isHighlighted: true, iconName: string.Empty, iconVariant: IconVariant.Regular)]);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act 1
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert 1
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+
+        cut.WaitForAssertion(() =>
+        {
+            var highlightedCommands = cut.FindAll(".highlighted-command");
+            Assert.Single(highlightedCommands);
+        });
+
+        // Act 2
+        testResource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            state: KnownResourceState.Running,
+            commands: []);
+        resourceChannel.Writer.TryWrite([
+            new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, testResource)
+        ]);
+
+        // Assert 2
+        cut.WaitForAssertion(() =>
+        {
+            var highlightedCommands = cut.FindAll(".highlighted-command");
+            Assert.Empty(highlightedCommands);
+        });
+    }
+
+    [Fact]
+    public void DashboardReadOnly_DisablesCommandButNotTelemetryActions()
+    {
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            state: KnownResourceState.Running,
+            commands:
+            [
+                new CommandViewModel(
+                    "test-command",
+                    CommandViewModelState.Enabled,
+                    "Test command",
+                    "Test command description",
+                    confirmationMessage: "",
+                    argumentInputs: [],
+                    isHighlighted: true,
+                    iconName: string.Empty,
+                    iconVariant: IconVariant.Regular)
+            ]);
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: _ => Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(),
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>,
+            initialResources: [resource],
+            isReadOnly: true);
+        SetupConsoleLogsServices(dashboardClient);
+        var viewport = CreateViewport(isDesktop: true);
+
+        var cut = RenderConsoleLogsPage(viewport, resource.Name);
+
+        cut.WaitForAssertion(() =>
+        {
+            var commandButton = cut.Find(".highlighted-command");
+            Assert.True(commandButton.HasAttribute("disabled"));
+
+            var clearButton = Assert.Single(
+                cut.FindComponents<FluentButton>(),
+                button => string.Equals(button.Instance.Class, "clear-button", StringComparison.Ordinal));
+            Assert.False(clearButton.Instance.Disabled);
+
+            var pauseButton = Assert.Single(cut.FindComponents<PauseIncomingDataSwitch>());
+            Assert.False(pauseButton.Instance.Disabled);
+        });
+    }
+
+    [Fact]
+    public async Task ExecuteCommand_DelayExecuting_IsExecutingReturnsTrueWhileRunning()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(
+            resourceName: "test-resource",
+            state: KnownResourceState.Running,
+            commands: [new CommandViewModel("test-name", CommandViewModelState.Enabled, "test-displayname", "test-displaydescription", confirmationMessage: "", argumentInputs: [], isHighlighted: true, iconName: string.Empty, iconVariant: IconVariant.Regular)]);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var resourceCommandChannel = Channel.CreateUnbounded<ResourceCommandResponseViewModel>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            resourceCommandsChannel: resourceCommandChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        var dashboardCommandExecutor = Services.GetRequiredService<DashboardCommandExecutor>();
+
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        AngleSharp.Dom.IElement highlightedCommand = default!;
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+        cut.WaitForAssertion(() =>
+        {
+            var highlightedCommands = cut.FindAll(".highlighted-command");
+            highlightedCommand = Assert.Single(highlightedCommands);
+        });
+
+        // Act
+        highlightedCommand.Click();
+
+        // Assert
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => dashboardCommandExecutor.IsExecuting("test-resource", "test-name"), "Command start executing");
+
+        resourceCommandChannel.Writer.TryWrite(new ResourceCommandResponseViewModel
+        {
+            Kind = ResourceCommandResponseKind.Succeeded
+        });
+
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() => !dashboardCommandExecutor.IsExecuting("test-resource", "test-name"), "Command finish executing");
+    }
+
+    [Fact]
+    public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannel,
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var pauseManager = Services.GetRequiredService<PauseManager>();
+        var timeProvider = Services.GetRequiredService<BrowserTimeProvider>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var browserTimeProvider = Services.GetRequiredService<BrowserTimeProvider>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+
+        // Assert initial state
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
+
+        logger.LogInformation("Check logs are empty.");
+        PrintCurrentLogEntries(cut.Instance._logEntries);
+        Assert.Empty(cut.Instance._logEntries.GetEntries());
+
+        logger.LogInformation("Pause logs.");
+        var pauseResumeButton = cut.FindComponent<PauseIncomingDataSwitch>().WaitForElement("fluent-button");
+        pauseResumeButton.Click();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(pauseManager.ConsoleLogsPaused);
+            var activePause = pauseManager.ConsoleLogPauseIntervals[^1];
+            var pauseWarning = cut.FindComponent<PauseWarning>();
+            Assert.Equal(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    loc[nameof(Resources.ConsoleLogs.PauseInProgressText)],
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, activePause.Start)),
+                pauseWarning.Instance.PauseText);
+            Assert.Single(cut.Find("footer").QuerySelectorAll(".block-warning"));
+        });
+
+        logger.LogInformation("Wait for pause log.");
+        var pauseConsoleLogLine = cut.WaitForElement(".log-pause");
+
+        logger.LogInformation("Adding filtered logs during pause.");
+        // Add new logs while paused and assert that the log viewer shows correct filtered count
+        var pauseContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log while paused";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, pauseContent, IsErrorMessage: false)]);
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(2, pauseContent, IsErrorMessage: false)]);
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(3, pauseContent, IsErrorMessage: false)]);
+
+        logger.LogInformation("Assert that the only log is still the pause log.");
+        cut.WaitForAssertion(() =>
+        {
+            var pauseLog = Assert.Single(cut.Instance._logEntries.GetEntries());
+            Assert.Equal(
+                string.Format(
+                    loc[Resources.ConsoleLogs.ConsoleLogsPauseActive],
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pauseLog.Pause!.StartTime, MillisecondsDisplay.Truncated),
+                    3),
+                pauseConsoleLogLine.TextContent);
+        });
+
+        logger.LogInformation("Resume logs.");
+        // Check that
+        // - the pause line has been replaced with pause details
+        // - the log viewer shows the new log
+        // - the log viewer does not show the discarded log
+        pauseResumeButton.Click();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.False(pauseManager.ConsoleLogsPaused);
+            Assert.False(cut.HasComponent<PauseWarning>());
+        });
+
+        logger.LogInformation("Assert that pause log has expected content.");
+        cut.WaitForAssertion(() =>
+        {
+            PrintCurrentLogEntries(cut.Instance._logEntries);
+
+            var pauseEntry = Assert.Single(cut.Instance._logEntries.GetEntries());
+            var pause = pauseEntry.Pause;
+            Assert.NotNull(pause);
+            Assert.NotNull(pause.EndTime);
+            Assert.Equal(
+                string.Format(
+                    loc[Resources.ConsoleLogs.ConsoleLogsPauseDetails],
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.StartTime, MillisecondsDisplay.Truncated),
+                    FormatHelpers.FormatTimeWithOptionalDate(timeProvider, pause.EndTime.Value, MillisecondsDisplay.Truncated),
+                    3),
+                pauseConsoleLogLine.TextContent);
+        });
+
+        logger.LogInformation("Write a new log after resume.");
+        var resumeContent = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffK} Log after resume";
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(4, resumeContent, IsErrorMessage: false)]);
+
+        logger.LogInformation("Assert that log entries discarded aren't in log viewer and log entries that should be logged are in log viewer.");
+        cut.WaitForAssertion(() =>
+        {
+            var logViewer = cut.FindComponent<LogViewer>();
+            PrintCurrentLogEntries(logViewer.Instance.LogEntries!);
+
+            var newLog = Assert.Single(logViewer.Instance.LogEntries!.GetEntries(), e => e.RawContent == resumeContent);
+            // We discarded one log while paused, so the new log should be line 3, skipping one
+            Assert.Equal(4, newLog.LineNumber);
+            Assert.DoesNotContain(pauseContent, logViewer.Instance.LogEntries!.GetEntries().Select(e => e.RawContent));
+        });
+
+        void PrintCurrentLogEntries(LogEntries logEntries)
+        {
+            logger.LogInformation($"Log entries count: {logEntries.EntriesCount}");
+
+            foreach (var logEntry in logEntries.GetEntries())
+            {
+                logger.LogInformation($"Log line. Type = {logEntry.Type}, Raw content = {logEntry.RawContent ?? "no content"}, Pause content: {logEntry.Pause?.GetDisplayText(loc, browserTimeProvider) ?? "n/a"}");
+            }
+        }
+    }
+
+    private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null, TestTimeProvider? timeProvider = null, IResourceRepository? resourceRepository = null)
+    {
+        FluentUISetupHelpers.SetupFluentDialogProvider(this);
+        FluentUISetupHelpers.SetupFluentDivider(this);
+        FluentUISetupHelpers.SetupFluentInputLabel(this);
+        FluentUISetupHelpers.SetupFluentList(this);
+        FluentUISetupHelpers.SetupFluentSearch(this);
+        FluentUISetupHelpers.SetupFluentKeyCode(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
+        FluentUISetupHelpers.SetupFluentAnchor(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        FluentUISetupHelpers.SetupFluentToolbar(this);
+
+        JSInterop.SetupVoid("focusElement", _ => true);
+
+        FluentUISetupHelpers.AddCommonDashboardServices(this, browserTimeProvider: timeProvider);
+
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+
+        Services.AddSingleton<ILoggerFactory>(loggerFactory);
+        Services.AddSingleton<IconResolver>();
+        Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
+        Services.AddScoped<DashboardCommandExecutor>();
+        Services.AddSingleton<ConsoleLogsManager>();
+
+        if (resourceRepository is not null)
+        {
+            // Registered after AddCommonDashboardServices, which otherwise forwards IResourceRepository to IDashboardClient.
+            Services.AddSingleton(resourceRepository);
+        }
+
+        FluentUISetupHelpers.SetupFluentUIComponents(this);
+    }
+
+    private IRenderedComponent<Components.Pages.ConsoleLogs> RenderConsoleLogsPage(ViewportInformation viewport, string resourceName)
+    {
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        return Render<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, resourceName);
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+    }
+
+    private static ViewportInformation CreateViewport(bool isDesktop)
+    {
+        return new ViewportInformation(IsDesktop: isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false);
+    }
+
+    private static IRenderedComponent<FluentTextInput> OpenMobileToolbarAndFindSearch(IRenderedComponent<Components.Pages.ConsoleLogs> cut, IRenderedComponent<IComponent> dialogProvider)
+    {
+        cut.Find(".mobile-toolbar").Click();
+
+        dialogProvider.WaitForAssertion(() => Assert.Single(dialogProvider.FindComponents<FluentTextInput>()));
+
+        return Assert.Single(dialogProvider.FindComponents<FluentTextInput>());
+    }
+
+    private IRenderedComponent<IComponent> RenderDialogProvider(ViewportInformation viewport)
+    {
+        return Render(builder =>
+        {
+            builder.OpenComponent<CascadingValue<ViewportInformation>>(0);
+            builder.AddAttribute(1, nameof(CascadingValue<ViewportInformation>.Value), viewport);
+            builder.AddAttribute(2, nameof(CascadingValue<ViewportInformation>.ChildContent), (RenderFragment)(childBuilder =>
+            {
+                childBuilder.OpenComponent<FluentDialogProvider>(0);
+                childBuilder.CloseComponent();
+            }));
+            builder.CloseComponent();
+        });
+    }
+}

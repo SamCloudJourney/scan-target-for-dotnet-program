@@ -1,0 +1,43 @@
+﻿@namespace Aspire.Dashboard.Components
+@using System.Collections.Immutable
+@inherits FluentComponentBase
+
+@{
+    var hasText = !string.IsNullOrWhiteSpace(Text);
+    var iconOnly = !hasText && IconStart is null;
+    var additionalButtonAttributes = new Dictionary<string, object>(AdditionalAttributes ?? ImmutableDictionary<string, object>.Empty)
+    {
+        { "onkeydown", (KeyboardEventArgs args) => OnKeyDown(args) },
+        { "aria-haspopup", "menu" },
+        { "aria-expanded", _visible ? "true" : "false" }
+    };
+}
+
+<div class="aspire-menu-button">
+    <FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" IconOnly="@iconOnly" @onclick="ToggleMenu" Disabled="@_disabled" AdditionalAttributes="@additionalButtonAttributes" Class="@ButtonClass">
+        @if (IconStart is not null)
+        {
+            <FluentIcon Class="@IconStartClass" Value="@IconStart" Color="@IconStartColor" CustomColor="@IconStartCustomColor" Slot="start" />
+        }
+
+        @if (!hasText)
+        {
+            <FluentIcon Value="@_icon" Color="@IconColor" CustomColor="@IconCustomColor" />
+        }
+        else
+        {
+            @Text
+
+            @if (!HideIcon)
+            {
+                <FluentIcon Value="@_icon" Color="@IconColor" CustomColor="@IconCustomColor" Slot="end" />
+            }
+        }
+    </FluentButton>
+
+    @* Render lazily because FluentMenu is expensive: building menu items and initializing its JavaScript interop add significant overhead when many menu buttons are displayed. *@
+    @if (_renderMenu)
+    {
+        <AspireMenu Anchor="@MenuButtonId" Open="@_visible" OpenChanged="OnMenuOpenChanged" OnSecondaryActionComplete="RefreshItems" Items="_items" RestoreFocusOnItemClick="@RestoreFocusOnItemClick" />
+    }
+</div>

@@ -1,0 +1,21 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Otlp.Storage
+@using Microsoft.Extensions.Logging
+
+@if (LogEntry.IsError)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon"/>
+}
+else if (LogEntry.IsWarning)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon"/>
+}
+
+@LogEntry.Severity
+
+@code {
+    [Parameter, EditorRequired]
+    public required LogSummary LogEntry { get; set; }
+}

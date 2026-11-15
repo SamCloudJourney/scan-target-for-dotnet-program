@@ -1,0 +1,57 @@
+# Polyglot SDK Validation - Go
+# This Dockerfile sets up an environment for validating the Go AppHost SDK
+#
+# Usage:
+#   docker build -f Dockerfile.golang -t polyglot-go .
+#   docker run --rm \
+#     -v "$(pwd):/workspace" \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     polyglot-go
+#
+# Note: Expects self-extracting binary and NuGet artifacts to be pre-downloaded to /workspace/artifacts/
+#
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.26-bookworm AS go
+
+# The native Aspire CLI requires glibc 2.38+, but the Microsoft Go Bookworm image
+# has glibc 2.36. Keep Microsoft's toolchain on an approved base with newer glibc.
+FROM mcr.microsoft.com/mirror/docker/library/ubuntu:24.04
+
+COPY --from=go /usr/local/go /usr/local/go
+
+# Keep the C toolchain and OpenSSL dependencies needed by Microsoft Go's system crypto.
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    git \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    wget \
+    docker.io \
+    jq \
+    libicu74 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV GOPATH=/go
+
+# Pre-configure Aspire CLI path
+ENV PATH="/root/.aspire/bin:/usr/local/go/bin:/go/bin:${PATH}"
+ENV ASPIRE_CLI_TELEMETRY_OPTOUT=1
+
+WORKDIR /workspace
+
+COPY setup-local-cli.sh /scripts/setup-local-cli.sh
+COPY test-go.sh /scripts/test-go.sh
+COPY test-go-playground.sh /scripts/test-go-playground.sh
+RUN chmod +x /scripts/setup-local-cli.sh /scripts/test-go.sh /scripts/test-go-playground.sh
+
+# Entrypoint: Set up Aspire CLI and run validation
+# Bundle extraction happens lazily on first command that needs the layout
+ENTRYPOINT ["/bin/bash", "-c", "\
+    set -e && \
+    /scripts/setup-local-cli.sh && \
+    aspire --nologo config set features:experimentalPolyglot:go true --global && \
+    echo '' && \
+    echo '=== Running validation ===' && \
+    /scripts/test-go.sh && \
+    /scripts/test-go-playground.sh \
+"]

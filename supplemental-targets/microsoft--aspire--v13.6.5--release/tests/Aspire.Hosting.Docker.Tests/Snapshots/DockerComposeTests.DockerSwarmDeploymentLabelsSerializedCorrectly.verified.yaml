@@ -1,0 +1,22 @@
+﻿services:
+  swarm-env-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:13.6"
+    ports:
+      - "18888"
+    expose:
+      - "18889"
+      - "18890"
+    networks:
+      - "aspire"
+    restart: "always"
+  my-service:
+    image: "my-image:latest"
+    networks:
+      - "aspire"
+    deploy:
+      labels:
+        com.example.foo: "bar"
+        com.example.env: "production"
+networks:
+  aspire:
+    driver: "bridge"

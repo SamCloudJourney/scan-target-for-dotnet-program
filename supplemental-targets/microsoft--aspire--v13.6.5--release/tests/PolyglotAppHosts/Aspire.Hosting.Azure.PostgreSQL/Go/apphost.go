@@ -1,0 +1,73 @@
+package main
+
+import (
+	"log"
+
+	"apphost/modules/aspire"
+)
+
+func main() {
+	builder, err := aspire.CreateBuilder()
+	if err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+
+	// 1) AddAzurePostgresFlexibleServer — main factory method
+	pg := builder.AddAzurePostgresFlexibleServer("pg")
+	pg.ConfigureInfrastructure(func(infrastructure aspire.AzureResourceInfrastructure) {
+		server := infrastructure.GetPostgreSqlFlexibleServer()
+		backup := server.Backup()
+		if err := backup.SetBackupRetentionDays(float64(14)).Err(); err != nil {
+			log.Fatalf(aspire.FormatError(err))
+		}
+		if _, err := backup.BackupRetentionDays(); err != nil {
+			log.Fatalf(aspire.FormatError(err))
+		}
+	})
+	if pg.Err() != nil {
+		log.Fatalf(aspire.FormatError(pg.Err()))
+	}
+
+	// 2) AddDatabase — child resource
+	db := pg.AddDatabase("mydb", &aspire.AddDatabaseOptions{
+		DatabaseName: aspire.StringPtr("appdb"),
+	})
+	if db.Err() != nil {
+		log.Fatalf(aspire.FormatError(db.Err()))
+	}
+
+	// 3) WithPasswordAuthentication
+	pgAuth := builder.AddAzurePostgresFlexibleServer("pg-auth")
+	if pgAuth.Err() != nil {
+		log.Fatalf(aspire.FormatError(pgAuth.Err()))
+	}
+	pgAuth.WithPasswordAuthentication()
+
+	// 4) RunAsContainer — run as local PostgreSQL container
+	pgContainer := builder.AddAzurePostgresFlexibleServer("pg-container")
+	if pgContainer.Err() != nil {
+		log.Fatalf(aspire.FormatError(pgContainer.Err()))
+	}
+	pgContainer.RunAsContainer(&aspire.RunAsContainerOptions{
+		ConfigureContainer: func(container aspire.PostgresServerResource) {
+			container.WithPersistentLifetime()
+		},
+	})
+	if pgContainer.Err() != nil {
+		log.Fatalf(aspire.FormatError(pgContainer.Err()))
+	}
+
+	// 5) AddDatabase on container-mode server
+	dbContainer := pgContainer.AddDatabase("containerdb")
+	if dbContainer.Err() != nil {
+		log.Fatalf(aspire.FormatError(dbContainer.Err()))
+	}
+
+	app, err := builder.Build()
+	if err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	if err := app.Run(); err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+}

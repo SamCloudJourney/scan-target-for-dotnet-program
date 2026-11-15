@@ -1,0 +1,147 @@
+{
+  "resources": {
+    "docker-compose": {
+      "error": "This resource does not support generation in the manifest."
+    },
+    "goversion": {
+      "type": "parameter.v0",
+      "value": "{goversion.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "secret": {
+      "type": "parameter.v0",
+      "value": "{secret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "mycontainer": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "qots/Dockerfile",
+        "args": {
+          "GO_VERSION": "{goversion.value}"
+        },
+        "secrets": {
+          "SECRET_ASENV": {
+            "type": "env",
+            "value": "{secret.value}"
+          }
+        }
+      },
+      "env": {
+        "DOCKER_BUILDKIT": "1"
+      }
+    },
+    "dynamic-sync": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "dynamic-sync.Dockerfile"
+      }
+    },
+    "dynamic-async": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "dynamic-async.Dockerfile"
+      }
+    },
+    "builder-sync": {
+      "type": "container.v1",
+      "connectionString": "{builder-sync.bindings.tcp.host}:{builder-sync.bindings.tcp.port},password={builder-sync-password.value}{cond-builder-sync-bindings-tcp-tlsenabled-6201da71.connectionString}",
+      "build": {
+        "context": ".",
+        "dockerfile": "builder-sync.Dockerfile"
+      },
+      "entrypoint": "/bin/sh",
+      "args": [
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD"
+      ],
+      "env": {
+        "REDIS_PASSWORD": "{builder-sync-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "redis",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "builder-async": {
+      "type": "container.v1",
+      "connectionString": "{builder-async.bindings.tcp.host}:{builder-async.bindings.tcp.port},password={builder-async-password.value}{cond-builder-async-bindings-tcp-tlsenabled-b1634741.connectionString}",
+      "build": {
+        "context": ".",
+        "dockerfile": "builder-async.Dockerfile"
+      },
+      "entrypoint": "/bin/sh",
+      "args": [
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD"
+      ],
+      "env": {
+        "REDIS_PASSWORD": "{builder-async-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "redis",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "builder-sync-password": {
+      "type": "parameter.v0",
+      "value": "{builder-sync-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "builder-async-password": {
+      "type": "parameter.v0",
+      "value": "{builder-async-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "cond-builder-sync-bindings-tcp-tlsenabled-6201da71": {
+      "type": "value.v0",
+      "connectionString": ""
+    },
+    "cond-builder-async-bindings-tcp-tlsenabled-b1634741": {
+      "type": "value.v0",
+      "connectionString": ""
+    }
+  }
+}

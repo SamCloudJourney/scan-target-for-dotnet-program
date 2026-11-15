@@ -1,0 +1,142 @@
+<Project>
+  <!--
+    For template testing we track four SDK and TFM versions.
+
+      .NET 8
+      .NET 9
+      .NET 10
+      .NET 11
+
+    Keep this list in sync with the version mapping in tests/Shared/TemplatesTesting/BuildEnvironment.cs
+  -->
+  <PropertyGroup>
+    <SdkVersionForNet8TFM>$(DotNetSdkNet8VersionForTesting)</SdkVersionForNet8TFM>
+    <SdkVersionForNet9TFM>$(DotNetSdkNet9VersionForTesting)</SdkVersionForNet9TFM>
+    <SdkVersionForNet10TFM>$(DotNetSdkNet10VersionForTesting)</SdkVersionForNet10TFM>
+
+    <!-- global.json uses the .NET 11 SDK. -->
+    <_GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</_GlobalJsonContent>
+    <_DotNetCliVersionFromGlobalJson>$([System.Text.RegularExpressions.Regex]::Match($(_GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</_DotNetCliVersionFromGlobalJson>
+    <SdkVersionForNet11TFM>$(_DotNetCliVersionFromGlobalJson)</SdkVersionForNet11TFM>
+
+    <SdkDirForNet8TFM>$(ArtifactsBinDir)dotnet-8\</SdkDirForNet8TFM>
+    <SdkStampPathForNet8TFM>$(SdkDirForNet8TFM).version-$(SdkVersionForNet8TFM).stamp</SdkStampPathForNet8TFM>
+
+    <SdkDirForNet9TFM>$(ArtifactsBinDir)dotnet-9\</SdkDirForNet9TFM>
+    <SdkStampPathForNet9TFM>$(SdkDirForNet9TFM).version-$(SdkVersionForNet9TFM).stamp</SdkStampPathForNet9TFM>
+
+    <SdkDirForNet10TFM>$(ArtifactsBinDir)dotnet-10\</SdkDirForNet10TFM>
+    <SdkStampPathForNet10TFM>$(SdkDirForNet10TFM).version-$(SdkVersionForNet10TFM).stamp</SdkStampPathForNet10TFM>
+
+    <SdkDirForNet11TFM>$(ArtifactsBinDir)dotnet-11\</SdkDirForNet11TFM>
+    <SdkStampPathForNet11TFM>$(SdkDirForNet11TFM).version-$(SdkVersionForNet11TFM).stamp</SdkStampPathForNet11TFM>
+
+    <SdkDirForNet11WithAllSupportedRuntimes>$(ArtifactsBinDir)dotnet-tests\</SdkDirForNet11WithAllSupportedRuntimes>
+    <SdkStampPathForNet11WithAllSupportedRuntimes>$(SdkDirForNet11WithAllSupportedRuntimes).version-$(SdkVersionForNet11TFM)-$(DotNetRuntimeNet10VersionForTesting)-$(DotNetRuntimeNet9VersionForTesting)-$(DotNetRuntimeNet8VersionForTesting).stamp</SdkStampPathForNet11WithAllSupportedRuntimes>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)InstallSdk.props" />
+
+  <ItemGroup>
+    <SupportedRuntimeToInstallArguments Include="-Runtime dotnet -Version $(DotNetRuntimeNet8VersionForTesting)" />
+    <SupportedRuntimeToInstallArguments Include="-Runtime aspnetcore -Version $(DotNetRuntimeNet8VersionForTesting)" />
+    <SupportedRuntimeToInstallArguments Include="-Runtime dotnet -Version $(DotNetRuntimeNet9VersionForTesting)" />
+    <SupportedRuntimeToInstallArguments Include="-Runtime aspnetcore -Version $(DotNetRuntimeNet9VersionForTesting)" />
+    <SupportedRuntimeToInstallArguments Include="-Runtime dotnet -Version $(DotNetRuntimeNet10VersionForTesting)" />
+    <SupportedRuntimeToInstallArguments Include="-Runtime aspnetcore -Version $(DotNetRuntimeNet10VersionForTesting)" />
+  </ItemGroup>
+
+  <Target Name="ProvisionSdksForTesting">
+
+    <!-- Install the SDK for each supported TFM. -->
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForNet8TFM);SdkTargetDir=$(SdkDirForNet8TFM);SdkStampPath=$(SdkStampPathForNet8TFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+    <Touch Files="$(SdkStampPathForNet8TFM)" AlwaysCreate="true" />
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForNet9TFM);SdkTargetDir=$(SdkDirForNet9TFM);SdkStampPath=$(SdkStampPathForNet9TFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+    <Touch Files="$(SdkStampPathForNet9TFM)" AlwaysCreate="true" />
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForNet10TFM);SdkTargetDir=$(SdkDirForNet10TFM);SdkStampPath=$(SdkStampPathForNet10TFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+    <Touch Files="$(SdkStampPathForNet10TFM)" AlwaysCreate="true" />
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForNet11TFM);SdkTargetDir=$(SdkDirForNet11TFM);SdkStampPath=$(SdkStampPathForNet11TFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+    <Touch Files="$(SdkStampPathForNet11TFM)" AlwaysCreate="true" />
+
+    <CallTarget Targets="ProvisionNet11SdkWithAllSupportedRuntimes" />
+  </Target>
+
+  <Target Name="ProvisionNet11SdkWithAllSupportedRuntimes" Condition="!Exists($(SdkStampPathForNet11WithAllSupportedRuntimes))">
+
+    <PropertyGroup>
+      <_SdkDirToInstallTo>$(SdkDirForNet11WithAllSupportedRuntimes)</_SdkDirToInstallTo>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(_SdkDirToInstallTo)" />
+    <MakeDir Directories="$(_SdkDirToInstallTo)" />
+
+    <ItemGroup>
+      <_SdkNet11File Include="$(SdkDirForNet11TFM)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_SdkNet11File)" DestinationFolder="$(_SdkDirToInstallTo)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+
+    <Exec Condition="'%(SupportedRuntimeToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command="$(_DotNetInstallScriptPath) -InstallDir $(_SdkDirToInstallTo) -SkipNonVersionedFiles %(SupportedRuntimeToInstallArguments.Identity)" />
+
+    <Exec Condition="'%(SupportedRuntimeToInstallArguments.Identity)' != '' and $([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallScriptPath) -InstallDir $(_SdkDirToInstallTo) -SkipNonVersionedFiles %(SupportedRuntimeToInstallArguments.Identity)"' />
+
+    <Touch Files="$(SdkStampPathForNet11WithAllSupportedRuntimes)" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdksForTesting;_ValidateExpectedSetOfPackagesExist" />
+
+  <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForTemplatesTesting)' != 'true'">
+    <ItemGroup>
+      <_SrcProjects Include="$(RepoRoot)src\**\*.csproj"
+                    Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(_SrcProjects)" Targets="GetPackageName">
+      <Output TaskParameter="TargetOutputs" ItemName="_PackableProjectName" />
+    </MSBuild>
+    <ItemGroup>
+      <!-- Ignore Microsoft.NET.Sdk.Aspire as the emitted package name is special: Microsoft.NET.Sdk.Aspire.Manifest-$(sdkband)-* -->
+      <ExpectedPackageNames
+          Include="@(_PackableProjectName)"
+          Condition="'%(Identity)' != '' and '%(Identity)' != 'Microsoft.NET.Sdk.Aspire'" />
+    </ItemGroup>
+
+    <!-- check against an arbitrary minimum limit to catch any issues getting the list of packages -->
+    <Error Text="Too few packages? count: @(ExpectedPackageNames->Count())"
+           Condition="@(ExpectedPackageNames->Count()) &lt; 60" />
+
+    <ItemGroup>
+      <AllPackages Include="$(ArtifactsShippingPackagesDir)*.nupkg" />
+      <ExpectedPackagePaths Include="$(ArtifactsShippingPackagesDir)%(ExpectedPackageNames.Identity).%(ExpectedPackageNames.WithPackageVersion).nupkg" />
+      <MissingPackages Include="@(ExpectedPackagePaths)" Condition="!Exists(%(ExpectedPackagePaths.Identity))" />
+
+      <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
+
+      <!-- Exclude the packages with arch-specific nugets -->
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Dashboard.Sdk.'))" />
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.TerminalHost.Sdk.'))" />
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Orchestration.'))" />
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Cli.'))" />
+
+    </ItemGroup>
+
+    <Warning Text="Found some unexpected packages in '$(ArtifactsShippingPackagesDir)', which might mean that the list of expected packages is incorrect: @(UnexpectedPackages -> '%(FileName)%(Extension)', ', '). Use %24(SkipPackageCheckForTemplatesTesting)='true' to skip this."
+             Condition="@(UnexpectedPackages -> Count()) &gt; 0" />
+    <Error Text="Missing some expected packages in '$(ArtifactsShippingPackagesDir)': @(MissingPackages -> '%(FileName)%(Extension)',', ') . Make sure to build with `-pack`. Use %24(SkipPackageCheckForTemplatesTesting)='true' to skip this."
+           Condition="@(MissingPackages -> Count()) &gt; 0" />
+  </Target>
+</Project>

@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ContainerRepository>my-frontend</ContainerRepository>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
+    <!-- Razor tooling sometimes raises this warning. Don't make it an error. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);RZ10012;RZ10021</WarningsNotAsErrors>
+    <!-- Razor tooling incorrectly reports this warning -->
+    <NoWarn>$(NoWarn);RZ10021</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="MyFrontend" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Compile Include="..\BasketService\Models\BasketItem.cs" Link="Models\BasketItem.cs" />
+    <Compile Include="..\BasketService\Models\CustomerBasket.cs" Link="Models\CustomerBasket.cs" />
+    <Compile Include="..\BasketService\Models\DecimalValue.cs" Link="Models\DecimalValue.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\BasketService\Protos\basket.proto" GrpcServices="Client" Link="BasketService\Protos\basket.proto" />
+  </ItemGroup>
+
+</Project>

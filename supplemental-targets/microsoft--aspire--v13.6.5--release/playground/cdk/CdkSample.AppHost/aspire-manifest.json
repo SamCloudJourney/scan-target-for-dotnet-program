@@ -1,0 +1,358 @@
+{
+  "resources": {
+    "cosmos": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.outputs.connectionString}",
+      "path": "cosmos.module.bicep"
+    },
+    "cosmosdb": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=cosmosdb"
+    },
+    "storagesku": {
+      "type": "parameter.v0",
+      "value": "{storagesku.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "locationOverride": {
+      "type": "parameter.v0",
+      "value": "{locationOverride.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "storage.module.bicep",
+      "params": {
+        "storagesku": "{storagesku.value}",
+        "locationOverride": "{locationOverride.value}"
+      }
+    },
+    "blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "sql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "sql.module.bicep"
+    },
+    "sqldb": {
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=sqldb"
+    },
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "mykv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{mykv.outputs.vaultUri}",
+      "path": "mykv.module.bicep",
+      "params": {
+        "signaturesecret": "{signaturesecret.value}"
+      }
+    },
+    "cache": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cache.outputs.connectionString}",
+      "path": "cache.module.bicep"
+    },
+    "pgsqlAdministratorLogin": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLogin.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pgsqlAdministratorLoginPassword": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLoginPassword.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "pgsql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql-kv.secrets.connectionstrings--pgsql}",
+      "path": "pgsql.module.bicep",
+      "params": {
+        "administratorLogin": "{pgsqlAdministratorLogin.value}",
+        "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}",
+        "pgsql_kv_outputs_name": "{pgsql-kv.outputs.name}"
+      }
+    },
+    "pgsql-kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql-kv.outputs.vaultUri}",
+      "path": "pgsql-kv.module.bicep"
+    },
+    "pgsqldb": {
+      "type": "value.v0",
+      "connectionString": "{pgsql-kv.secrets.connectionstrings--pgsqldb}"
+    },
+    "pgsql2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql2.outputs.connectionString}",
+      "path": "pgsql2.module.bicep"
+    },
+    "pgsql2db": {
+      "type": "value.v0",
+      "connectionString": "{pgsql2.connectionString};Database=pgsql2db"
+    },
+    "servicebus": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
+      "path": "servicebus.module.bicep"
+    },
+    "queue1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=queue1"
+    },
+    "topic1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic1"
+    },
+    "subscription2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic1/Subscriptions/subscription2"
+    },
+    "topic2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic2"
+    },
+    "subscription1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic2/Subscriptions/subscription1"
+    },
+    "topic3": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3"
+    },
+    "sub1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3/Subscriptions/sub1"
+    },
+    "sub2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=topic3/Subscriptions/sub2"
+    },
+    "appConfig": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+      "path": "appConfig.module.bicep"
+    },
+    "search": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.outputs.connectionString}",
+      "path": "search.module.bicep"
+    },
+    "signalr": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+      "path": "signalr.module.bicep"
+    },
+    "logAnalyticsWorkspace": {
+      "type": "azure.bicep.v0",
+      "path": "logAnalyticsWorkspace.module.bicep"
+    },
+    "appInsights": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+      "path": "appInsights.module.bicep",
+      "params": {
+        "loganalyticsworkspace_outputs_loganalyticsworkspaceid": "{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}"
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
+        "ConnectionStrings__signalr": "{signalr.connectionString}",
+        "SIGNALR_URI": "https://{signalr.outputs.hostName}",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "BLOBS_URI": "{storage.outputs.blobEndpoint}",
+        "ConnectionStrings__sqldb": "{sqldb.connectionString}",
+        "SQLDB_HOST": "{sql.outputs.sqlServerFqdn}",
+        "SQLDB_PORT": "1433",
+        "SQLDB_URI": "mssql://{sql.outputs.sqlServerFqdn}:1433/sqldb",
+        "SQLDB_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql.outputs.sqlServerFqdn}:1433;database=sqldb;encrypt=true;trustServerCertificate=false",
+        "SQLDB_DATABASENAME": "sqldb",
+        "ConnectionStrings__mykv": "{mykv.connectionString}",
+        "MYKV_URI": "{mykv.outputs.vaultUri}",
+        "ConnectionStrings__cache": "{cache.connectionString}",
+        "CACHE_HOST": "{cache.outputs.hostName}",
+        "CACHE_PORT": "10000",
+        "CACHE_URI": "rediss://{cache.outputs.hostName}:10000",
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}",
+        "COSMOS_URI": "{cosmos.outputs.connectionString}",
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "PGSQLDB_HOST": "{pgsql.outputs.hostName}",
+        "PGSQLDB_PORT": "5432",
+        "PGSQLDB_URI": "postgresql://{pgsqlAdministratorLogin.value}:{pgsqlAdministratorLoginPassword.value}@{pgsql.outputs.hostName}/pgsqldb",
+        "PGSQLDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{pgsql.outputs.hostName}/pgsqldb?sslmode=require\u0026authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin",
+        "PGSQLDB_USERNAME": "{pgsqlAdministratorLogin.value}",
+        "PGSQLDB_PASSWORD": "{pgsqlAdministratorLoginPassword.value}",
+        "PGSQLDB_DATABASENAME": "pgsqldb",
+        "ConnectionStrings__pgsql2db": "{pgsql2db.connectionString}",
+        "PGSQL2DB_HOST": "{pgsql2.outputs.hostName}",
+        "PGSQL2DB_PORT": "5432",
+        "PGSQL2DB_URI": "postgresql://{pgsql2.outputs.hostName}/pgsql2db",
+        "PGSQL2DB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{pgsql2.outputs.hostName}/pgsql2db?sslmode=require\u0026authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin",
+        "PGSQL2DB_DATABASENAME": "pgsql2db",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "SERVICEBUS_HOST": "{servicebus.outputs.serviceBusHostName}",
+        "SERVICEBUS_URI": "{servicebus.outputs.serviceBusEndpoint}",
+        "ConnectionStrings__appConfig": "{appConfig.connectionString}",
+        "ConnectionStrings__search": "{search.connectionString}",
+        "SEARCH_URI": "{search.outputs.endpoint}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{appInsights.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "cosmos-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-roles.module.bicep",
+      "params": {
+        "cosmos_outputs_name": "{cosmos.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "sql-roles": {
+      "type": "azure.bicep.v0",
+      "path": "sql-roles.module.bicep",
+      "params": {
+        "sql_outputs_name": "{sql.outputs.name}",
+        "sql_outputs_sqlserveradminname": "{sql.outputs.sqlServerAdminName}",
+        "principalId": "",
+        "principalName": "",
+        "principalType": ""
+      }
+    },
+    "mykv-roles": {
+      "type": "azure.bicep.v0",
+      "path": "mykv-roles.module.bicep",
+      "params": {
+        "mykv_outputs_name": "{mykv.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "cache-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cache-roles.module.bicep",
+      "params": {
+        "cache_outputs_name": "{cache.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "pgsql-kv-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pgsql-kv-roles.module.bicep",
+      "params": {
+        "pgsql_kv_outputs_name": "{pgsql-kv.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "pgsql2-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pgsql2-roles.module.bicep",
+      "params": {
+        "pgsql2_outputs_name": "{pgsql2.outputs.name}",
+        "principalType": "",
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "servicebus-roles": {
+      "type": "azure.bicep.v0",
+      "path": "servicebus-roles.module.bicep",
+      "params": {
+        "servicebus_outputs_name": "{servicebus.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "appConfig-roles": {
+      "type": "azure.bicep.v0",
+      "path": "appConfig-roles.module.bicep",
+      "params": {
+        "appconfig_outputs_name": "{appConfig.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "search-roles": {
+      "type": "azure.bicep.v0",
+      "path": "search-roles.module.bicep",
+      "params": {
+        "search_outputs_name": "{search.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "signalr-roles": {
+      "type": "azure.bicep.v0",
+      "path": "signalr-roles.module.bicep",
+      "params": {
+        "signalr_outputs_name": "{signalr.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "pgsqlAdministratorLogin-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{pgsqlAdministratorLogin.value}",
+      "filter": "uri"
+    },
+    "pgsqlAdministratorLoginPassword-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{pgsqlAdministratorLoginPassword.value}",
+      "filter": "uri"
+    }
+  }
+}

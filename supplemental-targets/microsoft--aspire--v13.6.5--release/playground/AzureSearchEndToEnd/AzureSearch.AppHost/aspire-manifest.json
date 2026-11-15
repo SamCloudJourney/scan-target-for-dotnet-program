@@ -1,0 +1,43 @@
+{
+  "resources": {
+    "search": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.outputs.connectionString}",
+      "path": "search.module.bicep"
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../AzureSearch.ApiService/AzureSearch.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
+        "ConnectionStrings__search": "{search.connectionString}",
+        "SEARCH_URI": "{search.outputs.endpoint}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "search-roles": {
+      "type": "azure.bicep.v0",
+      "path": "search-roles.module.bicep",
+      "params": {
+        "search_outputs_name": "{search.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    }
+  }
+}

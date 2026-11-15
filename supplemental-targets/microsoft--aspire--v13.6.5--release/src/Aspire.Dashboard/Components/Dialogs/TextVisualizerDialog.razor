@@ -1,0 +1,111 @@
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+
+@inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+
+<FluentDialogBody Class="text-visualizer-dialog-body">
+    <TitleTemplate>
+        <div class="dialog-title-grid">
+            <FluentIcon Value="@(new Icons.Regular.Size24.SlideSearch())" Color="Color.Primary" Style="grid-area: dialog-icon; align-self: center;" />
+            <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content text-visualizer-dialog-title" Style="grid-area: dialog-title;">
+                @Content.Description
+            </FluentLabel>
+
+            @if (!HasFixedFormat)
+            {
+                <div class="dialog-format">
+                    <FluentSelect TOption="SelectViewModel<string>" TValue="SelectViewModel<string>"
+                                  Id="@_selectFormatId"
+                                  Items="@_options"
+                                  Position="SelectPosition.Below"
+                                  OptionText="@((SelectViewModel<string>? option) => option?.Name)"
+                                  OptionDisabled="@((SelectViewModel<string>? option) => option is not null && !EnabledOptions.Contains(option.Id))"
+                                  OptionTitle="@((SelectViewModel<string> option) => option.Name)"
+                                  @bind-Value="@_selectedFormat"
+                                  @bind-Value:after="OnSelectedFormatChanged"
+                                  AriaLabel="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
+                                  Class="aspire-input text-visualizer-format"
+                                  Style="width: clamp(7rem, 20vw, 12rem); max-width: 100%;" />
+                </div>
+            }
+        </div>
+    </TitleTemplate>
+
+    <ChildContent>
+    <div class="text-visualizer-container">
+        @if (IsTextContentDisplayed)
+        {
+            if (IsMarkdownFormat)
+            {
+                <div class="markdown-content">
+                    <MarkdownRenderer Markdown="@Content.Text" MarkdownProcessor="@GetMarkdownProcessor()" SuppressParagraphOnNewLines="false" />
+                </div>
+            }
+            else
+            {
+                <TextVisualizer ViewModel="TextVisualizerViewModel" />
+            }
+        }
+        else if (ShowSecretsWarning is true)
+        {
+            @* Don't display until ShowSecretsWarning is loaded and is known to be true *@
+            <div class="block-warning">
+                <div class="block-warning-icon">
+                    <FluentIcon Value="new Icons.Filled.Size16.Warning()" Color="Color.Warning" />
+                </div>
+
+                <div class="block-warning-message">
+                    <span class="title">@Loc[nameof(Dialogs.TextVisualizerSecretWarningTitle)]</span>
+                    @Loc[nameof(Dialogs.TextVisualizerSecretWarningDescription)]
+                </div>
+            </div>
+        }
+    </div>
+    </ChildContent>
+
+    <ActionTemplate>
+        @if (!_isLoading)
+        {
+            <div class="button-container">
+                <div class="button-container-right">
+                    @if (ShowSecretsWarning is true)
+                    {
+                        <FluentButton Class="aspire-button text-visualizer-unmask-content"
+                                      OnClick="@UnmaskContentAsync">
+                            @Loc[nameof(Dialogs.TextVisualizerSecretWarningAcknowledge)]
+                        </FluentButton>
+                    }
+
+                    @if (Content.DownloadFileName is not null)
+                    {
+                        <FluentButton Class="aspire-button"
+                                      OnClick="@DownloadAsync"
+                                      Title="@ControlsStringsLoc[nameof(ControlsStrings.Download)]"
+                                      aria-label="@ControlsStringsLoc[nameof(ControlsStrings.Download)]"
+                                      IconStart="new Icons.Regular.Size16.ArrowDownload()">
+                            @ControlsStringsLoc[nameof(ControlsStrings.Download)]
+                        </FluentButton>
+                    }
+
+                    <FluentButton Id="@_copyButtonId"
+                                  Class="aspire-button"
+                                  Appearance="ButtonAppearance.Primary"
+                                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                        <span class="copy-button-icon" slot="start">
+                            @* Trim significant whitespace so the icon slot has the same width as its visible icon. *@
+                            @{
+                                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Color="Color.Primary" />
+                            }
+                            @{
+                                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Color="Color.Primary" />
+                            }
+                        </span>
+                        @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
+                    </FluentButton>
+                </div>
+            </div>
+        }
+    </ActionTemplate>
+</FluentDialogBody>

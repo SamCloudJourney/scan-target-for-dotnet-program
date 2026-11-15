@@ -1,0 +1,93 @@
+{
+  "resources": {
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "storage.module.bicep"
+    },
+    "blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "storage-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "mycontainer1": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-1"
+    },
+    "mycontainer2": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-2"
+    },
+    "storage-queues": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.queueEndpoint}"
+    },
+    "myqueue": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage.outputs.queueEndpoint};QueueName=my-queue"
+    },
+    "storage2": {
+      "type": "azure.bicep.v0",
+      "path": "storage2.module.bicep"
+    },
+    "storage2-blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage2.outputs.blobEndpoint}"
+    },
+    "foocontainer": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={storage2.outputs.blobEndpoint};ContainerName=foo-container"
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../AzureStorageEndToEnd.ApiService/AzureStorageEndToEnd.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "BLOBS_URI": "{storage.outputs.blobEndpoint}",
+        "ConnectionStrings__foocontainer": "{foocontainer.connectionString}",
+        "FOOCONTAINER_URI": "{storage2.outputs.blobEndpoint}",
+        "FOOCONTAINER_BLOBCONTAINERNAME": "foo-container",
+        "ConnectionStrings__myqueue": "{myqueue.connectionString}",
+        "MYQUEUE_URI": "{storage.outputs.queueEndpoint}",
+        "MYQUEUE_QUEUENAME": "my-queue"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "storage2-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage2-roles.module.bicep",
+      "params": {
+        "storage2_outputs_name": "{storage2.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    }
+  }
+}

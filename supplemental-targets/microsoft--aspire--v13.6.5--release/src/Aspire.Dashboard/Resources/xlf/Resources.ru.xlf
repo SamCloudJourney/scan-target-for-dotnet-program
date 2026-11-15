@@ -1,0 +1,352 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../Resources.resx">
+    <body>
+      <trans-unit id="HealthCheckStatusJustNowFormat">
+        <source>{0} (just now)</source>
+        <target state="translated">{0} (только что)</target>
+        <note>{0} is the health status like "Unhealthy"</note>
+      </trans-unit>
+      <trans-unit id="HealthCheckStatusWithTimeFormat">
+        <source>{0} ({1} ago)</source>
+        <target state="translated">{0} ({1} назад)</target>
+        <note>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</note>
+      </trans-unit>
+      <trans-unit id="HealthCheckStatusWithTimeTooltipFormat">
+        <source>{0} (last run at {1})</source>
+        <target state="translated">{0} (последний запуск в {1})</target>
+        <note>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</note>
+      </trans-unit>
+      <trans-unit id="ResourceActionCommandsText">
+        <source>Commands</source>
+        <target state="translated">Команды</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionConsoleLogsText">
+        <source>Console logs</source>
+        <target state="translated">Журналы консоли</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionMetricsText">
+        <source>Metrics</source>
+        <target state="translated">Метрики</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionStructuredLogsText">
+        <source>Structured logs</source>
+        <target state="translated">Структурированные журналы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionTracesText">
+        <source>Traces</source>
+        <target state="translated">Трассировки</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionUrlsText">
+        <source>URLs</source>
+        <target state="translated">URL-адреса</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCollapseAllChildren">
+        <source>Collapse child resources</source>
+        <target state="translated">Свернуть дочерние ресурсы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCommandAppHostDisconnected">
+        <source>The AppHost disconnected while executing the command. Restart the AppHost and try again.</source>
+        <target state="new">The AppHost disconnected while executing the command. Restart the AppHost and try again.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCommandCancel">
+        <source>Cancel</source>
+        <target state="new">Cancel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCommandCanceled">
+        <source>"{0}" canceled</source>
+        <target state="new">"{0}" canceled</target>
+        <note>{0} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandCanceling">
+        <source>"{0}" canceling...</source>
+        <target state="new">"{0}" canceling...</target>
+        <note>{0} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandFailed">
+        <source>"{0}" failed</source>
+        <target state="new">"{0}" failed</target>
+        <note>{0} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandStarting">
+        <source>"{0}" starting</source>
+        <target state="new">"{0}" starting</target>
+        <note>{0} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandSuccess">
+        <source>"{0}" succeeded</source>
+        <target state="new">"{0}" succeeded</target>
+        <note>{0} is the display name of the command.</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandToastViewLogs">
+        <source>View console logs</source>
+        <target state="translated">Просмотр журналов консоли</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceCommandViewResponse">
+        <source>View response</source>
+        <target state="new">View response</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsViewConsoleLogs">
+        <source>View console logs</source>
+        <target state="translated">Просмотр журналов консоли</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceExpandAllChildren">
+        <source>Expand child resources</source>
+        <target state="translated">Развернуть дочерние ресурсы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceFilterOptionEmpty">
+        <source>(Unset)</source>
+        <target state="translated">(Удалить)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesActionsColumnHeader">
+        <source>Actions</source>
+        <target state="translated">Действия</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesChangeViewOptions">
+        <source>View options</source>
+        <target state="translated">Просмотреть параметры</target>
+        <note>An icon allowing the user to expand or collapse all child resources.</note>
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsConnectionStringProperty">
+        <source>Connection string</source>
+        <target state="translated">Строка подключения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
+        <source>Container arguments</source>
+        <target state="new">Container arguments</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerCommandProperty">
+        <source>Container command</source>
+        <target state="new">Container command</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerIdProperty">
+        <source>Container ID</source>
+        <target state="new">Container ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerImageProperty">
+        <source>Container image</source>
+        <target state="new">Container image</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerLifetimeProperty">
+        <source>Container lifetime</source>
+        <target state="new">Container lifetime</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsContainerPortsProperty">
+        <source>Container ports</source>
+        <target state="new">Container ports</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsDisplayNameProperty">
+        <source>Display name</source>
+        <target state="translated">Видимое имя</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsExecutableArgumentsProperty">
+        <source>Executable arguments</source>
+        <target state="new">Executable arguments</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsExecutablePathProperty">
+        <source>Executable path</source>
+        <target state="new">Executable path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsExecutableProcessIdProperty">
+        <source>Process ID</source>
+        <target state="new">Process ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsExecutableWorkingDirectoryProperty">
+        <source>Working directory</source>
+        <target state="new">Working directory</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsExitCodeProperty">
+        <source>Exit code</source>
+        <target state="translated">Код завершения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health state</source>
+        <target state="translated">Состояние работоспособности</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsParameterValueProperty">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectLaunchProfileProperty">
+        <source>Launch profile</source>
+        <target state="new">Launch profile</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsProjectPathProperty">
+        <source>Project path</source>
+        <target state="new">Project path</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsStartTimeProperty">
+        <source>Start time</source>
+        <target state="translated">Время начала</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsStateProperty">
+        <source>State</source>
+        <target state="translated">Состояние</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="translated">Время остановки</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesFiltered">
+        <source>Has filters</source>
+        <target state="translated">Содержит фильтры</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphResetButton">
+        <source>Reset</source>
+        <target state="translated">Сбросить</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphResourceActionsButton">
+        <source>Resource actions for {0}</source>
+        <target state="new">Resource actions for {0}</target>
+        <note>Accessible label and tooltip for the cog affordance on a graph resource node that opens the resource actions menu. {0} is the resource display name.</note>
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomInButton">
+        <source>Zoom in</source>
+        <target state="translated">Увеличить</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesGraphZoomOutButton">
+        <source>Zoom out</source>
+        <target state="translated">Уменьшить</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHideTypes">
+        <source>Hide resource types</source>
+        <target state="translated">Скрыть типы ресурсов</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNoParameters">
+        <source>No parameters found</source>
+        <target state="translated">Параметры не найдены</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNotFiltered">
+        <source>No filters</source>
+        <target state="translated">Нет фильтров</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesResourceStatesHeader">
+        <source>State</source>
+        <target state="translated">Состояние</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesShowTypes">
+        <source>Show resource types</source>
+        <target state="translated">Показать типы ресурсов</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesSourceColumnHeader">
+        <source>Source</source>
+        <target state="translated">Источник</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesStartTimeColumnHeader">
+        <source>Start time</source>
+        <target state="translated">Время начала</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesStateColumnHeader">
+        <source>State</source>
+        <target state="translated">Состояние</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesHeader">
+        <source>Resources</source>
+        <target state="translated">Ресурсы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNoResources">
+        <source>No resources found</source>
+        <target state="translated">Ресурсы не найдены</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesPageTitle">
+        <source>{0} resources</source>
+        <target state="translated">Ресурсов: {0}</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="ResourcesResourceTypesHeader">
+        <source>Resource types</source>
+        <target state="translated">Типы ресурсов</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesTypeColumnHeader">
+        <source>Type</source>
+        <target state="translated">Тип</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesUrlsColumnHeader">
+        <source>URLs</source>
+        <target state="translated">URL-адреса</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterParametersPluralText">
+        <source>Showing &lt;strong&gt;{0} parameters&lt;/strong&gt;</source>
+        <target state="translated">Отображение &lt;strong&gt;{0} параметров&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterParametersSingularText">
+        <source>Showing &lt;strong&gt;{0} parameter&lt;/strong&gt;</source>
+        <target state="translated">Отображение &lt;strong&gt;{0} параметра&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterPluralText">
+        <source>Showing &lt;strong&gt;{0} resources&lt;/strong&gt;</source>
+        <target state="translated">Отображение &lt;strong&gt;{0} ресурсов&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterSingularText">
+        <source>Showing &lt;strong&gt;{0} resource&lt;/strong&gt;</source>
+        <target state="translated">Отображение &lt;strong&gt;{0} ресурса&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="WaitingForHealthDataMessage">
+        <source>Waiting for health data...</source>
+        <target state="translated">Ожидание данных о работоспособности...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
+      <trans-unit id="WaitingHealthDataStatusMessage">
+        <source>Waiting...</source>
+        <target state="translated">Ожидание...</target>
+        <note>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

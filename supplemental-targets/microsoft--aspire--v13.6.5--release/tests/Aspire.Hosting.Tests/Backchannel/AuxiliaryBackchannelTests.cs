@@ -1,0 +1,813 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREPIPELINES001
+
+using System.Net.Sockets;
+using System.Text.Json;
+using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using StreamJsonRpc;
+
+namespace Aspire.Hosting.Backchannel;
+
+[Trait("Partition", "4")]
+public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
+{
+    [Fact]
+    public async Task CanStartAuxiliaryBackchannelService()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        var connectedEventReceived = new TaskCompletionSource<AuxiliaryBackchannelConnectedEvent>();
+        builder.Eventing.Subscribe<AuxiliaryBackchannelConnectedEvent>((e, ct) =>
+        {
+            connectedEventReceived.TrySetResult(e);
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service and verify it started
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+        Assert.True(File.Exists(service.SocketPath));
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        // Verify the connected event was published
+        var connectedEvent = await connectedEventReceived.Task.DefaultTimeout();
+        Assert.NotNull(connectedEvent);
+        Assert.Equal(service.SocketPath, connectedEvent.SocketPath);
+
+        socket.Dispose();
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task CanConnectMultipleClientsToAuxiliaryBackchannel()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        var connectedEventCount = 0;
+        var connectedEventLock = new object();
+        builder.Eventing.Subscribe<AuxiliaryBackchannelConnectedEvent>((e, ct) =>
+        {
+            lock (connectedEventLock)
+            {
+                connectedEventCount++;
+            }
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect multiple clients concurrently
+        var client1Socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var client2Socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var client3Socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+
+        await client1Socket.ConnectAsync(endpoint).DefaultTimeout();
+        await client2Socket.ConnectAsync(endpoint).DefaultTimeout();
+        await client3Socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        // Give some time for events to be published
+        await Task.Delay(1000);
+
+        // Verify that all three connections triggered events
+        lock (connectedEventLock)
+        {
+            Assert.Equal(3, connectedEventCount);
+        }
+
+        client1Socket.Dispose();
+        client2Socket.Dispose();
+        client3Socket.Dispose();
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task StopClosesActiveClientConnections()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        var connectedEventReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        builder.Eventing.Subscribe<AuxiliaryBackchannelConnectedEvent>((_, _) =>
+        {
+            connectedEventReceived.TrySetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        await socket.ConnectAsync(new UnixDomainSocketEndPoint(service.SocketPath)).DefaultTimeout();
+        await connectedEventReceived.Task.DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: false);
+
+        await app.StopAsync().DefaultTimeout();
+
+        var bytesRead = await stream.ReadAsync(new byte[1]).AsTask().DefaultTimeout();
+        Assert.Equal(0, bytesRead);
+    }
+
+    [Fact]
+    public async Task CanInvokeRpcMethodOnAuxiliaryBackchannel()
+    {
+        // This test verifies that RPC methods can be invoked
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetAppHostInformationAsync RPC method
+        var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).DefaultTimeout();
+
+        Assert.NotNull(appHostInfo);
+        Assert.True(appHostInfo.ProcessId > 0);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task GetAppHostInformationAsyncReturnsAppHostPath()
+    {
+        // This test verifies that GetAppHostInformationAsync returns the AppHost path
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetAppHostInformationAsync RPC method
+        var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).DefaultTimeout();
+
+        // The AppHost path should be set
+        Assert.NotNull(appHostInfo);
+        Assert.NotNull(appHostInfo.AppHostPath);
+        Assert.NotEmpty(appHostInfo.AppHostPath);
+
+        // The ProcessId should be set and valid
+        Assert.True(appHostInfo.ProcessId > 0);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task MultipleClientsCanInvokeRpcMethodsConcurrently()
+    {
+        // This test verifies that multiple clients can invoke RPC methods concurrently
+        // When the Dashboard is not part of the app model, null should be returned
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Create multiple clients and invoke RPC methods concurrently
+        var tasks = Enumerable.Range(0, 5).Select(async i =>
+        {
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+            await socket.ConnectAsync(endpoint);
+
+            using var stream = new NetworkStream(socket, ownsSocket: true);
+            using var rpc = JsonRpc.Attach(stream);
+
+            var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+                "GetAppHostInformationAsync",
+                Array.Empty<object>()
+            );
+
+            Assert.NotNull(appHostInfo);
+            Assert.True(appHostInfo.ProcessId > 0);
+
+            return appHostInfo;
+        });
+
+        var results = await Task.WhenAll(tasks).DefaultTimeout();
+        Assert.Equal(5, results.Length);
+        Assert.All(results, Assert.NotNull);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task GetAppHostInformationAsyncReturnsFilePathWithExtension()
+    {
+        // This test verifies that GetAppHostInformationAsync returns the full file path with extension
+        // For .csproj-based AppHosts, it should include the .csproj extension
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetAppHostInformationAsync RPC method
+        var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).DefaultTimeout();
+
+        // Verify the AppHost path is returned
+        Assert.NotNull(appHostInfo);
+        Assert.NotNull(appHostInfo.AppHostPath);
+        Assert.NotEmpty(appHostInfo.AppHostPath);
+
+        // The path should be an absolute path
+        Assert.True(Path.IsPathRooted(appHostInfo.AppHostPath), $"Expected absolute path but got: {appHostInfo.AppHostPath}");
+
+        // In test scenarios where assembly metadata is not available, we may get a path without extension
+        // (falling back to AppHost:Path). In real scenarios with proper metadata, we should get .csproj or .cs
+        // So we just verify the path is non-empty and rooted
+        outputHelper.WriteLine($"AppHost path returned: {appHostInfo.AppHostPath}");
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task SocketPathUsesCompactFormat()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        var fileName = Path.GetFileName(service.SocketPath);
+        Assert.Matches("^[A-Za-z0-9_-]{19}\\.[0-9]+$", fileName);
+
+        var directory = Path.GetDirectoryName(service.SocketPath);
+        Assert.NotNull(directory);
+        Assert.EndsWith(Path.Combine(".aspire", "cli", "bch"), directory);
+        Assert.True(
+            BackchannelConstants.GetSocketPathByteCountIncludingNull(service.SocketPath) <= BackchannelConstants.GetMaxSocketPathBytesIncludingNull(),
+            $"Socket path should fit the platform byte limit: {service.SocketPath}");
+
+        Assert.True(File.Exists(service.SocketPath), $"Socket file should exist at: {service.SocketPath}");
+
+        outputHelper.WriteLine($"Socket path: {service.SocketPath}");
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    [RequiresFeature(TestFeature.ContainerRuntime)]
+    public async Task CallResourceMcpToolAsyncThrowsWhenResourceNotFound()
+    {
+        // This test verifies that CallResourceMcpToolAsync throws when resource is not found
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Add a simple container resource (without MCP)
+        builder.AddContainer("mycontainer", "nginx");
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Try to call a tool on a non-existent resource
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(async () =>
+        {
+            await rpc.InvokeAsync<JsonElement>(
+                "CallResourceMcpToolAsync",
+                new object[] { "nonexistent-resource", "some-tool", new Dictionary<string, object?>() }
+            ).DefaultTimeout();
+        });
+
+        Assert.Contains("not found", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        await app.StopAsync().WaitAsync(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    [Fact]
+    [RequiresFeature(TestFeature.ContainerRuntime)]
+    public async Task CallResourceMcpToolAsyncThrowsWhenResourceHasNoMcpAnnotation()
+    {
+        // This test verifies that CallResourceMcpToolAsync throws when resource has no MCP annotation
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Add a simple container resource (without MCP)
+        builder.AddContainer("mycontainer", "nginx");
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Try to call a tool on a resource without MCP annotation
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(async () =>
+        {
+            await rpc.InvokeAsync<JsonElement>(
+                "CallResourceMcpToolAsync",
+                new object[] { "mycontainer", "some-tool", new Dictionary<string, object?>() }
+            ).DefaultTimeout();
+        });
+
+        Assert.Contains("MCP endpoint annotation", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        await app.StopAsync().WaitAsync(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    [Fact]
+    public async Task StopAppHostAsyncInitiatesShutdown()
+    {
+        // This test verifies that StopAppHostAsync initiates AppHost shutdown
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Call StopAppHostAsync - this should return immediately and initiate shutdown asynchronously
+        await rpc.InvokeAsync(
+            "StopAppHostAsync",
+            Array.Empty<object>()
+        ).DefaultTimeout();
+
+        // The app should eventually stop
+        // We give it some time since StopAppHostAsync initiates shutdown asynchronously
+        var lifetime = app.Services.GetService<IHostApplicationLifetime>();
+        Assert.NotNull(lifetime);
+
+        // Wait for the application to stop or timeout
+        using var cts = new CancellationTokenSource(TestConstants.DefaultTimeoutTimeSpan);
+        try
+        {
+            await Task.Delay(Timeout.Infinite, lifetime.ApplicationStopping).WaitAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected - either the app stopped or we timed out
+        }
+
+        // If we get here without timeout, the stop was initiated
+        outputHelper.WriteLine("StopAppHostAsync initiated shutdown successfully");
+    }
+
+    [Fact]
+    public async Task GetCapabilitiesAsyncReturnsCurrentCapabilities()
+    {
+        // This test verifies that GetCapabilitiesAsync returns the current capabilities.
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        {
+            using var stream = new NetworkStream(socket, ownsSocket: true);
+            using var rpc = JsonRpc.Attach(stream);
+
+            // Invoke the GetCapabilitiesAsync RPC method
+            var response = await rpc.InvokeAsync<GetCapabilitiesResponse>(
+                "GetCapabilitiesAsync",
+                new object?[] { null }
+            ).DefaultTimeout();
+
+            // Verify the current capability set.
+            Assert.NotNull(response);
+            Assert.NotNull(response.Capabilities);
+            Assert.Contains(AuxiliaryBackchannelCapabilities.V1, response.Capabilities);
+            Assert.Contains(AuxiliaryBackchannelCapabilities.V2, response.Capabilities);
+            Assert.Contains(AuxiliaryBackchannelCapabilities.V3, response.Capabilities);
+            Assert.Contains(AuxiliaryBackchannelCapabilities.ResourceSnapshotVersions_V1, response.Capabilities);
+        }
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task GetAppHostInfoAsyncV2ReturnsAppHostInfo()
+    {
+        // This test verifies that the v2 GetAppHostInfoAsync returns AppHost info
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the v2 GetAppHostInfoAsync RPC method
+        var response = await rpc.InvokeAsync<GetAppHostInfoResponse>(
+            "GetAppHostInfoAsync",
+            new object?[] { null }
+        ).DefaultTimeout();
+
+        // Verify the response contains expected fields
+        Assert.NotNull(response);
+        Assert.NotNull(response.Pid);
+        Assert.NotEmpty(response.Pid);
+        Assert.NotNull(response.AppHostPath);
+        Assert.NotEmpty(response.AppHostPath);
+        Assert.NotNull(response.AspireHostVersion);
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task GetResourcesAsyncV2ReturnsResources()
+    {
+        // This test verifies that the v2 GetResourcesAsync returns resources
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Add a simple parameter resource
+        builder.AddParameter("myparam");
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the v2 GetResourcesAsync RPC method
+        var response = await rpc.InvokeAsync<GetResourcesResponse>(
+            "GetResourcesAsync",
+            new object?[] { null }
+        ).DefaultTimeout();
+
+        // Verify the response contains resources
+        Assert.NotNull(response);
+        Assert.NotNull(response.Resources);
+        Assert.NotEmpty(response.Resources);
+
+        // Verify the parameter resource is in the list
+        Assert.Contains(response.Resources, r => r.Name == "myparam");
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task AbruptClientDisconnectDoesNotLogError()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        builder.Services.AddLogging(b =>
+        {
+            b.AddFakeLogging();
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().DefaultTimeout();
+
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.DefaultTimeout();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client and invoke an RPC method to ensure the connection is fully established
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).DefaultTimeout();
+
+        using var stream = new NetworkStream(socket, ownsSocket: false);
+        using var rpc = JsonRpc.Attach(stream);
+
+        await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).DefaultTimeout();
+
+        // Force an RST (connection reset) by setting linger with zero timeout, then closing the socket
+        socket.LingerState = new LingerOption(true, 0);
+        rpc.Dispose();
+        stream.Dispose();
+        socket.Dispose();
+
+        var collector = app.Services.GetFakeLogCollector();
+
+        // Wait for the server to process the disconnect and emit a Debug log
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var logs = collector.GetSnapshot();
+
+            var hasDebugLog = logs.Any(l =>
+                l.Level == LogLevel.Debug &&
+                l.Category == typeof(AuxiliaryBackchannelService).FullName &&
+                l.Message.Contains("Client disconnected from auxiliary backchannel"));
+
+            return hasDebugLog;
+        }, "Expected a Debug log for client disconnect and no Error logs from AuxiliaryBackchannelService");
+
+        await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public void CreateSocket_ResolvesFilesystemAliases()
+    {
+        // The CLI resolves filesystem aliases before searching for an AppHost's backchannel socket
+        // (AppHostSocketManager.FindSockets), so the AppHost must key its socket off the same
+        // canonical physical path. File-based AppHosts otherwise report AppHost:FilePath as
+        // Path.GetFullPath(EntryPointFilePath), which leaves intermediate symlinks unresolved and made
+        // 'aspire describe/stop --apphost' miss the AppHost. See https://github.com/microsoft/aspire/issues/17618.
+        Assert.SkipUnless(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS(),
+            "Symlink resolution test only runs on Linux/macOS where unprivileged symlink creation is reliable.");
+
+        var tempRoot = Directory.CreateTempSubdirectory("aspire-auxbch-symlink-");
+        try
+        {
+            var realDirectory = Directory.CreateDirectory(Path.Combine(tempRoot.FullName, "real"));
+            var symlinkDirectory = Path.Combine(tempRoot.FullName, "link");
+            Directory.CreateSymbolicLink(symlinkDirectory, realDirectory.FullName);
+
+            var appHostFileViaSymlink = Path.Combine(symlinkDirectory, "apphost.cs");
+            File.WriteAllText(appHostFileViaSymlink, "// apphost");
+
+            using var socket = AppHostSocketManager.CreateSocket(
+                appHostFileViaSymlink,
+                GetSocketSafeHomeDirectory(),
+                Environment.ProcessId,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+            var socketAppHostId = Path.GetFileName(socket.SocketPath)[..BackchannelConstants.CompactAppHostIdLength];
+            var canonicalPath = PathNormalizer.ResolveToFilesystemPath(appHostFileViaSymlink);
+
+            Assert.Equal(BackchannelConstants.ComputeAppHostId(canonicalPath), socketAppHostId);
+            // Guards against the symlink not actually being unwrapped (otherwise the assertion above is vacuous).
+            Assert.NotEqual(appHostFileViaSymlink, canonicalPath);
+        }
+        finally
+        {
+            tempRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CreateSocket_NormalizesCasingOnCaseInsensitiveFilesystems()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS(),
+            "Filesystem casing normalization only applies on Windows and macOS.");
+
+        var tempRoot = Directory.CreateTempSubdirectory("aspire-auxbch-casing-");
+        try
+        {
+            var appHostFile = new FileInfo(Path.Combine(tempRoot.FullName, "AppHost.cs"));
+            File.WriteAllText(appHostFile.FullName, "// apphost");
+            var differentlyCasedPath = Path.Combine(tempRoot.FullName, "APPHOST.CS");
+            Assert.SkipWhen(!File.Exists(differentlyCasedPath),
+                "This test requires a case-insensitive filesystem.");
+
+            using var socket = AppHostSocketManager.CreateSocket(
+                differentlyCasedPath,
+                GetSocketSafeHomeDirectory(),
+                Environment.ProcessId,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+            var socketAppHostId = Path.GetFileName(socket.SocketPath)[..BackchannelConstants.CompactAppHostIdLength];
+            var canonicalPath = PathNormalizer.ResolveToFilesystemPath(appHostFile.FullName);
+
+            Assert.Equal(BackchannelConstants.ComputeAppHostId(canonicalPath), socketAppHostId);
+            Assert.NotEqual(differentlyCasedPath, canonicalPath);
+        }
+        finally
+        {
+            tempRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CreateSocket_DisposeRemovesSocketFile()
+    {
+        // The listener owns the socket file's lifetime: an AppHost never recreates a socket file it
+        // already bound, so a file left behind on shutdown is discovered by every later CLI
+        // invocation and can only be reclaimed by the PID-liveness sweep. Disposal must remove it.
+        var tempRoot = Directory.CreateTempSubdirectory("aspire-auxbch-dispose-");
+        try
+        {
+            var appHostFile = Path.Combine(tempRoot.FullName, "apphost.cs");
+            File.WriteAllText(appHostFile, "// apphost");
+
+            // Held under 'using' so a failed assertion below cannot orphan a bound, listening socket
+            // in the real ~/.aspire/cli/bch that the finally block never cleans up.
+            using var socket = AppHostSocketManager.CreateSocket(
+                appHostFile,
+                GetSocketSafeHomeDirectory(),
+                Environment.ProcessId,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+            var socketPath = socket.SocketPath;
+            Assert.True(File.Exists(socketPath));
+
+            socket.Dispose();
+            Assert.False(File.Exists(socketPath));
+
+            // Disposal is reentrant: the AppHost disposes the listener on shutdown and the same
+            // instance can be disposed again by a using scope or a host container.
+            socket.Dispose();
+        }
+        finally
+        {
+            tempRoot.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CreateSocket_RestrictsDirectoryAndSocketPermissions(bool existingDirectory)
+    {
+        var root = Directory.CreateTempSubdirectory();
+        try
+        {
+            var directory = BackchannelConstants.GetBackchannelsDirectory(root.FullName);
+            if (existingDirectory)
+            {
+                Directory.CreateDirectory(directory);
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(directory,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute);
+                }
+            }
+
+            using var listener = AppHostSocketManager.CreateSocket(
+                appHostPath: null,
+                root.FullName,
+                Environment.ProcessId,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+
+            if (!OperatingSystem.IsWindows())
+            {
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                    File.GetUnixFileMode(directory));
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                    File.GetUnixFileMode(listener.SocketPath));
+            }
+
+            Assert.True(File.Exists(listener.SocketPath));
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Gets a home directory whose generated socket paths fit the platform's AF_UNIX byte limit.
+    /// </summary>
+    /// <remarks>
+    /// A backchannel socket path is <c>{home}/.aspire/cli/bch/{19 chars}.{pid}</c>, which adds
+    /// roughly 45 bytes to the home directory. macOS allows only 104 bytes for the whole path and
+    /// its per-user temp root (<c>/var/folders/&lt;2&gt;/&lt;30&gt;/T/</c>) already consumes about
+    /// 50, so a temp directory cannot stand in for the home directory here. Production reads the
+    /// same location, so this also keeps the test on the real code path.
+    /// </remarks>
+    private static string GetSocketSafeHomeDirectory()
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.SkipWhen(string.IsNullOrEmpty(homeDirectory), "No user profile directory is available.");
+
+        return homeDirectory;
+    }
+}

@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "https": {
+      "commandName": "Project",
+      "commandLineArgs": "--publish manifest",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://SqlServerEndToEnd.dev.localhost:16289;http://SqlServerEndToEnd.dev.localhost:16290"
+    },
+    "http": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://SqlServerEndToEnd.dev.localhost:16290"
+    },
+    "generate-manifest": {
+      "commandName": "Project",
+      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://SqlServerEndToEnd.dev.localhost:16290"
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json"
+}

@@ -1,0 +1,11 @@
+﻿{
+  "resources": {
+    "testcontainer": {
+      "type": "container.v1",
+      "build": {
+        "context": ".",
+        "dockerfile": "testcontainer.Dockerfile"
+      }
+    }
+  }
+}

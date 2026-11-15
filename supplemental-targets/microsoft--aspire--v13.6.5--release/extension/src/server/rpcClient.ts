@@ -1,0 +1,104 @@
+import { MessageConnection } from 'vscode-jsonrpc';
+import * as vscode from 'vscode';
+import { extensionLogOutputChannel, logAsyncOperation } from '../utils/logging';
+import { IInteractionService, InteractionService } from './interactionService';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
+
+export interface ICliRpcClient extends vscode.Disposable {
+    debugSessionId: string | null;
+    interactionService: IInteractionService;
+    getCliVersion(): Promise<string>;
+    validatePromptInputString(input: string): Promise<ValidationResult | null>;
+    stopCli(): Promise<void>;
+    getCliCapabilities(): Promise<string[]>;
+}
+
+export type ValidationResult = {
+    Message: string;
+    Successful: boolean;
+};
+
+export class RpcClient implements ICliRpcClient {
+    private _messageConnection: MessageConnection;
+    private _connectionClosed: boolean;
+    private _disposed = false;
+
+    public debugSessionId: string | null;
+    public interactionService: IInteractionService;
+
+    constructor(messageConnection: MessageConnection, debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null, globalState?: vscode.Memento) {
+        this._messageConnection = messageConnection;
+        this._connectionClosed = false;
+        this.debugSessionId = debugSessionId;
+        this.interactionService = new InteractionService(getAspireDebugSession, this, globalState);
+
+        this._messageConnection.onClose(() => {
+            extensionLogOutputChannel.info('JSON-RPC connection closed');
+            this.dispose();
+        });
+    }
+
+    dispose() {
+        if (this._disposed) {
+            return;
+        }
+
+        this._disposed = true;
+        this._connectionClosed = true;
+        try {
+            this.interactionService.dispose();
+        }
+        finally {
+            try {
+                this._messageConnection.end();
+            }
+            finally {
+                this._messageConnection.dispose();
+            }
+        }
+    }
+
+    getCliVersion(): Promise<string> {
+        return logAsyncOperation(
+            `Requesting CLI version from CLI`,
+            (version: string) => `Received CLI version: ${version}`,
+            async () => {
+                return await this._messageConnection.sendRequest<string>('getCliVersion');
+            }
+        );
+    }
+
+    validatePromptInputString(input: string): Promise<ValidationResult | null> {
+        return logAsyncOperation(
+            `Validating prompt input string`,
+            (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
+            async () => {
+                return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
+                    input
+                });
+            }
+        );
+    }
+
+    async stopCli() {
+        if (!this._connectionClosed) {
+            await this._messageConnection.sendRequest('stopCli');
+        }
+    }
+
+    async getCliCapabilities(): Promise<string[]> {
+        try {
+            return await logAsyncOperation(
+                `Requesting CLI capabilities from CLI`,
+                (capabilities: string[]) => `Received CLI capabilities: ${capabilities.join(', ')}`,
+                async () => {
+                    return await this._messageConnection.sendRequest<string[]>('getCliCapabilities');
+                }
+            );
+        } catch (error) {
+            // Old CLI versions don't support getCliCapabilities, return empty array
+            extensionLogOutputChannel.info(`CLI does not support getCliCapabilities (error: ${error}), assuming no capabilities`);
+            return [];
+        }
+    }
+}

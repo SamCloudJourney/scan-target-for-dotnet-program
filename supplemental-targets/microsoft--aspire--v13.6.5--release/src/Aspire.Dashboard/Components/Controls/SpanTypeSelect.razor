@@ -1,0 +1,37 @@
+﻿@{
+    var spanTypeSelectId = $"span-type-select-{Guid.NewGuid():N}";
+}
+
+@if (ViewportInformation.IsDesktop)
+{
+    <label for="@spanTypeSelectId">@Loc[nameof(Dashboard.Resources.Traces.SpanTypeLabel)]</label>
+
+    <DesktopToolbarDivider />
+
+    <FluentSelect TOption="SelectViewModel<SpanType>" TValue="SelectViewModel<SpanType>"
+                  Class="toolbar-select"
+                  Id="@spanTypeSelectId"
+                  Items="@SpanTypes"
+                  Position="SelectPosition.Below"
+                  OptionText="@(c => c?.Name)"
+                  @bind-Value="@SpanType"
+                  @bind-Value:after="@HandleSelectedSpanTypeChangedInternalAsync"
+                  AriaLabel="@Loc[nameof(Dashboard.Resources.Traces.SpanTypeSelectSpanType)]"
+                  @attributes="@AdditionalAttributes" />
+}
+else
+{
+    <div>
+        <FluentSelect TOption="SelectViewModel<SpanType>" TValue="SelectViewModel<SpanType>"
+                      Class="toolbar-select"
+                      Id="@spanTypeSelectId"
+                      Items="@SpanTypes"
+                      Position="SelectPosition.Below"
+                      OptionText="@(c => c?.Name)"
+                      Label="@Loc[nameof(Dashboard.Resources.Traces.SpanTypeLabel)]"
+                      @bind-Value="@SpanType"
+                      @bind-Value:after="@HandleSelectedSpanTypeChangedInternalAsync"
+                      AriaLabel="@Loc[nameof(Dashboard.Resources.Traces.SpanTypeSelectSpanType)]"
+                      @attributes="@AdditionalAttributes" />
+    </div>
+}

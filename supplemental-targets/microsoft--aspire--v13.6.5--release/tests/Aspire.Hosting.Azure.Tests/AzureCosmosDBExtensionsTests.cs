@@ -1,0 +1,1291 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIRECERTIFICATES001
+
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.CosmosDB;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
+using Azure.Provisioning.CosmosDB;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using static Aspire.Hosting.Utils.AzureManifestUtils;
+
+namespace Aspire.Hosting.Azure.Tests;
+
+public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
+{
+    [Theory]
+    [InlineData(null)]
+    [InlineData(8081)]
+    [InlineData(9007)]
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.RunAsEmulator(container =>
+        {
+            container.WithGatewayPort(port);
+        });
+
+        var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+        Assert.NotNull(endpointAnnotation);
+
+        var actualPort = endpointAnnotation.Port;
+        Assert.Equal(port, actualPort);
+    }
+
+    [Theory]
+    [InlineData("2.3.97-preview")]
+    [InlineData("1.0.7")]
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.RunAsEmulator(container =>
+        {
+            container.WithImageTag(imageTag);
+        });
+
+        var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+        Assert.NotNull(containerImageAnnotation);
+
+        var actualTag = containerImageAnnotation.Tag;
+        Assert.Equal(imageTag, actualTag);
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(12)]
+    public async Task AddAzureCosmosDBWithPartitionCountCanOverrideNumberOfPartitions(int partitionCount)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.RunAsClassicEmulator(r => r.WithPartitionCount(partitionCount));
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.Equal(partitionCount.ToString(CultureInfo.InvariantCulture), config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
+    }
+
+    [Fact]
+    public void AddAzureCosmosDBWithDataExplorer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        cosmos.RunAsEmulator(e => e.WithDataExplorer());
+
+        var endpoint = cosmos.GetEndpoint("data-explorer");
+        Assert.NotNull(endpoint);
+        Assert.Equal(1234, endpoint.TargetPort);
+
+        // WithDataExplorer doesn't work against the classic emulator
+        var cosmos2 = builder.AddAzureCosmosDB("cosmos2");
+        Assert.Throws<NotSupportedException>(() => cosmos2.RunAsClassicEmulator(e => e.WithDataExplorer()));
+    }
+
+    [Fact]
+    public void AzureCosmosDBHasCorrectConnectionStrings_ForAccountEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        // Endpoint-based connection info gets passed as a connection string to
+        // support setting the correct properties on child resources.
+        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureCosmosDBHasCorrectConnectionStrings(bool useAccessKeyAuth)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+        if (useAccessKeyAuth)
+        {
+            cosmos.WithAccessKeyAuthentication();
+        }
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        var cosmos1 = builder.AddAzureCosmosDB("cosmos1").RunAsEmulator();
+        if (useAccessKeyAuth)
+        {
+            cosmos1.WithAccessKeyAuthentication();
+        }
+        var db2 = cosmos1.AddCosmosDatabase("db2", "db");
+        var container2 = db2.AddContainer("container2", "id", "container");
+
+        Assert.DoesNotContain(";Database=db1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.DoesNotContain(";Database=db1;Container=container1", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+        // Validate behavior when resource name and container/database name are different
+        Assert.Contains(";Database=db", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Contains(";Database=db;Container=container", container2.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AzureCosmosDBAppliesAzureFunctionsConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        var db1 = cosmos.AddCosmosDatabase("db1");
+        var container1 = db1.AddContainer("container1", "id");
+
+        var target = new Dictionary<string, object>();
+        ((IResourceWithAzureFunctionsConfig)cosmos.Resource).ApplyAzureFunctionsConfiguration(target, "cosmos");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__cosmos__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__cosmos__AccountEndpoint", k),
+            k => Assert.Equal("cosmos__accountEndpoint", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)db1.Resource).ApplyAzureFunctionsConfiguration(target, "db1");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__db1__DatabaseName", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__db1__DatabaseName", k),
+            k => Assert.Equal("db1__accountEndpoint", k));
+
+        target.Clear();
+        ((IResourceWithAzureFunctionsConfig)container1.Resource).ApplyAzureFunctionsConfiguration(target, "container1");
+        Assert.Collection(target.Keys.OrderBy(k => k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__ContainerName", k),
+            k => Assert.Equal("Aspire__Microsoft__Azure__Cosmos__container1__DatabaseName", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__AccountEndpoint", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__ContainerName", k),
+            k => Assert.Equal("Aspire__Microsoft__EntityFrameworkCore__Cosmos__container1__DatabaseName", k),
+            k => Assert.Equal("container1__accountEndpoint", k));
+    }
+
+    /// <summary>
+    /// Test both with and without ACA infrastructure because the role assignments
+    /// are handled differently between the two. This ensures that the bicep is generated
+    /// consistently regardless of the infrastructure used in RunMode.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddAzureCosmosDB(bool useAcaInfrastructure)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, output);
+
+        if (useAcaInfrastructure)
+        {
+            builder.AddAzureContainerAppEnvironment("env");
+        }
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        builder.AddContainer("api", "myimage")
+            .WithReference(cosmos);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var manifest = await GetManifestWithBicep(model, cosmos.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        var cosmosRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "cosmos-roles");
+        var cosmosRolesManifest = await GetManifestWithBicep(cosmosRoles, skipPreparer: true);
+        var expectedBicep = """
+            @description('The location for the resource(s) to be deployed.')
+            param location string = resourceGroup().location
+
+            param cosmos_outputs_name string
+
+            param principalId string
+
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-08-15' existing = {
+              name: cosmos_outputs_name
+            }
+
+            resource cosmos_roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-08-15' existing = {
+              name: '00000000-0000-0000-0000-000000000002'
+              parent: cosmos
+            }
+
+            resource cosmos_roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-08-15' = {
+              name: guid(principalId, cosmos_roleDefinition.id, cosmos.id)
+              properties: {
+                principalId: principalId
+                roleDefinitionId: cosmos_roleDefinition.id
+                scope: cosmos.id
+              }
+              parent: cosmos
+            }
+            """;
+        output.WriteLine(cosmosRolesManifest.BicepText);
+        Assert.Equal(expectedBicep, cosmosRolesManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDatabase_WorksWithAccessKeyAuth_ChildResources()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .WithAccessKeyAuthentication();
+        var database = cosmos.AddCosmosDatabase("db1");
+        var container = database.AddContainer("container1", "id");
+
+        builder.AddContainer("api", "myimage")
+            .WithReference(cosmos);
+
+        Assert.Equal("{cosmos-kv.secrets.connectionstrings--cosmos}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos-kv.secrets.connectionstrings--db1}", database.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{cosmos-kv.secrets.connectionstrings--container1}", container.Resource.ConnectionStringExpression.ValueExpression);
+
+        var manifest = await GetManifestWithBicep(cosmos.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+        });
+
+        Assert.True(cosmos.Resource.IsContainer());
+
+        var csExpr = cosmos.Resource.ConnectionStringExpression;
+        var cs = await csExpr.GetValueAsync(CancellationToken.None);
+
+        var prefix = "AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=";
+        Assert.Equal(prefix + "{cosmos.bindings.emulator.url}", csExpr.ValueExpression);
+        Assert.Equal(prefix + "http://localhost:10001", cs);
+        Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBClassicEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator(e =>
+        {
+            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+        });
+
+        Assert.True(cosmos.Resource.IsContainer());
+
+        var csExpr = cosmos.Resource.ConnectionStringExpression;
+        var cs = await csExpr.GetValueAsync(CancellationToken.None);
+
+        var prefix = "AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=";
+        Assert.Equal(prefix + "https://{cosmos.bindings.emulator.host}:{cosmos.bindings.emulator.port};DisableServerCertificateValidation=True;", csExpr.ValueExpression);
+        Assert.Equal(prefix + "https://127.0.0.1:10001;DisableServerCertificateValidation=True;", cs);
+        Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDB_WithAccessKeyAuthentication_NoKeyVaultWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication().RunAsEmulator();
+        builder.AddAzureCosmosDB("cosmos2").WithAccessKeyAuthentication().RunAsClassicEmulator();
+
+        var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.Empty(model.Resources.OfType<AzureKeyVaultResource>());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public async Task AddAzureCosmosDBViaRunMode_WithAccessKeyAuthentication(string? kvName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        var db = cosmos.AddCosmosDatabase("db", databaseName: "mydatabase");
+        db.AddContainer("container", "mypartitionkeypath", containerName: "mycontainer");
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kv = model.Resources.OfType<AzureKeyVaultResource>().Single();
+
+        Assert.Equal(kvName, kv.Name);
+
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.SecretResolver = (secretRef, _) =>
+        {
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaRunMode_NoAccessKeyAuthentication()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
+
+        cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.outputs.connectionString}",
+                                 "path": "cosmos.module.bicep"
+                               }
+                               """;
+
+        output.WriteLine(manifest.ManifestNode.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Theory]
+    [InlineData("mykeyvault")]
+    [InlineData(null)]
+    public async Task AddAzureCosmosDBViaPublishMode_WithAccessKeyAuthentication(string? kvName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+
+        if (kvName is null)
+        {
+            kvName = "cosmos-kv";
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
+
+        var kv = builder.CreateResourceBuilder<AzureKeyVaultResource>(kvName);
+
+        var secrets = new Dictionary<string, string>
+        {
+            ["connectionstrings--cosmos"] = "mycosmosconnectionstring"
+        };
+
+        kv.Resource.SecretResolver = (secretRef, _) =>
+        {
+            if (!secrets.TryGetValue(secretRef.SecretName, out var value))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            return Task.FromResult<string?>(value);
+        };
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        await Verify(bicep, extension: "bicep")
+            .AppendContentAsFile(manifest.ToString(), "json");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaPublishMode_NoAccessKeyAuthentication()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                callbackDatabases = infrastructure.GetProvisionableResources().OfType<CosmosDBSqlDatabase>();
+            });
+        var db = cosmos.AddCosmosDatabase("mydatabase");
+        db.AddContainer("mycontainer", "mypartitionkeypath");
+
+        cosmos.Resource.Outputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.outputs.connectionString}",
+                                 "path": "cosmos.module.bicep"
+                               }
+                               """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        await Verify(manifest.BicepText, extension: "bicep");
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Name.Value)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBViaPublishMode_WithDefaultAzureSku()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+            .WithDefaultAzureSku();
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(cosmos.Resource);
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public void RunAsEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(cosmos.Resource.IsEmulator());
+        Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public void RunAsClassicEmulatorAppliesEmulatorResourceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsClassicEmulator();
+
+        // Verify that the EmulatorResourceAnnotation is applied
+        Assert.True(cosmos.Resource.IsEmulator());
+        Assert.Contains(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorAppliesOtlpExporterAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        Assert.NotEmpty(cosmos.Resource.Annotations.OfType<OtlpExporterAnnotation>());
+
+        // ENABLE_OTLP_EXPORTER activates the emulator's built-in exporter; it must be set alongside the annotation.
+        using var serviceProvider = builder.Services.BuildServiceProvider();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, serviceProvider);
+        Assert.True(config.TryGetValue("ENABLE_OTLP_EXPORTER", out var enableOtlp));
+        Assert.Equal("true", enableOtlp?.ToString());
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureCosmosDBResource()
+    {
+        // Arrange
+        var cosmosDBResource = new AzureCosmosDBResource("test-cosmosdb", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(cosmosDBResource, "test-cosmosdb");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+        var secondResult = cosmosDBResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureCosmosDBResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var existingName = builder.AddParameter("existing-cosmosdb-name");
+        var existingResourceGroup = builder.AddParameter("existing-cosmosdb-rg");
+
+        var cosmosdb = builder.AddAzureCosmosDB("test-cosmosdb")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = cosmosdb.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public void WithAccessKeyAuthentication_SetsSecretOwner(string? kvName)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos-data");
+
+        // Act
+        if (kvName is null)
+        {
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        // Assert - Verify that the SecretOwner is set to the Cosmos resources
+        Assert.NotNull(cosmos.Resource.ConnectionStringSecretOutput);
+        Assert.Same(cosmos.Resource, cosmos.Resource.ConnectionStringSecretOutput.SecretOwner);
+
+        Assert.NotNull(cosmos.Resource.PrimaryAccessKeySecretOutput);
+        Assert.Same(cosmos.Resource, cosmos.Resource.PrimaryAccessKeySecretOutput.SecretOwner);
+
+        // Also verify that References includes both the KeyVault and the Cosmos resource
+        var references = ((IValueWithReferences)cosmos.Resource.ConnectionStringSecretOutput).References.ToList();
+        Assert.Contains(cosmos.Resource, references);
+        Assert.Contains(cosmos.Resource.ConnectionStringSecretOutput.Resource, references);
+    }
+
+    [Fact]
+    public void RunAsEmulatorRegistersHttpsCertificateConfigurationCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        // Verify that the HttpsCertificateConfigurationCallbackAnnotation is registered
+        Assert.Contains(cosmos.Resource.Annotations, a => a is HttpsCertificateConfigurationCallbackAnnotation);
+    }
+
+    [Fact]
+    public void RunAsClassicEmulatorDoesNotRegisterHttpsCertificateConfigurationCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsClassicEmulator();
+
+        // The classic emulator does not use Aspire's HTTPS certificate configuration.
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is HttpsCertificateConfigurationCallbackAnnotation);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorHttpsCertificateCallbackSetsExpectedEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        var certConfigAnnotation = Assert.Single(
+            cosmos.Resource.Annotations.OfType<HttpsCertificateConfigurationCallbackAnnotation>());
+
+        var args = new List<object>();
+        var env = new Dictionary<string, object>();
+
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
+        {
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            Resource = cosmos.Resource,
+            Arguments = args,
+            EnvironmentVariables = env,
+            CertificatePath = ReferenceExpression.Create($"/certs/server.crt"),
+            KeyPath = ReferenceExpression.Create($"/certs/server.key"),
+            CertificateWithKeyPath = ReferenceExpression.Create($"/certs/server.pem"),
+            PfxPath = ReferenceExpression.Create($"/certs/server.pfx"),
+            Password = null,
+            CancellationToken = CancellationToken.None
+        };
+
+        await certConfigAnnotation.Callback(context);
+
+        Assert.Equal("https", env["PROTOCOL"]);
+        Assert.Equal("https", env["EXPLORER_PROTOCOL"]);
+        Assert.Same(context.PfxPath, env["CERT_PATH"]);
+        Assert.DoesNotContain("CERT_SECRET", env.Keys);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorCertificateTrustCallbackSetsNodeExtraCaCerts()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        var trustConfigAnnotation = Assert.Single(
+            cosmos.Resource.Annotations.OfType<CertificateTrustConfigurationCallbackAnnotation>());
+
+        var env = new Dictionary<string, object>();
+        var bundlePath = ReferenceExpression.Create($"/certs/bundle.pem");
+
+        var context = new CertificateTrustConfigurationCallbackAnnotationContext
+        {
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            Resource = cosmos.Resource,
+            Arguments = new List<object>(),
+            EnvironmentVariables = env,
+            CertificateBundlePath = bundlePath,
+            CertificateDirectoriesPath = ReferenceExpression.Create($"/certs"),
+            Scope = CertificateTrustScope.Append,
+            CancellationToken = CancellationToken.None
+        };
+
+        await trustConfigAnnotation.Callback(context);
+
+        // The vNext emulator's Node-based Data Explorer trusts the Aspire-managed certificate bundle via NODE_EXTRA_CA_CERTS.
+        Assert.True(env.TryGetValue("NODE_EXTRA_CA_CERTS", out var caCerts));
+        Assert.Same(bundlePath, caCerts);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorHttpsCertificateCallbackSetsPasswordWhenProvided()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        var certConfigAnnotation = Assert.Single(
+            cosmos.Resource.Annotations.OfType<HttpsCertificateConfigurationCallbackAnnotation>());
+
+        var passwordParam = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "cert-password");
+        var args = new List<object>();
+        var env = new Dictionary<string, object>();
+
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
+        {
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            Resource = cosmos.Resource,
+            Arguments = args,
+            EnvironmentVariables = env,
+            CertificatePath = ReferenceExpression.Create($"/certs/server.crt"),
+            KeyPath = ReferenceExpression.Create($"/certs/server.key"),
+            CertificateWithKeyPath = ReferenceExpression.Create($"/certs/server.pem"),
+            PfxPath = ReferenceExpression.Create($"/certs/server.pfx"),
+            Password = passwordParam,
+            CancellationToken = CancellationToken.None
+        };
+
+        await certConfigAnnotation.Callback(context);
+
+        Assert.Equal("https", env["PROTOCOL"]);
+        Assert.Equal("https", env["EXPLORER_PROTOCOL"]);
+        Assert.Same(context.PfxPath, env["CERT_PATH"]);
+        Assert.Same(passwordParam, env["CERT_SECRET"]);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorSwitchesEndpointToHttpsWhenCertificateAvailable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, output);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        // Explicitly configure to use developer certificate by adding the annotation directly
+        // (WithHttpsDeveloperCertificate requires IResourceWithEnvironment/IResourceWithArgs)
+        cosmos.WithAnnotation(new HttpsCertificateAnnotation
+        {
+            UseDeveloperCertificate = true,
+        }, ResourceAnnotationMutationBehavior.Replace);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var emulatorEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "emulator");
+        Assert.Equal("https", emulatorEndpoint.UriScheme);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorKeepsHttpWhenNoCertificateAvailable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, output);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: false,
+            tlsTerminate: false));
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator();
+
+        // Explicitly opt out of HTTPS certificate by adding the annotation directly
+        // (WithoutHttpsCertificate requires IResourceWithEnvironment/IResourceWithArgs)
+        cosmos.WithAnnotation(new HttpsCertificateAnnotation
+        {
+            Certificate = null,
+            UseDeveloperCertificate = false,
+        }, ResourceAnnotationMutationBehavior.Replace);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var emulatorEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "emulator");
+        Assert.Equal("http", emulatorEndpoint.UriScheme);
+    }
+
+    [Fact]
+    public async Task WithDataExplorerSwitchesEndpointToHttpsWhenCertificateAvailable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, output);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator(e => e.WithDataExplorer());
+
+        cosmos.WithAnnotation(new HttpsCertificateAnnotation
+        {
+            UseDeveloperCertificate = true,
+        }, ResourceAnnotationMutationBehavior.Replace);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var dataExplorerEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
+        Assert.Equal("https", dataExplorerEndpoint.UriScheme);
+    }
+
+    [Fact]
+    public async Task WithDataExplorerKeepsHttpWhenNoCertificateAvailable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run, output);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: false,
+            tlsTerminate: false));
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator(e => e.WithDataExplorer());
+
+        cosmos.WithAnnotation(new HttpsCertificateAnnotation
+        {
+            Certificate = null,
+            UseDeveloperCertificate = false,
+        }, ResourceAnnotationMutationBehavior.Replace);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var dataExplorerEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
+        Assert.Equal("http", dataExplorerEndpoint.UriScheme);
+    }
+
+    [Fact]
+    public void RunAsEmulatorUsesVNextLatestImageTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+
+        var image = Assert.Single(cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("mcr.microsoft.com", image.Registry);
+        Assert.Equal("cosmosdb/linux/azure-cosmos-emulator", image.Image);
+        Assert.Equal("vnext-latest", image.Tag);
+    }
+
+    [Fact]
+    public void RunAsPreviewEmulatorUsesVNextLatestImageTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsPreviewEmulator();
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        var image = Assert.Single(cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("mcr.microsoft.com", image.Registry);
+        Assert.Equal("cosmosdb/linux/azure-cosmos-emulator", image.Image);
+        Assert.Equal("vnext-latest", image.Tag);
+    }
+
+    [Fact]
+    public void RunAsClassicEmulatorUsesStableImageTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator();
+
+        var image = Assert.Single(cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("mcr.microsoft.com", image.Registry);
+        Assert.Equal("cosmosdb/linux/azure-cosmos-emulator", image.Image);
+        Assert.Equal("stable", image.Tag);
+    }
+
+    [Fact]
+    public async Task WithDataVolumeOnVNextEmulatorUsesDataPathWithoutPersistenceEnvVar()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator(e => e.WithDataVolume());
+
+        var mount = Assert.Single(cosmos.Resource.Annotations.OfType<ContainerMountAnnotation>());
+        Assert.Equal("/data", mount.Target);
+        Assert.Equal(ContainerMountType.Volume, mount.Type);
+        Assert.False(mount.IsReadOnly);
+
+        // The vNext emulator does not read AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE; persistence is
+        // enabled implicitly by mounting the volume at /data.
+        using var serviceProvider = builder.Services.BuildServiceProvider();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, serviceProvider);
+        Assert.DoesNotContain("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", config.Keys);
+    }
+
+    [Fact]
+    public async Task WithDataVolumeOnClassicEmulatorUsesAppDataPathWithPersistenceEnvVar()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsClassicEmulator(e => e.WithDataVolume());
+
+        var mount = Assert.Single(cosmos.Resource.Annotations.OfType<ContainerMountAnnotation>());
+        Assert.Equal("/tmp/cosmos/appdata", mount.Target);
+        Assert.Equal(ContainerMountType.Volume, mount.Type);
+        Assert.False(mount.IsReadOnly);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        Assert.True(config.TryGetValue("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", out var persistence));
+        Assert.Equal("true", persistence);
+    }
+
+    [Fact]
+    public void WithPartitionCountThrowsOnVNextEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        Assert.Throws<NotSupportedException>(() => cosmos.RunAsEmulator(e => e.WithPartitionCount(10)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(251)]
+    public void WithPartitionCountThrowsWhenOutOfRange(int count)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => cosmos.RunAsClassicEmulator(e => e.WithPartitionCount(count)));
+    }
+
+    [Fact]
+    public async Task WithDataExplorerExposesCustomPortAndEnablesExplorer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator(e => e.WithDataExplorer(9999));
+
+        var endpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
+        // 1234 is the vNext emulator's fixed internal Data Explorer port; the host port (9999) is configurable.
+        Assert.Equal(1234, endpoint.TargetPort);
+        Assert.Equal(9999, endpoint.Port);
+
+        using var serviceProvider = builder.Services.BuildServiceProvider();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, serviceProvider);
+        Assert.True(config.TryGetValue("ENABLE_EXPLORER", out var enableExplorer));
+        Assert.Equal("true", enableExplorer);
+    }
+
+    [Fact]
+    public void RunAsEmulatorUsesUrlBasedConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+
+        // Unlike the classic emulator (which uses https://{host}:{port};DisableServerCertificateValidation=True),
+        // the vNext emulator uses a URL-based AccountEndpoint whose scheme follows the emulator endpoint.
+        var csExpr = cosmos.Resource.ConnectionStringExpression;
+        Assert.Equal(
+            $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint={{cosmos.bindings.emulator.url}}",
+            csExpr.ValueExpression);
+        Assert.DoesNotContain("DisableServerCertificateValidation", csExpr.ValueExpression);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorDisablesDataExplorerByDefault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+
+        // The vNext image enables the Data Explorer by default; Aspire disables it unless WithDataExplorer is called.
+        using var serviceProvider = builder.Services.BuildServiceProvider();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, serviceProvider);
+        Assert.True(config.TryGetValue("ENABLE_EXPLORER", out var enableExplorer));
+        Assert.Equal("false", enableExplorer);
+    }
+
+    [Fact]
+    public async Task RunAsClassicEmulatorDoesNotSetEnableExplorer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator();
+
+        // ENABLE_EXPLORER is a vNext-only concept; the classic emulator should not have it set.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        Assert.DoesNotContain("ENABLE_EXPLORER", config.Keys);
+    }
+
+    [Fact]
+    public void RunAsEmulatorConfiguresHealthEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+
+        var healthEndpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "emulatorhealth");
+        Assert.Equal(8080, healthEndpoint.TargetPort);
+        Assert.Equal("http", healthEndpoint.UriScheme);
+        Assert.True(healthEndpoint.ExcludeReferenceEndpoint);
+
+        Assert.Contains(cosmos.Resource.Annotations, a => a is HealthCheckAnnotation);
+    }
+
+    [Fact]
+    public void RunAsClassicEmulatorRegistersHealthCheck()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator();
+
+        Assert.Contains(cosmos.Resource.Annotations, a => a is HealthCheckAnnotation hc && hc.Key == "cosmos_check");
+    }
+
+    [Fact]
+    public void WithDataVolumeUsesProvidedVolumeName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator(e => e.WithDataVolume("my-custom-volume"));
+
+        var mount = Assert.Single(cosmos.Resource.Annotations.OfType<ContainerMountAnnotation>());
+        Assert.Equal("my-custom-volume", mount.Source);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(250)]
+    public async Task WithPartitionCountAcceptsBoundaryValues(int count)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator(e => e.WithPartitionCount(count));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        Assert.Equal(count.ToString(CultureInfo.InvariantCulture), config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
+    }
+
+    [Fact]
+    public void WithDataExplorerDefaultPortLeavesHostPortNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos")
+                           .RunAsEmulator(e => e.WithDataExplorer());
+
+        var endpoint = Assert.Single(cosmos.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "data-explorer");
+        // 1234 is the vNext emulator's fixed internal Data Explorer port; no host port is bound by default.
+        Assert.Equal(1234, endpoint.TargetPort);
+        Assert.Null(endpoint.Port);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorResourceReadyThrowsWhenCosmosClientNotInitialized()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+
+        using var app = builder.Build();
+
+        // Publishing ResourceReadyEvent without ConnectionStringAvailableEvent leaves the CosmosClient uninitialized.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => builder.Eventing.PublishAsync(new ResourceReadyEvent(cosmos.Resource, app.Services)));
+        Assert.Equal("CosmosClient is not initialized.", ex.Message);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorConnectionStringAvailableInitializesCosmosClient()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("emulator", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 10001));
+        });
+
+        using var app = builder.Build();
+
+        // Resolves the emulator connection string and constructs the CosmosClient without throwing.
+        await builder.Eventing.PublishAsync(new ConnectionStringAvailableEvent(cosmos.Resource, app.Services));
+    }
+
+    [Fact]
+    public void CreateCosmosClientForEmulatorConnectionStringUsesGatewayMode()
+    {
+        var connectionString = $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://localhost:8081/";
+
+        using var client = AzureCosmosExtensions.CreateCosmosClient(connectionString);
+
+        Assert.Equal(ConnectionMode.Gateway, client.ClientOptions.ConnectionMode);
+        Assert.True(client.ClientOptions.LimitToEndpoint);
+    }
+
+    [Fact]
+    public void CreateCosmosClientForNonEmulatorConnectionStringUsesDefaults()
+    {
+        // A well-formed non-emulator connection string (valid base64 key) must not force Gateway/LimitToEndpoint.
+        var connectionString = "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=dGVzdGtleQ==";
+
+        using var client = AzureCosmosExtensions.CreateCosmosClient(connectionString);
+
+        Assert.NotEqual(ConnectionMode.Gateway, client.ClientOptions.ConnectionMode);
+        Assert.False(client.ClientOptions.LimitToEndpoint);
+    }
+
+    [Fact]
+    public void CreateCosmosClientForAbsoluteUriUsesEndpoint()
+    {
+        using var client = AzureCosmosExtensions.CreateCosmosClient("https://localhost:8081/");
+
+        Assert.Equal("localhost", client.Endpoint.Host);
+        Assert.Equal(8081, client.Endpoint.Port);
+    }
+
+    [Fact]
+    public void RunAsEmulatorInPublishModeIsNoOp()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e => e.WithDataVolume());
+
+        // In publish mode RunAsEmulator returns before configuring any local container.
+        Assert.False(cosmos.Resource.IsEmulator);
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is ContainerImageAnnotation);
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is ContainerMountAnnotation);
+    }
+
+    [Fact]
+    public void RunAsClassicEmulatorInPublishModeIsNoOp()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator(e => e.WithDataVolume());
+
+        Assert.False(cosmos.Resource.IsEmulator);
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is ContainerImageAnnotation);
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is EmulatorResourceAnnotation);
+        Assert.DoesNotContain(cosmos.Resource.Annotations, a => a is ContainerMountAnnotation);
+    }
+
+    [Fact]
+    public async Task RunAsClassicEmulatorHealthCheckThrowsBeforeCosmosClientInitialized()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.AddAzureCosmosDB("cosmos").RunAsClassicEmulator();
+
+        using var app = builder.Build();
+
+        // The classic emulator registers a health check whose CosmosClient factory throws until the
+        // connection string is available. The factory runs when the check is resolved, so running it
+        // before that surfaces the guard.
+        var healthCheckService = app.Services.GetRequiredService<HealthCheckService>();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => healthCheckService.CheckHealthAsync(r => r.Name == "cosmos_check", CancellationToken.None));
+
+        Assert.Equal("CosmosClient is not initialized.", ex.Message);
+    }
+
+    [Fact]
+    public async Task RunAsEmulatorMarksHealthEndpointUrlAsDetailsOnly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+
+        var urls = new List<ResourceUrlAnnotation>
+        {
+            new() { Url = "http://localhost:8080", Endpoint = cosmos.GetEndpoint("emulatorhealth") }
+        };
+        var context = new ResourceUrlsCallbackContext(
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            cosmos.Resource,
+            urls);
+
+        foreach (var callback in cosmos.Resource.Annotations.OfType<ResourceUrlsCallbackAnnotation>())
+        {
+            await callback.Callback(context);
+        }
+
+        var healthUrl = Assert.Single(urls, u => u.Endpoint?.EndpointName == "emulatorhealth");
+        Assert.Equal(UrlDisplayLocation.DetailsOnly, healthUrl.DisplayLocation);
+    }
+
+    [Fact]
+    public async Task WithDataExplorerSetsDataExplorerDisplayText()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e => e.WithDataExplorer());
+
+        var urls = new List<ResourceUrlAnnotation>
+        {
+            new() { Url = "http://localhost:1234", Endpoint = cosmos.GetEndpoint("data-explorer") }
+        };
+        var context = new ResourceUrlsCallbackContext(
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            cosmos.Resource,
+            urls);
+
+        foreach (var callback in cosmos.Resource.Annotations.OfType<ResourceUrlsCallbackAnnotation>())
+        {
+            await callback.Callback(context);
+        }
+
+        var explorerUrl = Assert.Single(urls, u => u.Endpoint?.EndpointName == "data-explorer");
+        Assert.Equal("Data Explorer", explorerUrl.DisplayText);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
+}

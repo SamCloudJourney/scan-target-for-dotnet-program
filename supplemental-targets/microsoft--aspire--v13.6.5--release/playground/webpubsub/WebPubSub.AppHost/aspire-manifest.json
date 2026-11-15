@@ -1,0 +1,48 @@
+{
+  "resources": {
+    "wps1": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{wps1.outputs.endpoint}",
+      "path": "wps1.module.bicep",
+      "params": {
+        "ChatForAspire_url_0": "{webfrontend.bindings.https.url}/eventhandler/"
+      }
+    },
+    "webfrontend": {
+      "type": "project.v0",
+      "path": "../WebPubSubWeb/WebPubSubWeb.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
+        "ConnectionStrings__ChatForAspire": "{ChatForAspire.connectionString}",
+        "ConnectionStrings__NotificationForAspire": "{NotificationForAspire.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "wps1-roles": {
+      "type": "azure.bicep.v0",
+      "path": "wps1-roles.module.bicep",
+      "params": {
+        "wps1_outputs_name": "{wps1.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "ChatForAspire": {
+      "type": "value.v0",
+      "connectionString": "Endpoint={wps1.outputs.endpoint};Hub=ChatForAspire"
+    }

@@ -1,0 +1,48 @@
+{
+  "resources": {
+    "seq": {
+      "type": "container.v0",
+      "connectionString": "{seq.bindings.http.url}",
+      "image": "docker.io/datalust/seq:2025.2",
+      "env": {
+        "ACCEPT_EULA": "Y",
+        "SEQ_FIRSTRUN_NOAUTHENTICATION": "True"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 80
+        }
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../Seq.ApiService/Seq.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
+        "ConnectionStrings__seq": "{seq.connectionString}",
+        "SEQ_HOST": "{seq.bindings.http.host}",
+        "SEQ_PORT": "{seq.bindings.http.port}",
+        "SEQ_URI": "{seq.bindings.http.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}

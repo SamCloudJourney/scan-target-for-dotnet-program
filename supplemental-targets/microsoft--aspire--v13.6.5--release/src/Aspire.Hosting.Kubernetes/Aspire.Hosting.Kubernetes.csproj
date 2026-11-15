@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <PackageTags>aspire hosting kubernetes</PackageTags>
+    <Description>Kubernetes publishing for Aspire.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" LinkBase="Process" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" LinkBase="Process" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessOutputCapture.cs" LinkBase="Process" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" LinkBase="Process" />
+    <Compile Include="$(SharedDir)ComputeEnvironmentEndpointResolver.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)DashboardImage.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)KnownOtelConfigNames.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)PublishingContextUtils.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)VolumeMountPathResolver.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)Yaml\*.cs" LinkBase="Shared\Yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Kubernetes" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Kubernetes.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,127 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Skip dashboard when building outside the repo, like on helix. Or when
+        building on CI -->
+    <SkipDashboardProjectReference Condition="'$(SkipDashboardProjectReference)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true')">true</SkipDashboardProjectReference>
+    <!-- Skip emulators that don't start consistently when running in CI. -->
+    <SkipUnstableEmulators Condition="'$(SkipUnstableEmulators)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipUnstableEmulators>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
+    <!-- Build the Dashboard for inner-loop output without referencing its net11 assembly from
+         lower-targeted AppHosts. DCP launches it as a separate process. -->
+    <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework;RuntimeIdentifier;PlatformTarget;SelfContained" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
+                      PrivateAssets="all"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer"
+                      SetTargetFramework="TargetFramework=netstandard2.0"
+                      GlobalPropertiesToRemove="RuntimeIdentifier;PlatformTarget;SelfContained" />
+  </ItemGroup>
+
+  <!-- Import only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
+
+  <PropertyGroup >
+    <DefineConstants Condition="'$(SkipDashboardProjectReference)' == 'true'">SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(SkipUnstableEmulators)' == 'true'">SKIP_UNSTABLE_EMULATORS;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Task to check if a command is available on PATH -->
+  <UsingTask TaskName="CheckCommandAvailable" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Command ParameterType="System.String" Required="true" />
+      <IsAvailable ParameterType="System.Boolean" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Runtime.InteropServices" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+        string command = Command;
+        IsAvailable = false;
+
+        try
+        {
+            // If the command includes any directory separator, treat it as a path (relative or absolute)
+            if (command.IndexOfAny(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) >= 0)
+            {
+                var candidate = Path.GetFullPath(command);
+                IsAvailable = File.Exists(candidate);
+                return true;
+            }
+
+            // Search PATH
+            var pathEnv = Environment.GetEnvironmentVariable("PATH");
+            if (string.IsNullOrEmpty(pathEnv))
+            {
+                return true;
+            }
+
+            var paths = pathEnv.Split(new char[] { Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // On Windows consider PATHEXT if no extension specified
+                var hasExtension = Path.HasExtension(command);
+                var pathext = Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD";
+                var exts = pathext.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var dir in paths)
+                {
+                    if (hasExtension)
+                    {
+                        var candidate = Path.Combine(dir, command);
+                        if (File.Exists(candidate))
+                        {
+                            IsAvailable = true;
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        foreach (var ext in exts)
+                        {
+                            var candidate = Path.Combine(dir, command + ext);
+                            if (File.Exists(candidate))
+                            {
+                                IsAvailable = true;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (var dir in paths)
+                {
+                    var candidate = Path.Combine(dir, command);
+                    if (File.Exists(candidate))
+                    {
+                        IsAvailable = true;
+                        return true;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If any exception occurs, assume command is not available
+        }
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+</Project>

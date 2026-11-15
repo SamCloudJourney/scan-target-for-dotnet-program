@@ -104,5 +104,17 @@
     "owner": "dotnet",
     "regular_files": 3789,
     "archive_sha256": "94fcedfba00310d00bda9af19f976790dccabe27798d5970248a3da4dbbf8095"
+  },
+  {
+    "name": "aspire",
+    "kind": "release",
+    "ref": "v13.6.5",
+    "commit": "b33d222049f1ecc3bc7257ec07b622fe550b2580",
+    "path": "supplemental-targets/microsoft--aspire--v13.6.5--release",
+    "files": 12539,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "microsoft",
+    "regular_files": 12539,
+    "archive_sha256": "5363595d071082c0a8c0d7fe71dad7edeb88296abc97e310feb30283a09766cb"
   }
 ]

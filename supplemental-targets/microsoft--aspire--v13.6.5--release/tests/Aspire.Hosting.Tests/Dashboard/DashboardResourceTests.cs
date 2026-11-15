@@ -1,0 +1,947 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections.Concurrent;
+using System.Text.Json;
+using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Aspire.Hosting.Tests.Dashboard;
+
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only
+
+[Trait("Partition", "3")]
+public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
+{
+    [Theory]
+    [InlineData(KnownConfigNames.ShowDashboardResources)]
+    [InlineData(KnownConfigNames.Legacy.ShowDashboardResources)]
+    public async Task DashboardIsAutomaticallyAddedAsHiddenResource(string showDashboardResourcesKey)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        // Ensure any ambient configuration doesn't impact this test.
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [showDashboardResourcesKey] = null
+        });
+
+        var dashboardDirectory = Directory.CreateTempSubdirectory();
+        try
+        {
+            var dashboardPath = Path.Combine(dashboardDirectory.FullName, "dashboard");
+            File.WriteAllText($"{dashboardPath}.dll", string.Empty);
+            File.WriteAllText(
+                $"{dashboardPath}.runtimeconfig.json",
+                """{"runtimeOptions":{"tfm":"net11.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"11.0.0"},{"name":"Microsoft.AspNetCore.App","version":"11.0.0"}]}}""");
+
+            builder.Services.Configure<DcpOptions>(o =>
+            {
+                o.DashboardPath = dashboardPath;
+            });
+
+            using var app = builder.Build();
+
+            await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+            var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+            var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
+            var initialSnapshot = Assert.Single(dashboard.Annotations.OfType<ResourceSnapshotAnnotation>());
+            var hiddenAnnotation = Assert.Single(dashboard.Annotations.OfType<HiddenAnnotation>());
+
+            var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+
+            Assert.NotNull(dashboard);
+            Assert.Equal("aspire-dashboard", dashboard.Name);
+            Assert.Equal("dotnet", dashboard.Command);
+            Assert.Equal(args[3], $"{dashboardPath}.dll");
+            Assert.Equal(HiddenBehavior.Always, hiddenAnnotation.Behavior);
+            Assert.False(initialSnapshot.InitialSnapshot.IsHidden);
+        }
+        finally
+        {
+            dashboardDirectory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task DashboardIsAddedFirst()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.AddContainer("my-container", "my-image");
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.Collection(model.Resources,
+            r => Assert.Equal("aspire-dashboard", r.Name),
+            r => Assert.Equal("my-container", r.Name)
+        );
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardDoesNotAddResource_ConfiguresExistingDashboard(string dashboardOtlpGrpcEndpointUrlKey)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
+        });
+
+        var container = builder.AddContainer(KnownResourceNames.AspireDashboard, "my-image");
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, httpsPort: 5005);
+
+        Assert.Same(container.Resource, dashboard);
+
+        var config = (await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout())
+            .OrderBy(c => c.Key)
+            .ToList();
+
+        Assert.Collection(config,
+            e =>
+            {
+                Assert.Equal(KnownConfigNames.DashboardApiEnabled, e.Key);
+                Assert.Equal("true", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, e.Key);
+                Assert.Equal("http://localhost:5001", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(DashboardConfigNames.DashboardPersistenceModeName.EnvVarName, e.Key);
+                Assert.Equal("Run", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(KnownConfigNames.ResourceServiceEndpointUrl, e.Key);
+                Assert.Equal("http://localhost:5000", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(KnownAspNetCoreConfigNames.Environment, e.Key);
+                Assert.Equal("Production", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(KnownAspNetCoreConfigNames.Urls, e.Key);
+                Assert.Equal("http://localhost:5003", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__API__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__FRONTEND__PUBLICURL", e.Key);
+                Assert.Equal("http://localhost:5003", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__OTLP__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("LOGGING__CONSOLE__FORMATTERNAME", e.Key);
+                Assert.Equal("json", e.Value);
+            }
+        );
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardWithBlankOtlpEndpoint_AutoConfiguresDynamicOtlpPorts(string dashboardOtlpGrpcEndpointUrlKey)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "https://localhost:17131;http://localhost:15000",
+            [dashboardOtlpGrpcEndpointUrlKey] = string.Empty
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dashboard = Assert.Single(model.Resources);
+        var otlpGrpcEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpGrpcEndpointName);
+        var otlpHttpEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpHttpEndpointName);
+        var dashboardOptions = app.Services.GetRequiredService<IOptions<DashboardOptions>>().Value;
+
+        Assert.Null(dashboardOptions.OtlpGrpcEndpointUrl);
+        Assert.Null(dashboardOptions.OtlpHttpEndpointUrl);
+        Assert.Equal("https", otlpGrpcEndpoint.UriScheme);
+        Assert.Equal("localhost", otlpGrpcEndpoint.TargetHost);
+        Assert.Null(otlpGrpcEndpoint.Port);
+        Assert.Equal("https", otlpHttpEndpoint.UriScheme);
+        Assert.Equal("localhost", otlpHttpEndpoint.TargetHost);
+        Assert.Null(otlpHttpEndpoint.Port);
+    }
+
+    [Fact]
+    public async Task DashboardWithBlankOtlpEndpointAndUnsecuredTransport_UsesHttpScheme()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.AllowUnsecuredTransport] = "true",
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dashboard = Assert.Single(model.Resources);
+        var otlpGrpcEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpGrpcEndpointName);
+        var otlpHttpEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpHttpEndpointName);
+
+        Assert.Equal("http", otlpGrpcEndpoint.UriScheme);
+        Assert.Equal("localhost", otlpGrpcEndpoint.TargetHost);
+        Assert.Null(otlpGrpcEndpoint.Port);
+        Assert.Equal("http", otlpHttpEndpoint.UriScheme);
+        Assert.Equal("localhost", otlpHttpEndpoint.TargetHost);
+        Assert.Null(otlpHttpEndpoint.Port);
+    }
+
+    [Theory]
+    [InlineData("https://myhost:18888", null, "myhost")]
+    [InlineData("http://customhost:5000", true, "customhost")]
+    [InlineData("https://10.0.0.1:443;http://10.0.0.1:80", null, "10.0.0.1")]
+    [InlineData("http://frontend:80;https://frontend:443", null, "frontend")]
+    [InlineData("http://otherhost:80", null, "localhost")]
+    public async Task DashboardWithDashboardUrls_OtlpEndpointsInheritTargetHost(string dashboardUrls, bool? allowUnsecuredTransport, string expectedTargetHost)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Configuration.Sources.Clear();
+
+        var config = new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = dashboardUrls,
+        };
+
+        if (allowUnsecuredTransport is not null)
+        {
+            config[KnownConfigNames.AllowUnsecuredTransport] = allowUnsecuredTransport.Value.ToString();
+        }
+
+        builder.Configuration.AddInMemoryCollection(config);
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dashboard = Assert.Single(model.Resources);
+        var otlpGrpcEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpGrpcEndpointName);
+        var otlpHttpEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpHttpEndpointName);
+
+        Assert.Equal(expectedTargetHost, otlpGrpcEndpoint.TargetHost);
+        Assert.Equal(expectedTargetHost, otlpHttpEndpoint.TargetHost);
+    }
+
+    [Theory]
+    [InlineData(false, "https")]
+    [InlineData(true, "http")]
+    public async Task DashboardWithNoApplicationUrl_UsesDynamicFrontendEndpointWithExpectedScheme(bool allowUnsecuredTransport, string expectedEndpointName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.AllowUnsecuredTransport] = allowUnsecuredTransport.ToString()
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dashboard = Assert.Single(model.Resources);
+        var frontendEndpoint = Assert.Single(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name is "http" or "https");
+
+        Assert.Equal(expectedEndpointName, frontendEndpoint.Name);
+        Assert.Equal(expectedEndpointName, frontendEndpoint.UriScheme);
+        Assert.Null(frontendEndpoint.Port);
+    }
+
+    [Fact]
+    public async Task DashboardWithDllPathLaunchesDotnet()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        var dashboardPath = typeof(DashboardResourceTests).Assembly.Location;
+
+        builder.Services.Configure<DcpOptions>(o =>
+        {
+            o.DashboardPath = dashboardPath;
+        });
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
+
+        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+
+        Assert.NotNull(dashboard);
+        Assert.Equal("aspire-dashboard", dashboard.Name);
+        Assert.Equal("dotnet", dashboard.Command);
+        Assert.Equal("exec", args[0]);
+        Assert.Equal("--runtimeconfig", args[1]);
+        Assert.EndsWith(".json", args[2]);
+        Assert.Equal(dashboardPath, args[3]);
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardAuthConfigured_EnvVarsPresent(string dashboardOtlpGrpcEndpointUrlKey)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost",
+            ["AppHost:BrowserToken"] = "TestBrowserToken!",
+            ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, httpsPort: 5004);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
+
+        Assert.Equal("BrowserToken", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
+        Assert.Equal("TestBrowserToken!", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName).Value);
+
+        Assert.Equal("ApiKey", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
+        Assert.Equal("TestOtlpApiKey!", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName).Value);
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardAuthRemoved_EnvVarsUnsecured(string dashboardOtlpGrpcEndpointUrlKey)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+        builder.Services.AddSingleton(new DistributedApplicationModel([]));
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, httpsPort: 5004);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
+
+        Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
+        Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl)]
+    public async Task DashboardResourceServiceUriIsSet(string dashboardOtlpGrpcEndpointUrlKey)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
+            [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5000, httpsPort: 5004);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
+
+        Assert.Equal("http://localhost:5000", config.Single(e => e.Key == DashboardConfigNames.ResourceServiceUrlName.EnvVarName).Value);
+    }
+
+    [Theory]
+    [InlineData("*", KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.DashboardCorsAllowedOrigins)]
+    [InlineData(null, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)]
+    public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet(string? explicitCorsAllowedOrigins, string otlpHttpEndpointUrlKey, string corsAllowedOriginsKey)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
+            [otlpHttpEndpointUrlKey] = "http://localhost",
+            [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Hack in an AllocatedEndpoint. This is what is used to build the list of CORS endpoints.
+        var container = Assert.Single(model.Resources, r => r.Name == "my-container");
+        var endpointAnnotation = Assert.Single(container.Annotations.OfType<EndpointAnnotation>());
+        endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 8081);
+
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
+        Assert.DoesNotContain(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpGrpcEndpointName);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, httpsPort: 5005);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
+
+        var expectedAllowedOrigins = !string.IsNullOrEmpty(explicitCorsAllowedOrigins) ? explicitCorsAllowedOrigins : "http://localhost:8081,http://localhost:58080";
+        Assert.Equal("http://localhost:5002", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName).Value);
+        Assert.Equal(expectedAllowedOrigins, config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
+        Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
+        Assert.DoesNotContain(config, e => e.Key == corsAllowedOriginsKey);
+    }
+
+    [Theory]
+    [InlineData("*", KnownConfigNames.DashboardCorsAllowedOrigins)]
+    [InlineData(null, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)]
+    public async Task DashboardResource_DynamicOtlpHttpEndpoint_CorsEnvVarSet(string? explicitCorsAllowedOrigins, string corsAllowedOriginsKey)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Hack in an AllocatedEndpoint. This is what is used to build the list of CORS endpoints.
+        var container = Assert.Single(model.Resources, r => r.Name == "my-container");
+        var endpointAnnotation = Assert.Single(container.Annotations.OfType<EndpointAnnotation>());
+        endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 8081);
+
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
+        Assert.Contains(dashboard.Annotations.OfType<EndpointAnnotation>(), e => e.Name == KnownEndpointNames.OtlpHttpEndpointName);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, httpsPort: 5005);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
+
+        var expectedAllowedOrigins = !string.IsNullOrEmpty(explicitCorsAllowedOrigins) ? explicitCorsAllowedOrigins : "http://localhost:8081,http://localhost:58080";
+        Assert.Equal("https://localhost:5001", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName).Value);
+        Assert.Equal("https://localhost:5002", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName).Value);
+        Assert.Equal(expectedAllowedOrigins, config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
+        Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
+        Assert.DoesNotContain(config, e => e.Key == corsAllowedOriginsKey);
+    }
+
+    [Theory]
+    [InlineData("*", KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.DashboardCorsAllowedOrigins)]
+    [InlineData(null, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)]
+    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet(string? explicitCorsAllowedOrigins, string otlpGrpcEndpointUrlKey, string corsAllowedOriginsKey)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
+            [otlpGrpcEndpointUrlKey] = "http://localhost",
+            [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, httpsPort: 5005);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services).DefaultTimeout();
+
+        Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName);
+        Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName);
+    }
+
+    [Fact]
+    public async Task DashboardResource_HttpsEndpoint_ConfiguresKestrelCertificateCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(options =>
+        {
+            options.DisableDashboard = false;
+            options.TrustDeveloperCertificate = true;
+        }, testOutputHelper: testOutputHelper);
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "https://localhost",
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dashboard = Assert.Single(model.Resources, r => r.Name == "aspire-dashboard");
+
+        Assert.True(dashboard.HasAnnotationOfType<HttpsCertificateConfigurationCallbackAnnotation>());
+    }
+
+    [Fact]
+    public async Task DashboardIsNotAddedInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options =>
+            {
+                options.DisableDashboard = false;
+                options.Args = ["--publisher", "manifest"];
+            },
+            testOutputHelper: testOutputHelper);
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.Empty(model.Resources);
+    }
+
+    [Fact]
+    public async Task DashboardIsNotAddedIfDisabled()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = true,
+            testOutputHelper: testOutputHelper);
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.Empty(model.Resources);
+    }
+
+    [Fact]
+    public void ContainerIsValidWithDashboardIsDisabled()
+    {
+        // Set the host environment to "Development" so that the container validates services.
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options =>
+            {
+                options.DisableDashboard = true;
+                options.Args = ["--environment", "Development"];
+            },
+            testOutputHelper: testOutputHelper);
+
+        // Container validation logic runs when the service provider is built.
+        using var app = builder.Build();
+    }
+
+    [Theory]
+    [InlineData(LogLevel.Critical)]
+    [InlineData(LogLevel.Error)]
+    [InlineData(LogLevel.Warning)]
+    [InlineData(LogLevel.Information)]
+    [InlineData(LogLevel.Debug)]
+    [InlineData(LogLevel.Trace)]
+    public async Task DashboardLifecycleEventsWatchesLogs(LogLevel logLevel)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        var loggerProvider = new TestLoggerProvider();
+
+        builder.Services.AddLogging(b =>
+        {
+            b.AddProvider(loggerProvider);
+            b.AddFilter("Aspire.Hosting.Dashboard", logLevel);
+        });
+
+        var dashboardPath = Path.GetFullPath("dashboard");
+
+        builder.Services.Configure<DcpOptions>(o =>
+        {
+            o.DashboardPath = dashboardPath;
+        });
+
+        var app = builder.Build();
+
+        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        var watchForLogSubs = Task.Run(async () =>
+        {
+            await foreach (var sub in resourceLoggerService.WatchAnySubscribersAsync())
+            {
+                if (sub.AnySubscribers)
+                {
+                    break;
+                }
+            }
+        });
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
+
+        Assert.NotNull(dashboard);
+        Assert.Equal("aspire-dashboard", dashboard.Name);
+
+        // Push a notification through to the dashboard resource.
+        await resourceNotificationService.PublishUpdateAsync(dashboard, "aspire-dashboard-0", s => s with { State = "Running" }).DefaultTimeout();
+
+        // Wait for logs to be subscribed to
+        await watchForLogSubs.DefaultTimeout();
+
+        // Push some logs through to the dashboard resource.
+        var logger = resourceLoggerService.GetLogger("aspire-dashboard-0");
+
+        // The logging watcher expects a JSON payload. Use an "Aspire.Dashboard." prefixed category
+        // so the LogMessage method trims it and routes to "Aspire.Hosting.Dashboard.Test" rather than
+        // "Aspire.Hosting.Dashboard.ThirdParty.Test".
+        var dashboardLogMessage = new DashboardLogMessage
+        {
+            Category = "Aspire.Dashboard.Test",
+            LogLevel = logLevel,
+            Message = "Test dashboard message"
+        };
+
+        logger.Log(logLevel, 0, JsonSerializer.Serialize(dashboardLogMessage), null, (s, _) => s);
+
+        // Get the logger with the category we expect Aspire.Hosting.Dashboard.Test
+        var testLogger = loggerProvider.CreateLogger("Aspire.Hosting.Dashboard.Test") as TestLogger;
+
+        Assert.NotNull(testLogger);
+
+        // Get the first log message that was logged
+        var log = await testLogger.FirstLogTask.DefaultTimeout();
+
+        Assert.Equal("Test dashboard message", log.Message);
+        Assert.Equal(logLevel, log.LogLevel);
+
+        await app.DisposeAsync().AsTask().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task DashboardIsExcludedFromManifestInPublishModeEvenIfAddedExplicitly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddProject<DashboardProject>(KnownResourceNames.AspireDashboard);
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources.OfType<ProjectResource>());
+
+        Assert.NotNull(dashboard);
+        var annotation = Assert.Single(dashboard.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
+
+        var manifest = await ManifestUtils.GetManifestOrNull(dashboard).DefaultTimeout();
+
+        Assert.Equal("aspire-dashboard", dashboard.Name);
+        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, annotation);
+        Assert.Null(manifest);
+    }
+
+    [Theory]
+    [InlineData("TestBrowserToken123", "http://localhost:5003/login?t=TestBrowserToken123", "https://localhost:5005/login?t=TestBrowserToken123")]
+    [InlineData(null, "http://localhost:5003", "https://localhost:5005")]
+    public async Task DashboardResource_UrlsIncludeTokenQuerystringWhenConfigured(string? browserToken, string expectedHttpUrl, string expectedHttpsUrl)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.DisableDashboard = false,
+            testOutputHelper: testOutputHelper);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        var config = new Dictionary<string, string?>
+        {
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost;https://localhost",
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
+        };
+
+        if (browserToken != null)
+        {
+            config["AppHost:BrowserToken"] = browserToken;
+        }
+
+        builder.Configuration.AddInMemoryCollection(config);
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources);
+
+        SetDashboardAllocatedEndpoints(dashboard, otlpGrpcPort: 5001, otlpHttpPort: 5002, httpPort: 5003, httpsPort: 5005);
+
+        // Act - Get the URLs by invoking the ResourceUrlsCallbackAnnotation
+        var urlsCallback = dashboard.Annotations.OfType<ResourceUrlsCallbackAnnotation>().Single();
+        var urls = new List<ResourceUrlAnnotation>
+        {
+            new() { Url = "http://localhost:5003", Endpoint = ((IResourceWithEndpoints)dashboard).GetEndpoint("http") },
+            new() { Url = "https://localhost:5005", Endpoint = ((IResourceWithEndpoints)dashboard).GetEndpoint("https") }
+        };
+        
+        var context = new ResourceUrlsCallbackContext(
+            app.Services.GetRequiredService<DistributedApplicationExecutionContext>(),
+            dashboard,
+            urls);
+
+        await urlsCallback.Callback(context).DefaultTimeout();
+
+        // Assert
+        var httpUrl = urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "http");
+        var httpsUrl = urls.FirstOrDefault(u => u.Endpoint?.EndpointName == "https");
+
+        Assert.NotNull(httpUrl);
+        Assert.Equal(expectedHttpUrl, httpUrl.Url);
+        Assert.Equal("Dashboard (http)", httpUrl.DisplayText);
+
+        Assert.NotNull(httpsUrl);
+        Assert.Equal(expectedHttpsUrl, httpsUrl.Url);
+        Assert.Equal("Dashboard (https)", httpsUrl.DisplayText);
+    }
+
+    static void SetDashboardAllocatedEndpoints(IResource dashboard, int otlpGrpcPort, int otlpHttpPort, int httpPort, int httpsPort)
+    {
+        foreach (var endpoint in dashboard.Annotations.OfType<EndpointAnnotation>())
+        {
+            if (endpoint.Name == KnownEndpointNames.OtlpGrpcEndpointName)
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpGrpcPort, targetPortExpression: otlpGrpcPort.ToString());
+            }
+            else if (endpoint.Name == KnownEndpointNames.OtlpHttpEndpointName)
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", otlpHttpPort, targetPortExpression: otlpHttpPort.ToString());
+            }
+            else if (endpoint.Name == "http")
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", httpPort, targetPortExpression: httpPort.ToString());
+            }
+            else if (endpoint.Name == "https")
+            {
+                endpoint.AllocatedEndpoint = new(endpoint, "localhost", httpsPort, targetPortExpression: httpsPort.ToString());
+            }
+        }
+    }
+
+    private sealed class DashboardProject : IProjectMetadata
+    {
+        public string ProjectPath => "dashboard.csproj";
+
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class TestLogger : ILogger
+    {
+        private readonly TaskCompletionSource<LogMessage> _tcs = new();
+
+        public Task<LogMessage> FirstLogTask => _tcs.Task;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            var message = new LogMessage
+            {
+                LogLevel = logLevel,
+                Message = formatter(state, exception)
+            };
+
+            _tcs.TrySetResult(message);
+        }
+
+        public sealed class LogMessage
+        {
+            public LogLevel LogLevel { get; set; }
+            public string Message { get; set; } = string.Empty;
+        }
+    }
+
+    private sealed class TestLoggerProvider : ILoggerProvider
+    {
+        private readonly ConcurrentDictionary<string, TestLogger> _loggers = new();
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return _loggers.GetOrAdd(categoryName, _ => new TestLogger());
+        }
+
+        public void Dispose() { }
+    }
+
+    private sealed class MockDashboardEndpointProvider : IDashboardEndpointProvider
+    {
+        public Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult("http://localhost:5000");
+        }
+    }
+}

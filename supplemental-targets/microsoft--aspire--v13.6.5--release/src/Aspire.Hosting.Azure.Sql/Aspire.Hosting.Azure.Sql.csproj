@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- This project needs to multi-target to net9.0 as well to avoid hitting NuGet Restore issues when package is restored from a net9+ project and avoid NU1605 downgrade errors. -->
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire integration hosting azure sql database data cloud</PackageTags>
+    <Description>Azure SQL Database resource types for Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureSqlServer_256x.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Network\Aspire.Hosting.Azure.Network.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" />
+    <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.Sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+  </ItemGroup>
+
+</Project>

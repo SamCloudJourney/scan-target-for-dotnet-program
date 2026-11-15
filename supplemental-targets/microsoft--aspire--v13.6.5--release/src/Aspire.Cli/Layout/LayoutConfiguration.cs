@@ -1,0 +1,164 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Shared;
+using Semver;
+
+namespace Aspire.Cli.Layout;
+
+/// <summary>
+/// Known layout component types.
+/// </summary>
+public enum LayoutComponent
+{
+    /// <summary>CLI executable.</summary>
+    Cli = 0,
+    /// <summary>Developer Control Plane.</summary>
+    Dcp = 1,
+    /// <summary>Unified managed binary (server, NuGet, terminal host).</summary>
+    Managed = 2,
+    /// <summary>Dashboard executable and static assets.</summary>
+    Dashboard = 3
+}
+
+/// <summary>
+/// Configuration for the Aspire bundle layout.
+/// Specifies paths to all components in a self-contained bundle.
+/// </summary>
+public sealed class LayoutConfiguration
+{
+    /// <summary>
+    /// Bundle version (e.g., "13.2.0" or "dev" for local development).
+    /// </summary>
+    public string? Version { get; set; }
+
+    /// <summary>
+    /// Target platform (e.g., "linux-x64", "win-x64").
+    /// </summary>
+    public string? Platform { get; set; }
+
+    /// <summary>
+    /// Root path of the layout.
+    /// </summary>
+    public string? LayoutPath { get; set; }
+
+    /// <summary>
+    /// Component paths relative to LayoutPath.
+    /// </summary>
+    public LayoutComponents Components { get; set; } = new();
+
+    /// <summary>
+    /// List of integrations included in the bundle.
+    /// </summary>
+    public List<string> BuiltInIntegrations { get; set; } = [];
+
+    /// <summary>
+    /// Gets the absolute path to a component.
+    /// </summary>
+    public string? GetComponentPath(LayoutComponent component)
+    {
+        if (string.IsNullOrEmpty(LayoutPath))
+        {
+            return null;
+        }
+
+        var relativePath = component switch
+        {
+            LayoutComponent.Cli => Components.Cli,
+            LayoutComponent.Dcp => Components.Dcp,
+            LayoutComponent.Dashboard => Components.Dashboard,
+            LayoutComponent.Managed => Components.Managed,
+            _ => null
+        };
+
+        return relativePath is not null ? Path.Combine(LayoutPath, relativePath) : null;
+    }
+
+    /// <summary>
+    /// Gets the path to the DCP directory.
+    /// </summary>
+    public string? GetDcpPath() => GetComponentPath(LayoutComponent.Dcp);
+
+    /// <summary>
+    /// Gets the path to the aspire-managed executable.
+    /// </summary>
+    /// <returns>The path to aspire-managed(.exe).</returns>
+    public string? GetManagedPath()
+    {
+        var managedDir = GetComponentPath(LayoutComponent.Managed);
+        if (managedDir is null)
+        {
+            return null;
+        }
+
+        return Path.Combine(managedDir, BundleDiscovery.GetExecutableFileName(BundleDiscovery.ManagedExecutableName));
+    }
+
+    /// <summary>
+    /// Gets the path to the Native AOT Dashboard executable.
+    /// </summary>
+    /// <returns>The path to the Dashboard executable.</returns>
+    public string? GetDashboardPath()
+    {
+        var dashboardDir = GetComponentPath(LayoutComponent.Dashboard);
+        if (dashboardDir is null)
+        {
+            return null;
+        }
+
+        return Path.Combine(dashboardDir, BundleDiscovery.GetExecutableFileName(BundleDiscovery.DashboardExecutableName));
+    }
+}
+
+/// <summary>
+/// Component paths within the layout.
+/// </summary>
+public sealed class LayoutComponents
+{
+    /// <summary>
+    /// Path to CLI executable (e.g., "aspire" or "aspire.exe").
+    /// </summary>
+    public string? Cli { get; set; } = "aspire";
+
+    /// <summary>
+    /// Path to Developer Control Plane.
+    /// </summary>
+    public string? Dcp { get; set; } = BundleDiscovery.DcpDirectoryName;
+
+    /// <summary>
+    /// Path to the Dashboard executable and static assets directory.
+    /// </summary>
+    public string? Dashboard { get; set; } = BundleDiscovery.DashboardDirectoryName;
+
+    /// <summary>
+    /// Path to the unified managed binary directory.
+    /// </summary>
+    public string? Managed { get; set; } = BundleDiscovery.ManagedDirectoryName;
+}
+
+/// <summary>
+/// Selects a Dashboard executable compatible with the AppHost's Hosting version.
+/// </summary>
+internal static class DashboardLaunchHelper
+{
+    private static readonly SemVersion s_minimumNativeDashboardHostingVersion = SemVersion.Parse("13.6.0-0");
+
+    public static bool SupportsNativeDashboard(SemVersion? hostingVersion)
+    {
+        // Older Hosting converts the Dashboard path to a DLL and launches it with dotnet exec.
+        // Unknown versions use the managed forwarder to preserve that launch contract.
+        return hostingVersion is not null &&
+            hostingVersion.ComparePrecedenceTo(s_minimumNativeDashboardHostingVersion) >= 0;
+    }
+
+    public static string? GetDashboardPath(LayoutConfiguration layout, bool supportsNativeDashboard)
+    {
+        if (supportsNativeDashboard && layout.GetDashboardPath() is { } dashboardPath && File.Exists(dashboardPath))
+        {
+            return dashboardPath;
+        }
+
+        var managedPath = layout.GetManagedPath();
+        return File.Exists(managedPath) ? managedPath : null;
+    }
+}
