@@ -1,0 +1,25 @@
+---
+title: Use React with ASP.NET Core
+description: Learn how to get started with the ASP.NET Core Single Page Application (SPA) project template for React and Create React App (CRA).
+monikerRange: '>= aspnetcore-10.0'
+ms.date: 04/24/2026
+
+# customer intent: As an ASP.NET developer, I want to get started with the SPA project template for React and CRA, so I can use React and create apps.
+---
+# Use React with ASP.NET Core
+
+[!INCLUDE[](~/includes/not-latest-version-without-not-supported-content.md)]
+
+[!INCLUDE [spa-templates-recommend-vs](../../includes/spa-templates-recommend-vs.md)]
+
+## Visual Studio tutorial
+
+To get started, follow the [Create an ASP.NET Core app with React](/visualstudio/javascript/tutorial-asp-net-core-with-react) tutorial in the Visual Studio documentation.
+
+For more information, see [JavaScript and TypeScript in Visual Studio](/visualstudio/javascript/javascript-in-visual-studio)
+
+[!INCLUDE [spa-templates-new-vs-old](../../includes/spa-templates-new-vs-old.md)]
+
+## Related content
+
+[Use Identity to secure a Web API backend for SPAs](../../security/authentication/identity-api-authorization.md)

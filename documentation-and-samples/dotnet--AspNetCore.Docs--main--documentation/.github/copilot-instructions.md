@@ -1,0 +1,166 @@
+---
+ms.date: 10/21/2026
+---
+
+# Copilot Instructions for `dotnet/AspNetCore.Docs`
+
+## Introduction
+
+This document contains general and repository-specific instructions for GitHub Copilot when assisting with the `dotnet/AspNetCore.Docs` repository. **Unless otherwise specified, all ".NET" references refer to modern .NET, not .NET Framework.**
+
+For code-specific guidelines, including code snippets, version targeting, and language standards, please refer to the [copilot-code-instructions.md](./copilot-code-instructions.md) file.
+
+## General Guidelines
+
+### 1. Issue Handling
+
+When creating a PR for an issue:
+
+* [ ] Read the full issue and all linked references
+* [ ] Study code samples from linked PRs that demonstrate features in the latest .NET pre-release version (e.g., .NET 11 Preview) to ensure that guidance and documentation reflect the latest upcoming changes and best practices.
+* [ ] For labeled issues that have the following labels, follow these guidelines:
+  * [ ] **new-feature:** State which version introduced the feature
+  * [ ] **bug:** Focus on correcting technical inaccuracies
+* [ ] When you're assigned an issue, after you've completed your work and the workflows (status checks) have run, ensure there are no build warnings under the OpenPublishing.Build status check. If there are, open the build report (under View Details) and resolve any build warnings you introduced.
+* [ ] Provide an overview of the project you're working on, including its purpose, goals, and any relevant background information.
+* [ ] Include the folder structure of the repository, including any important directories or files that are relevant to the project.
+
+### 2. Issue Discussion Analysis
+
+When working on an issue:
+
+* [ ] **Read the complete issue discussion** - Don't rely solely on the initial issue description
+* [ ] **Prioritize maintainer guidance** - Comments from repository maintainers (especially those with "MEMBER" association) should take precedence over the original issue description
+* [ ] **Look for updated analysis** - Later comments may contain revised understanding, additional context, or modified resolution approaches
+* [ ] **Check for explicit instructions** - Look for phrases like "Action required by GitHub Copilot" or direct "@copilot" mentions that provide specific guidance
+* [ ] **Validate your understanding** - If the discussion seems to contradict the initial issue description, follow the most recent maintainer guidance
+
+### 3. Markdown File Naming and Organization
+
+* [ ] If you're adding a new Markdown file, it should be named in all lowercase with hyphens separating words. Also, omit any filler words such as "the" or "a" from the file name.
+
+### 4. API References and Verification
+
+  * [ ] Use `<xref:api-doc-ID>` for API cross-references, where `api-doc-ID` is the API documentation ID.
+    * [ ] For an encoded asterisk (%2A), use a plain text asterisk (*) instead.
+    * [ ] For an encoded backtick (%60), use a plain text backtick (`) instead.
+    * [ ] Always encode a hash (`#`) as `%23`.
+  * [ ] The API documentation ID must be verified and sourced from the official XML documentation in dotnet-api-docs, never just infer API documentation IDs by looking for similar patterns.
+  * [ ] If you cannot verify, state that explicitly in your output.
+
+### 5. Links and References
+
+* [ ] For cross-references to other articles within the AspNetCore.Docs repository, use file-relative links with the appropriate file extension
+  * [ ] Example: `../mvc/overview.md`
+
+* [ ] For external links to non-Microsoft sites (MDN, W3C, etc.):
+  * [ ] Use absolute URLs
+  * [ ] Remove any language or culture segment from the URL path (such as `/en-us/`, `/fr-fr/`, `/en/`, etc.)
+
+* [ ] For links to Microsoft Learn content in other repositories:
+  * [ ] Use the relative URL starting with a forward slash
+  * [ ] Don't include the scheme and the host (example: `https://learn.microsoft.com`) and don't include the locale (example: `en-us`)
+  * [ ] Example: For the target Learn website URL `https://learn.microsoft.com/en-us/dotnet/core/introduction`, use the relative URL `/dotnet/core/introduction` for the link destination
+
+## Repository-Specific Guidelines
+
+* [ ] Follow the [Microsoft Writing Style Guide](https://learn.microsoft.com/en-us/style-guide/welcome/)
+  * [ ] Use contractions following the guidance in [Use contractions](https://learn.microsoft.com/en-us/style-guide/word-choice/use-contractions)
+* [ ] **Repository Exceptions**:
+  * [ ] Number ordered lists as "1." for every item (don't use sequential numbers)
+  * [ ] Use backticks around content specifically for file names (`file.txt`), folders (`folder`), file paths (`folder/file.txt`), custom types (`myVariable`, `MyClass`), raw URLs in the text (`https://www.contoso.com`), URL segments (`/product/id/199`), file extensions (`.razor`), NuGet packages (`Microsoft.AspNetCore.SignalR.Client`), and code that should never be localized
+  * [ ] For Blazor's Razor components mentioned in article text, use backticks around the name of the component (example: `Counter` component)
+  * [ ] Use placeholders with angle brackets in the format `<placeholder name>` when used in URIs, code examples, and other contexts where placeholders are used. Use lowercase letters with spaces between words for the placeholder name inside the angle brackets.
+    * [ ] Wrong: "Launch the app and navigate to `https://localhost:{PORT}/openapi/v1.json` to view the generated OpenAPI document, where the `{PORT}` placeholder is the port."
+    * [ ] Correct: "Launch the app and navigate to `https://localhost:<port>/openapi/v1.json` to view the generated OpenAPI document, where the `<port>` placeholder is the port."
+  * [ ] For new or updated articles published to Microsoft Learn, follow [Metadata for Microsoft Learn documentation](https://learn.microsoft.com/en-us/contribute/content/metadata) and the metadata and date requirements below. Don't add frontmatter to sample README files, includes, or GitHub-only documentation.
+
+### 1. Metadata and Date Requirements
+
+* [ ] These requirements apply to articles published to Microsoft Learn, not sample README files, includes, or GitHub-only documentation.
+* [ ] Set `ms.date` for new articles and update it for significant content changes. Leave it unchanged for minor or mechanical edits, such as typo fixes, formatting, link corrections, or sample directory renames.
+* [ ] When setting or updating `ms.date`, use the current date in MM/DD/YYYY format. However, accept an existing date within 14 days before or after the PR's opening date. Don't require it to match the day Copilot runs or refresh it solely because review or subsequent PR edits take place days or weeks later.
+* [ ] Add `ai-usage: ai-assisted` when AI creates or substantially rewrites article content. Don't add it solely for minor or mechanical edits, such as typo fixes, formatting, link corrections, or sample directory renames. Preserve existing `ai-usage` metadata.
+* [ ] Place title metadata first, followed by remaining metadata in alphabetical order
+* [ ] Format `ms.date` as MM/DD/YYYY:
+  * [ ] MM: Two digits, leading zero if needed (01-12)
+  * [ ] DD: Two digits, leading zero if needed (01-31)
+  * [ ] YYYY: Four digits (2025)
+  * [ ] Example: `ms.date: 08/07/2025`
+
+### 2. Version Targeting Common Range Patterns
+
+* [ ] Fixed Range: `>= aspnetcore-7.0 <= aspnetcore-9.0`
+* [ ] Open Upper Bound: `>= aspnetcore-7.0`
+* [ ] Open Lower Bound: `<= aspnetcore-9.0`
+* [ ] Specific Version: `== aspnetcore-9.0`
+
+### 3. Handling File Redirections
+
+* [ ] When a Markdown (.md) article file (this does not apply to includes) is deleted or renamed in a PR, create a redirection entry.
+* [ ] Redirections ensure users following existing links aren't left with broken links
+* [ ] To add a redirection:
+     * [ ] Update the `.openpublishing.redirection.json` file at the repository root
+     * [ ] Follow this format for new entries:
+     ```json
+     {
+         "source_path": "aspnetcore/path/to/deleted-file.md",
+         "redirect_url": "/aspnet/core/path/to/target-file",
+         "redirect_document_id": false
+     }
+     ```
+     * [ ] Use relative URLs for redirection to pages in the `learn.microsoft.com` domain
+        * [ ] Example: `/aspnet/core/path/to/target-file`
+     * [ ] For URLs in a different domain, use absolute URLs including the domain.
+        * [ ] Example: `https://learn.microsoft.com/dotnet/core/introduction`
+     * [ ] Set `redirect_document_id` to `false` unless specifically instructed otherwise
+     * [ ] Maintain alphabetical order of the `source_path` entries for better organization
+     * [ ] Ensure proper JSON formatting with correct commas between entries
+* [ ] When selecting a redirect target, choose the most relevant existing content that would serve the user's original intent
+* [ ] If no direct replacement exists, redirect to a parent category page or related topic
+
+### 4. ASP.NET Core Specific Guidelines
+* [ ] Use the latest supported version for examples unless otherwise specified
+* [ ] Title and section header casing is sentence case (capitalize the first word and any proper nouns)
+* [ ] Capitalization of middleware and feature names: Treat middleware and descriptive framework feature names as common (general) nouns, NOT proper nouns. Use lowercase unless a word is a true proper noun, a branded product/feature name, or a code identifier (in backticks).
+  * [ ] Correct: "response caching middleware", "exception handling middleware", "URL rewriting middleware" (URL is a proper adjective)
+  * [ ] Incorrect: "Response Caching Middleware", "Exception Handling Middleware"
+  * [ ] Apply only normal first-word capitalization at the start of a sentence. Do NOT capitalize interior words of a middleware name in table cells, list items, or headings.
+  * [ ] Reserve capitalization for the exact API type name in code style when referring to the type itself (example: the `ResponseCachingMiddleware` class).
+  * [ ] Hyphenate compound adjectives in a middleware name when needed to prevent adjective/name ambiguity (example: "host-filtering middleware", not "host filtering middleware"). Leave unambiguous cases unhyphenated (example: "exception handling middleware").
+* [ ] For parts of a title or section header that normally use code style in article text (backticks around the content), also use code style in the title or section header (example H1 header: "# Modify the `Program.cs` file")
+* [ ] Use code style for any words that shouldn't be localized
+* [ ] For bullet lists, use an asterisk as the bullet marker
+* [ ] Bullet lists should have two or more entries at the same level in the list. If there is only one item under a bullet, remove its bullet marker and roll that item into its parent bullet.
+* [ ] Lead with Microsoft-recommended approaches
+* [ ] Include differences between Minimal API and controller-based approaches when relevant
+* [ ] For middleware content and examples, use the middleware class approach
+
+### 5. Content Writing Guidelines
+
+* [ ] Introductory paragraph:
+  * [ ] When drafting the first paragraph of any new article, or when significantly updating an existing article:
+  * [ ] Explain why and when the topic matters in practical ASP.NET Core development scenarios.
+  * [ ] Give a concise summary of what the article covers or enables, so readers know what to expect.
+  * [ ] When significantly updating, revise the introductory paragraph to match the new scope and content.
+* [ ] When using "such as" or "including" to introduce one or more non-restrictive/non-essential examples, set the phrase off with commas and avoid placing it in parentheses. If the "such as" or "including" phrase is providing restrictive/essential information, don't set it off with commas.
+* [ ] Make sure that any appearance of "like" is only used to compare nouns. If "like" is used to indicate one or more examples, suggest or use "such as" instead.
+
+### 6. PR Description Requirements
+
+* [ ] On the first line of the PR description, reference the originating issue:
+  * [ ] Issue in this repository (`dotnet/AspNetCore.Docs`): use a closing keyword: `Fixes #[issue-number]`
+  * [ ] Issue in another repository: use a non-closing, fully-qualified reference so it links without closing: `Contributes to [owner]/[repo]#[issue-number]`
+* [ ] Exceptions to the above defaults:
+  * [ ] If this PR only partially addresses an issue in this repository, use `Contributes to #[issue-number]` instead of `Fixes`, so the issue stays open.
+  * [ ] Only use a closing keyword for an issue in another repository when a maintainer explicitly asks for it, and then use the fully-qualified form: `Fixes [owner]/[repo]#[issue-number]`.
+* [ ] Never use a bare `#[issue-number]` for an issue in another repository; the bare form resolves to an issue of that number in this repository and links to the wrong issue. Always use the `[owner]/[repo]#[issue-number]` form for cross-repository references.
+* [ ] Include a clear summary of changes made
+* [ ] List all files that were modified with brief descriptions
+
+### 7. PR review guidelines (Copilot-assigned reviews)
+
+* [ ] Flag capitalization of middleware/feature names that use proper-noun casing and suggest lowercase per the "4. ASP.NET Core Specific Guidelines" section, except for code identifiers, proper adjectives (URL, HTTP), branded names, and words that begin a sentence, heading, or bullet.
+* [ ] Flag compound adjectives in feature names that risk adjective/name ambiguity and suggest hyphenation (example: "host-filtering middleware").
+* [ ] Verify sentence-case titles/headers and the metadata/ms.date rules already defined above, including the PR-relative date tolerance and exceptions for minor edits and non-article files. Don't flag an accepted date merely because it isn't today's date, request `ai-usage` for mechanical edits, or request frontmatter for sample README files.
+* [ ] When the PR updates release notes (any markdown file in the `release-notes` folder), it's permissible for the author of the pull request to mention the servicing release (preview) version or date, but Copilot should never recommend including the servicing release (preview) version or date when reviewing the pull request.

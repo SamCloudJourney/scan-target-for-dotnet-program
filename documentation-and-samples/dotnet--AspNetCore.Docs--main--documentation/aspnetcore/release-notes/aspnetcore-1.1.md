@@ -1,0 +1,33 @@
+---
+title: What's new in ASP.NET Core 1.1
+description: Learn about the new features in ASP.NET Core 1.1.
+ms.date: 12/18/2018
+---
+
+# What's new in ASP.NET Core 1.1
+
+ASP.NET Core 1.1 includes the following new features:
+
+* [URL rewriting middleware](../fundamentals/url-rewriting.md)
+* [Response caching middleware](../performance/caching/middleware.md)
+* [View Components as Tag Helpers](../mvc/views/view-components.md#invoking-a-view-component-as-a-tag-helper)
+* [Middleware as MVC filters](../mvc/controllers/filters.md#using-middleware-in-the-filter-pipeline)
+* [Cookie-based TempData provider](../fundamentals/app-state.md#tempdata)
+* [Azure App Service logging provider](../fundamentals/logging/index.md#azure-app-service)
+* [Azure Key Vault configuration provider](../security/key-vault-configuration.md)
+* [Azure and Redis Storage Data Protection Key Repositories](../security/data-protection/implementation/key-storage-providers.md)
+* WebListener Server for Windows
+* [WebSockets support](../fundamentals/websockets.md)
+
+## Choosing between versions 1.0 and 1.1 of ASP.NET Core
+
+ASP.NET Core 1.1 has more features than ASP.NET Core 1.0. In general, we recommend you use the latest version.
+
+## Breaking changes
+
+Use the articles in [Breaking changes in .NET](/dotnet/core/compatibility/breaking-changes) to find breaking changes that might apply when upgrading an app to a newer version of .NET.
+
+## Related content
+
+* [ASP.NET Core 1.1.0 Release Notes](https://github.com/dotnet/aspnetcore/releases/tag/1.1.0)
+* To connect with the ASP.NET Core development team's progress and plans, tune in to the [ASP.NET Community Standup](https://live.asp.net/).

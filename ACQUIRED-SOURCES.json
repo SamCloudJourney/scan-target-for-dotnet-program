@@ -128,5 +128,17 @@
     "owner": "dotnet",
     "regular_files": 23756,
     "archive_sha256": "e051bde044e3eaca86217be156b2b65ce4db0df92738a6cd9563a174f476e229"
+  },
+  {
+    "name": "AspNetCore.Docs",
+    "kind": "documentation",
+    "ref": "main",
+    "commit": "692feee601358eeb5d8915b46143303f45e83887",
+    "path": "documentation-and-samples/dotnet--AspNetCore.Docs--main--documentation",
+    "files": 18788,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 18788,
+    "archive_sha256": "bcd2b489d727684f1d16cb7881d80148a9272a50bb550585a30583e45c1990fe"
   }
 ]

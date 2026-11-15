@@ -1,0 +1,67 @@
+---
+title: Distributed Cache Tag Helper in ASP.NET Core
+description: Learn how to use the Distributed Cache Tag Helper.
+ms.date: 09/24/2025
+---
+# Distributed Cache Tag Helper in ASP.NET Core
+
+By [Peter Kellner](https://peterkellner.net)
+
+The Distributed Cache Tag Helper provides the ability to dramatically improve the performance of your ASP.NET Core app by caching its content to a [distributed cache source](../../../../performance/caching/distributed.md).
+
+For an overview of Tag Helpers, see [Tag Helpers in ASP.NET Core](../intro.md).
+
+The Distributed Cache Tag Helper inherits from the same base class as the Cache Tag Helper. All of the [Cache Tag Helper](cache-tag-helper.md) attributes are available to the Distributed Tag Helper.
+
+The Distributed Cache Tag Helper uses [constructor injection](../../../../fundamentals/dependency-injection.md#constructor-injection-behavior). The <xref:Microsoft.Extensions.Caching.Distributed.IDistributedCache> interface is passed into the Distributed Cache Tag Helper's constructor. If no concrete implementation of <xref:Microsoft.Extensions.Caching.Distributed.IDistributedCache> is created in the `Program` file or  `Startup.ConfigureServices` (`Startup.cs`), the Distributed Cache Tag Helper uses the same in-memory provider for storing cached data as the [Cache Tag Helper](cache-tag-helper.md).
+
+## Distributed Cache Tag Helper Attributes
+
+### Attributes shared with the Cache Tag Helper
+
+* `enabled`
+* `expires-on`
+* `expires-after`
+* `expires-sliding`
+* `vary-by`
+* `vary-by-cookie`
+* `vary-by-culture`
+* `vary-by-header`
+* `vary-by-query`
+* `vary-by-route`
+* `vary-by-user`
+
+The `expires-sliding` attribute value defaults to 30 seconds if `expires-after` and `expires-on` aren't set. Otherwise, the value defaults to 20 minutes with the SQL Server caching service.
+
+The Distributed Cache Tag Helper inherits from the same class as Cache Tag Helper. For descriptions of these attributes, see the [Cache Tag Helper](cache-tag-helper.md).
+
+### name
+
+| Attribute Type | Example                               |
+| -------------- | ------------------------------------- |
+| String         | `my-distributed-cache-unique-key-101` |
+
+`name` is required. The `name` attribute is used as a key for each stored cache instance. Unlike the Cache Tag Helper that assigns a cache key to each instance based on the Razor page name and location in the Razor page, the Distributed Cache Tag Helper only bases its key on the attribute `name`.
+
+Example:
+
+```cshtml
+<distributed-cache name="my-distributed-cache-unique-key-101">
+    Time Inside Cache Tag Helper: @DateTime.Now
+</distributed-cache>
+```
+
+## Distributed Cache Tag Helper `IDistributedCache` implementations
+
+There are two implementations of <xref:Microsoft.Extensions.Caching.Distributed.IDistributedCache> built in to ASP.NET Core. One is based on SQL Server, and the other is based on Redis. Third-party implementations are also available, such as [NCache](http://www.alachisoft.com/ncache/aspnet-core-idistributedcache-ncache.html). Both implementations involve setting an instance of <xref:Microsoft.Extensions.Caching.Distributed.IDistributedCache> in either the `Program` file or `Startup` class.
+
+There are no tag attributes specifically associated with using any implementation of <xref:Microsoft.Extensions.Caching.Distributed.IDistributedCache>.
+
+For more information, see [Distributed caching in ASP.NET Core](../../../../performance/caching/distributed.md).
+
+## Related content
+
+* [Cache Tag Helper in ASP.NET Core MVC](cache-tag-helper.md)
+* [Dependency injection in ASP.NET Core](../../../../fundamentals/dependency-injection.md)
+* [Cache in-memory in ASP.NET Core](../../../../performance/caching/memory.md)
+* [Introduction to Identity on ASP.NET Core](../../../../security/authentication/identity.md)

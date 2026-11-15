@@ -1,0 +1,23 @@
+Run the following .NET CLI commands:
+
+```dotnetcli
+dotnet tool install --global Microsoft.dotnet-scaffold
+dotnet tool uninstall --global dotnet-ef
+dotnet tool install --global dotnet-ef
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Microsoft.EntityFrameworkCore.SQLite
+dotnet add package Microsoft.VisualStudio.Web.CodeGeneration.Design
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add package Microsoft.EntityFrameworkCore.Tools
+```
+
+The preceding commands add:
+* [.NET scaffold tooling](https://devblogs.microsoft.com/dotnet/introducing-dotnet-scaffold/).
+* [Command-line interface (CLI) tools for EF Core](/ef/core/miscellaneous/cli/dotnet).
+* Design time tools for EF Core.
+* The EF Core SQLite provider, which installs the EF Core package as a dependency.
+* Packages needed for scaffolding: `Microsoft.VisualStudio.Web.CodeGeneration.Design` and `Microsoft.EntityFrameworkCore.SqlServer`.
+
+For guidance on multiple environment configuration that permits an app to configure its database contexts by environment, see [ASP.NET Core runtime environments](../fundamentals/environments.md#environment-specific-startup-class).
+
+[!INCLUDE[](~/includes/dotnet-tool-install-arch-options.md)]
