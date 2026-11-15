@@ -1,0 +1,60 @@
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+# Order is important. The last matching pattern has the most precedence.
+# More details are here: https://help.github.com/articles/about-codeowners/
+
+# The '*' pattern is global owners.
+* @BillWagner
+
+######## API landing page ###########
+/api/ @gewarren @BillWagner
+
+############ Guides ################
+# The F# Guide
+/docs/fsharp/ @dotnet/fsharp-team-msft @BillWagner
+
+# The ML.NET Guide
+/docs/machine-learning/ @luisquintanilla @JakeRadMSFT @BillWagner
+
+# .NET Orleans
+/docs/orleans/ @ReubenBond @BillWagner
+
+############### Azure ################
+# Azure SDK catch-all entry
+/docs/azure/sdk/ @JonathanGiles @BillWagner
+
+# Azure SDK authentication topics
+/docs/azure/sdk/authentication/ @JonathanCrd @BillWagner
+
+# Azure SDK miscellaneous topics
+/docs/azure/sdk/azure-sdk-configure-proxy.md @JoshLove-msft @JonathanGiles @BillWagner
+/docs/azure/sdk/azure-sdk-for-net.md @JonathanGiles @BillWagner
+/docs/azure/sdk/dependency-injection.md @JoshLove-msft @JonathanGiles @m-nash @BillWagner
+/docs/azure/sdk/logging.md @JoshLove-msft @JonathanGiles @BillWagner
+/docs/azure/sdk/packages.md @JonathanGiles @BillWagner
+/docs/azure/sdk/pagination.md @JoshLove-msft @JonathanGiles @BillWagner
+/docs/azure/sdk/protocol-convenience-methods.md @JonathanGiles @BillWagner
+/docs/azure/sdk/resource-management.md @ArthurMa1978 @m-nash @BillWagner
+/docs/azure/sdk/thread-safety.md @JoshLove-msft @JonathanGiles @BillWagner
+/docs/azure/sdk/unit-testing-mocking.md @JoshLove-msft @JonathanGiles @BillWagner
+
+############### .NET Core ########################
+# Diagnostics
+/docs/core/diagnostics/ @tommcdon @BillWagner
+# Testing
+/docs/core/testing/ @dotnet/dotnet-testing @BillWagner
+
+################### .NET Framework ##################
+# NCL
+/docs/framework/configure-apps/file-schema/network/ @karelz @BillWagner
+/docs/framework/network-programming/ @karelz @BillWagner
+
+################## .NET Standard ##################
+# Library guidance
+/docs/standard/library-guidance/ @jamesnk @BillWagner
+# Native Interop
+/docs/standard/native-interop/ @jkoritzinsky  @BillWagner
+
+################## E-books ##################
+# Blazor:
+/docs/architecture/blazor-for-web-forms-developers/ @danroth27 @BillWagner

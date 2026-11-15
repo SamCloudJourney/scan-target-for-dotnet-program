@@ -1,0 +1,139 @@
+items:
+- name: C# specifications
+  href: index.yml
+- name: C# 13 early draft specification
+  items:
+  - name: Overview
+    href: overview.md
+    displayName: C# standard, C# specification
+  - name: Detailed table of contents
+    href: ../../../_csharpstandard/standard/README.md
+  - name: Foreword
+    href: ../../../_csharpstandard/standard/foreword.md
+  - name: Introduction
+    href: ../../../_csharpstandard/standard/introduction.md
+  - name: 1. Scope
+    href: ../../../_csharpstandard/standard/scope.md
+  - name: 2. Normative references
+    href: ../../../_csharpstandard/standard/normative-references.md
+  - name: 3. Terms and definitions
+    href: ../../../_csharpstandard/standard/terms-and-definitions.md
+  - name: 4. General description
+    href: ../../../_csharpstandard/standard/general-description.md
+  - name: 5. Conformance
+    href: ../../../_csharpstandard/standard/conformance.md
+  - name: 6. Lexical structure
+    href: ../../../_csharpstandard/standard/lexical-structure.md
+  - name: 7. Basic concepts
+    href: ../../../_csharpstandard/standard/basic-concepts.md
+  - name: 8. Types
+    href: ../../../_csharpstandard/standard/types.md
+  - name: 9. Variables
+    href: ../../../_csharpstandard/standard/variables.md
+  - name: 10. Conversions
+    href: ../../../_csharpstandard/standard/conversions.md
+  - name: 11. Patterns
+    href: ../../../_csharpstandard/standard/patterns.md
+  - name: 12. Expressions
+    href: ../../../_csharpstandard/standard/expressions.md
+  - name: 13. Statements
+    href: ../../../_csharpstandard/standard/statements.md
+  - name: 14. Namespaces
+    href: ../../../_csharpstandard/standard/namespaces.md
+  - name: 15. Classes
+    href: ../../../_csharpstandard/standard/classes.md
+  - name: 16. Structs
+    href: ../../../_csharpstandard/standard/structs.md
+  - name: 17. Arrays
+    href: ../../../_csharpstandard/standard/arrays.md
+  - name: 18. Extended indexing and slicing
+    href: ../../../_csharpstandard/standard/ranges.md
+  - name: 19. Interfaces
+    href: ../../../_csharpstandard/standard/interfaces.md
+  - name: 20. Enums
+    href: ../../../_csharpstandard/standard/enums.md
+  - name: 21. Delegates
+    href: ../../../_csharpstandard/standard/delegates.md
+  - name: 22. Exceptions
+    href: ../../../_csharpstandard/standard/exceptions.md
+  - name: 23. Attributes
+    href: ../../../_csharpstandard/standard/attributes.md
+  - name: 24. Unsafe code
+    href: ../../../_csharpstandard/standard/unsafe-code.md
+  - name: A. Grammar
+    href: ../../../_csharpstandard/standard/grammar.md
+  - name: B. Portability issues
+    href: ../../../_csharpstandard/standard/portability-issues.md
+  - name: C. Standard library
+    href: ../../../_csharpstandard/standard/standard-library.md
+  - name: D. Documentation comments
+    href: ../../../_csharpstandard/standard/documentation-comments.md
+  - name: E. Bibliography
+    href: ../../../_csharpstandard/standard/bibliography.md
+- name: Feature specifications
+  items:
+  - name: Overview
+    href: feature-spec-overview.md
+    displayName: feature specifications
+  - name: Lexical structure
+    items:
+    - name: "Ignored directives"
+      href: ../../../_csharplang/proposals/csharp-14.0/ignored-directives.md
+  - name: "Basic concepts"
+    items:
+      - name: "Async main updates"
+        href: ../../../_csharplang/proposals/csharp-14.0/async-main-update.md
+  - name: Types
+    items:
+    - name: Named and optional parameters in expression trees
+      href: ../../../_csharplang/proposals/csharp-14.0/optional-and-named-parameters-in-expression-trees.md
+  - name: Conversions
+    items:
+    - name: First class span types
+      href: ../../../_csharplang/proposals/csharp-14.0/first-class-span-types.md
+  - name: Expressions
+    items:
+    - name: Collection expression arguments
+      href: ../../../_csharplang/proposals/csharp-15.0/collection-expression-arguments.md
+    - name: Simple lambda parameters with modifiers
+      href: ../../../_csharplang/proposals/csharp-14.0/simple-lambda-parameters-with-modifiers.md
+    - name: Unbound generic types in nameof
+      href: ../../../_csharplang/proposals/csharp-14.0/unbound-generic-types-in-nameof.md
+    - name: Null conditional assignment
+      href: ../../../_csharplang/proposals/csharp-14.0/null-conditional-assignment.md
+    - name: User defined compound assignment operators
+      href: ../../../_csharplang/proposals/csharp-14.0/user-defined-compound-assignment.md
+  - name: Statements
+    items:
+    - name: Labeled `break` and `continue`
+      href: ../../../_csharplang/proposals/csharp-15.0/labeled-break-continue.md
+  - name: Classes
+    items: 
+    - name: Partial events and constructors
+      href: ../../../_csharplang/proposals/csharp-14.0/partial-events-and-constructors.md
+    - name: Field backed properties
+      href: ../../../_csharplang/proposals/csharp-14.0/field-keyword.md
+    - name: Extension members
+      href: ../../../_csharplang/proposals/csharp-14.0/extensions.md
+    - name: Extension operators
+      href: ../../../_csharplang/proposals/csharp-14.0/extension-operators.md
+    - name: Extension indexers
+      href: ../../../_csharplang/proposals/csharp-15.0/extension-indexers.md
+    - name: Closed hierarchies
+      href: ../../../_csharplang/proposals/csharp-15.0/closed-hierarchies.md
+  - name: Unions
+    items:
+    - name: Union types
+      href: ../../../_csharplang/proposals/csharp-15.0/unions.md
+  - name: Unsafe code
+    items:
+    - name: Memory safety
+      href: ../../../_csharplang/proposals/unsafe-evolution.md
+- name: Deviations from the C# standard
+  href: ../../../_roslyn/docs/compilers/CSharp/Deviations from Standard.md
+- name: Other C# documentation
+  items:
+  - name: C# conceptual docs
+    href: ../tour-of-csharp/index.yml
+  - name: C# language reference
+    href: ../language-reference/index.yml

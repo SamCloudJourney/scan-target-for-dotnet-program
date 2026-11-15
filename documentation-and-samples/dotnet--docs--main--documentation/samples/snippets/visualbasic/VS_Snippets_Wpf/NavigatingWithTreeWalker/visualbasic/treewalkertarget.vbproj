@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <StartupObject>TreeWalkerTarget.Program</StartupObject>
+    <RootNamespace></RootNamespace>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IntermediateOutputPath>obj\$(MSBuildProjectName)\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionCompare>Binary</OptionCompare>
+    <OptionStrict>Off</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Data" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.Drawing" />
+    <Import Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.vb" />
+    <Compile Include="TreeWalkerTarget.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TreeWalkerTarget.Designer.vb">
+      <DependentUpon>TreeWalkerTarget.vb</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="TreeWalkerTarget.resx">
+      <DependentUpon>TreeWalkerTarget.vb</DependentUpon>
+    </EmbeddedResource>
+    <None Include="app.config" />
+  </ItemGroup>
+
+</Project>

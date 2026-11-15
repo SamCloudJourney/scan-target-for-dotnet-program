@@ -116,5 +116,17 @@
     "owner": "microsoft",
     "regular_files": 12539,
     "archive_sha256": "5363595d071082c0a8c0d7fe71dad7edeb88296abc97e310feb30283a09766cb"
+  },
+  {
+    "name": "docs",
+    "kind": "documentation",
+    "ref": "main",
+    "commit": "94b7dca39d8dca4374f326176874381661f4dd59",
+    "path": "documentation-and-samples/dotnet--docs--main--documentation",
+    "files": 23756,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 23756,
+    "archive_sha256": "e051bde044e3eaca86217be156b2b65ce4db0df92738a6cd9563a174f476e229"
   }
 ]
