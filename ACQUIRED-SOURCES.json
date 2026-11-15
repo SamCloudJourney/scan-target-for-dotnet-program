@@ -394,5 +394,17 @@
     "path": "release-sources/efcore-2.3-servicing",
     "regular_files": 3178,
     "archive_sha256": "f760e9c20e98a036bff6bca85094d56a8dd1b9ac016778820b7a90c5d36dcab0"
+  },
+  {
+    "name": "winforms",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "8b9368e82bead5c07d4e9df6008686c55e3fc30e",
+    "path": "workflow-snapshots/dotnet--winforms--main--workflow",
+    "files": 43,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 43,
+    "archive_sha256": "df32766fc20aeef4464efdd2cc3417cacb77511cf13f5c267067fce13cf60af9"
   }
 ]
