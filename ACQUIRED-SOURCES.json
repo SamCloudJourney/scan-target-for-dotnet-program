@@ -20,5 +20,15 @@
     "path": "release-sources/dotnet-10.0.15/runtime",
     "regular_files": 60884,
     "archive_sha256": "df3899ce646abce8486600eb7fc91dc6076d663e0f126c3dd35c7d3af939c06d"
+  },
+  {
+    "owner": "dotnet",
+    "name": "aspnetcore",
+    "kind": "release",
+    "ref": "v10.0.15",
+    "commit": "547fc16b976e18911f9df7630f1f75758ab248f2",
+    "path": "release-sources/dotnet-10.0.15/aspnetcore",
+    "regular_files": 16523,
+    "archive_sha256": "61ad268231f32259977af20d96cda918cbd2940724dde53e4c5c9fa65068d420"
   }
 ]
