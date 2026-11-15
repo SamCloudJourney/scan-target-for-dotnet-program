@@ -60,5 +60,15 @@
     "path": "release-sources/dotnet-10.0.15/winforms",
     "regular_files": 6024,
     "archive_sha256": "e14b41f3c19df92980005da27cf5a8af7e5dbe7f66220ce2869c996110e2a763"
+  },
+  {
+    "owner": "dotnet",
+    "name": "windowsdesktop",
+    "kind": "release",
+    "ref": "v10.0.15",
+    "commit": "4610b90c4b18c17459dc2af0b5c73e47348397ed",
+    "path": "release-sources/dotnet-10.0.15/windowsdesktop",
+    "regular_files": 240,
+    "archive_sha256": "ed89dacd4c475679dd3ee33fa64389feb22b4cafd518dc83bcd8901ac7effa2e"
   }
 ]
