@@ -200,5 +200,17 @@
     "owner": "dotnet",
     "regular_files": 26851,
     "archive_sha256": "1996115fa0c69d4e4181044476d0321d5e59480b7f6532fce18f3a28b0986094"
+  },
+  {
+    "name": "aspnetcore",
+    "kind": "workflow",
+    "ref": "main",
+    "commit": "37e809ead5824bc753a1c3d56f11615bdb1296c5",
+    "path": "workflow-snapshots/dotnet--aspnetcore--main--workflow",
+    "files": 166,
+    "provenance": "ADDITIONS-MANIFEST.json",
+    "owner": "dotnet",
+    "regular_files": 166,
+    "archive_sha256": "f92a58da424f74b780ec18e98f9fa1ec1b42e3e73364678d42c1e44e81c5e4f0"
   }
 ]
