@@ -30,5 +30,15 @@
     "path": "release-sources/dotnet-10.0.15/aspnetcore",
     "regular_files": 16523,
     "archive_sha256": "61ad268231f32259977af20d96cda918cbd2940724dde53e4c5c9fa65068d420"
+  },
+  {
+    "owner": "dotnet",
+    "name": "efcore",
+    "kind": "release",
+    "ref": "v10.0.15",
+    "commit": "b34c0e9d7e768aa808ded44f19e7f871bea6869f",
+    "path": "release-sources/dotnet-10.0.15/efcore",
+    "regular_files": 5965,
+    "archive_sha256": "f57330616f536a9c9cc1d0e136268b4db4be84b31bd208693827a51e410ff8c8"
   }
 ]
