@@ -1,4 +1,4 @@
-name: ASP.NET Pass 6 - eight-listener differential path corpus
+name: ASP.NET Pass 6 - eight-listener hardened path corpus
 on:
   push:
     branches: [research/aspnet-impact-crossproxy-20261116]
