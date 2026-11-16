@@ -1,0 +1,63 @@
+name: Downstream local-service resource validation
+on:
+  push:
+    branches:
+      - research/bounded-resource-probes-20261116
+    paths:
+      - 'research/bounded-resource-probes/Downstream/**'
+      - '.github/workflows/resource-downstream-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  loopback-service:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build only investigator-authored lab programs
+        run: |
+          set -euo pipefail
+          dotnet build research/bounded-resource-probes/Downstream/Downstream.csproj -c Release -f net10.0
+          dotnet build research/bounded-resource-probes/Downstream/Downstream.csproj -c Release -f net11.0
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj -c Release
+      - name: Execute localhost-only scenarios inside bounded no-network containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p downstream-evidence
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then tag=10.0.15; else tag=11.0.0; fi
+            image="mcr.microsoft.com/dotnet/aspnet:$tag"
+            docker pull "$image"
+            appdir="$PWD/research/bounded-resource-probes/Downstream/bin/Release/$fx"
+            sampledir="$PWD/research/bounded-resource-probes/Sample/bin/Release/net10.0"
+            timeout --signal=TERM --kill-after=3s 35s docker run --rm \
+              --memory=384m --memory-swap=384m --cpus=1 --pids-limit=48 \
+              --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+              -e DOTNET_GCHeapHardLimit=0x10000000 \
+              -e ASPNETCORE_ENVIRONMENT=Production \
+              -v "$appdir:/app:ro" -v "$sampledir:/sample:ro" \
+              "$image" dotnet /app/Downstream.dll /sample/Sample.dll \
+              | tee -a downstream-evidence/service-results.jsonl
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: downstream-service-evidence
+          path: downstream-evidence/
+          retention-days: 14
+          if-no-files-found: warn
