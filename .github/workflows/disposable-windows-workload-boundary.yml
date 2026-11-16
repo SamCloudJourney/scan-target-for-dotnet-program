@@ -1,7 +1,7 @@
 name: Disposable Windows SDK validator experiment
 on:
   push:
-    branches: [research/windows-elevation-cross-account-cache-20261116]
+    branches: [research/windows-elevation-msrc-gates-20261116]
   workflow_dispatch:
 permissions:
   contents: read
@@ -159,6 +159,8 @@ jobs:
             research/windows-elevation-boundary-20261116/cross-account-low-probe.ps1
             research/windows-elevation-boundary-20261116/cross-account-differential.ps1
             research/windows-elevation-boundary-20261116/cross-account-cache-postread.ps1
+            research/windows-elevation-boundary-20261116/SecurityAclHarness/SecurityAclHarness.csproj
+            research/windows-elevation-boundary-20261116/SecurityAclHarness/Program.cs
             research/windows-elevation-boundary-20261116/BrokerHarness/Program.cs
             research/windows-elevation-boundary-20261116/BrokerHarness/BrokerHarness.csproj
       - uses: actions/setup-dotnet@v4
@@ -176,6 +178,44 @@ jobs:
           name: cross-account-${{ matrix.sdk }}-evidence
           path: |
             ${{ runner.temp }}/cross-account-${{ matrix.sdk }}.json
+            ${{ runner.temp }}/pipe-acl-${{ matrix.sdk }}.json
             ${{ runner.temp }}/broker-process-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  sibling-peer:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.404', '11.0.100']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/SiblingPipeHarness/Program.cs
+            research/windows-elevation-boundary-20261116/SiblingPipeHarness/SiblingPipeHarness.csproj
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Build same-SID peer harness
+        shell: pwsh
+        run: dotnet build ./research/windows-elevation-boundary-20261116/SiblingPipeHarness/SiblingPipeHarness.csproj -c Release --nologo
+      - name: Run real broker with separate same-SID peer in disposable workspace
+        shell: pwsh
+        run: dotnet ./research/windows-elevation-boundary-20261116/SiblingPipeHarness/bin/Release/net11.0/SiblingPipeHarness.dll ${{ matrix.sdk }}
+      - name: Preserve broker, peer and environment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sibling-peer-${{ matrix.sdk }}-evidence
+          path: |
+            ${{ runner.temp }}/sibling-pipe-${{ matrix.sdk }}.json
+            ${{ runner.temp }}/sibling-peer-${{ matrix.sdk }}.json
           if-no-files-found: warn
           retention-days: 7
