@@ -127,7 +127,7 @@ static class DualRegistryPublishLab
                   <EnableSdkContainerSupport>true</EnableSdkContainerSupport></PropertyGroup>
                 </Project>
                 """);
-            File.WriteAllText(Path.Combine(temp,"Program.cs"),"""Console.WriteLine("synthetic dual registry run");""");
+            File.WriteAllText(Path.Combine(temp,"Program.cs"),"""System.Console.WriteLine("synthetic dual registry run");""");
             var p=new ProcessStartInfo("dotnet") {
                 WorkingDirectory=temp,RedirectStandardOutput=true,RedirectStandardError=true,UseShellExecute=false
             };
@@ -183,17 +183,19 @@ static class DualRegistryPublishLab
         finally{try{Directory.Delete(temp,true);}catch(IOException){}}
 
         var wires=hits.ToArray();
+        bool sourceContacted=wires.Any(x=>x.Endpoint=="untrusted-base-image-registry");
         bool leaked=wires.Any(x=>x.Endpoint=="lower-trust-source-auth-realm"&&x.BasicCredentials);
         bool destinationGotCredentials=wires.Any(x=>x.Endpoint=="independent-private-destination"&&x.BasicCredentials);
         // Two only intentionally asserted requirements: the official fixed SDK must
         // not leak via private realm, and destination-only Docker credentials must
         // not accidentally be reused for unrelated source registry authentication.
         // The push-only case is observational and may differ legitimately by SDK version.
-        bool passed=!timedOut &&
+        bool passed=!timedOut && sourceContacted &&
             (!Fixed || !leaked) &&
             (mode!="docker-destination-only" || !leaked);
         var report=new{scenario="dual-registry-"+mode,passed,sdk=Sdk,fixedBuild=Fixed,
-            intendedCredentialConfiguration=mode,sourceRealmReceivedDestinationCredential=leaked,
+            intendedCredentialConfiguration=mode,sourceRegistryContacted=sourceContacted,
+            sourceRealmReceivedDestinationCredential=leaked,
             independentDestinationAcceptedCredentials=destinationGotCredentials,
             sourceManifestReadCount=sourceManifestGets,
             destinationManifestWriteCount=destinationManifestWrites,
