@@ -64,7 +64,7 @@ jobs:
                 -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
                 "$image" bash -c '
                   cd /work
-                  rm -rf obj bin
+                  rm -rf obj/Release bin
                   echo "RESEARCH_FIXTURE expected=$INPUT_MODE sha256=$(sha256sum /fixtures/$INPUT_MODE/Sample.dll | cut -d" " -f1)"
                   dotnet publish HostAudit.csproj -f "$FX" -c Release --no-restore \
                     -p:PublishTrimmed=true -p:UseSharedCompilation=false -m:1 \
