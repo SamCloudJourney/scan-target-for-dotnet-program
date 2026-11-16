@@ -5,6 +5,7 @@ import http.client
 import http.cookiejar
 import http.server
 import json
+import re
 import threading
 import urllib.request
 from urllib.parse import urljoin, urlsplit
@@ -14,6 +15,7 @@ APP = 5100
 RAW_PROXY = 5102
 DECODED_PROXY = 5104
 RECEIVER = 5103
+GUARDED_PROXY = 5105
 receiver_hits = []
 results = {}
 checks = {}
@@ -32,7 +34,7 @@ class Receiver(http.server.BaseHTTPRequestHandler):
         pass
 
 def fetch(target, port=APP, headers=None, method="GET"):
-    assert port in (APP, RAW_PROXY, DECODED_PROXY, RECEIVER), "nonlocal port not permitted"
+    assert port in (APP, RAW_PROXY, DECODED_PROXY, GUARDED_PROXY, RECEIVER), "nonlocal port not permitted"
     conn = http.client.HTTPConnection(HOST, port, timeout=8)
     conn.putrequest(method, target, skip_host=True, skip_accept_encoding=True)
     conn.putheader("Host", f"{HOST}:{port}")
@@ -87,7 +89,9 @@ def cookie_jar_case():
         value = req.get_header("Cookie")
         variants[path] = {"sent_session_cookie": bool(value), "cookie_names":
                           [c.split("=", 1)[0] for c in (value or "").split("; ") if c]}
-    return {"status": status, "header": set_cookie,
+    # No opaque signed session cookie value is written to public CI logs or artifacts.
+    sanitized = re.sub(r"^([^=;]+)=[^;]+", r"\1=[REDACTED]", set_cookie or "")
+    return {"status": status, "header": sanitized,
             "stored_cookies": stored, "path_scope_decisions": variants,
             "client": "Python stdlib CookieJar — not a browser"}
 
@@ -121,12 +125,16 @@ def main():
             results[mode + "_format"] = {
                 "seed_A": seed, "repeated_A": second,
                 "victim_B_collision": victim, "other_request_control": real_b_control}
-            expected_collision = mode == "output" or args.major == 10
+            # The HTML ResponseCaching fixture was not stored in the first
+            # third-pass run. Unlike OutputCaching, this specific endpoint
+            # returns the B representation freshly on both versions.
+            expected_collision = mode == "output"
             passed(mode + "_seed_html",
                    seed["status"] == 200 and
                    seed["headers"].get("content-type", "").startswith("text/html") and
                    "PUBLIC-A" in seed["body"])
-            passed(mode + "_repeat_cached", second["body"] == seed["body"])
+            passed(mode + "_repeat_storage_expected",
+                   (second["body"] == seed["body"]) == (mode == "output"))
             passed(mode + "_victim_format_version",
                    (victim["headers"].get("content-type", "").startswith("text/html"))
                    == expected_collision)
@@ -139,6 +147,27 @@ def main():
             passed(mode + "_victim_body_version",
                    ("PUBLIC-A" in victim["body"]) == expected_collision)
 
+        # A separate cacheable ResponseCaching endpoint uses the same
+        # synthetically distinct query identities, with plain text versus JSON.
+        lite = "/cache/format-response-lite"
+        lite_seed = fetch(lite + "?a=B%3D")
+        # The cache store finalizes after the first completed request.
+        import time
+        time.sleep(0.45)
+        lite_repeat = fetch(lite + "?a=B%3D")
+        lite_victim = fetch(lite + "?a%3DB=")
+        results["response_format_lite"] = {
+            "seed_A": lite_seed, "repeat_A": lite_repeat,
+            "victim_B_collision": lite_victim}
+        passed("response_lite_seed_plain", lite_seed["headers"].get("content-type", "").startswith("text/plain"))
+        passed("response_lite_cached", lite_repeat["body"] == lite_seed["body"])
+        passed("response_lite_victim_type_version",
+               (lite_victim["headers"].get("content-type", "").startswith("text/plain")) == (args.major == 10))
+        passed("response_lite_victim_header_version",
+               (lite_victim["headers"].get("x-lab-format") == "plain-A") == (args.major == 10))
+        passed("response_lite_victim_body_version",
+               ("PUBLIC-A" in lite_victim["body"]) == (args.major == 10))
+        
         # #7: request includes a synthetic benign marker; confirm when the
         # redirect sends that query to a second loopback origin.
         target = "/legacy//127.0.0.1:5103/received?audit_marker=PUBLIC-FIXTURE"
@@ -167,11 +196,31 @@ def main():
         matrix = {}
         for label, path in candidate_paths.items():
             row = {}
-            for proxy_label, port in (("raw", RAW_PROXY), ("decoded", DECODED_PROXY)):
+            for proxy_label, port in (("raw", RAW_PROXY), ("decoded", DECODED_PROXY),
+                                      ("guarded", GUARDED_PROXY)):
                 target = f"http://{HOST}:{port}{path}"
                 row[proxy_label] = fetch(target, port=port)
             matrix[label] = row
         results["proxy_normalization_matrix"] = matrix
+        results["backend_target_form_matrix"] = {}
+        for label in ("plain_dot_segments", "encoded_dot_segments",
+                      "dot_plus_encoded_slash", "slash_upper"):
+            path = candidate_paths[label]
+            results["backend_target_form_matrix"][label] = {
+                "origin_form": fetch(path, port=APP),
+                "absolute_form": fetch(f"http://{HOST}:{APP}{path}", port=APP)}
+        results["auth_control_dot_segments"] = {
+            "raw": fetch(f"http://{HOST}:{RAW_PROXY}/public/../gate/auth-private-document", port=RAW_PROXY),
+            "decoded": fetch(f"http://{HOST}:{DECODED_PROXY}/public/../gate/auth-private-document", port=DECODED_PROXY),
+            "guarded": fetch(f"http://{HOST}:{GUARDED_PROXY}/public/../gate/auth-private-document", port=GUARDED_PROXY)}
+        passed("dot_segment_app_auth_not_bypassed",
+               all(value["status"] != 200 for value in results["auth_control_dot_segments"].values()))
+        passed("guarded_proxy_all_encodings_not_served",
+               all(row["guarded"]["status"] != 200 for row in matrix.values()))
+        passed("guarded_proxy_blocks_dot_segments",
+               all(matrix[k]["guarded"]["status"] == 403 for k in (
+                   "plain_dot_segments", "encoded_dot_segments")))
+        passed("guarded_proxy_healthy_unprotected", fetch("/healthz", port=GUARDED_PROXY)["status"] == 200)
         passed("proxy_canonical_blocked_by_both", all(
             matrix["canonical"][k]["status"] == 403 for k in ("raw", "decoded")))
         passed("proxy_original_encoded_slash_version",
@@ -185,6 +234,9 @@ def main():
             "decoded_unexpected_successes": [
                 label for label, row in matrix.items()
                 if row["decoded"]["status"] == 200 and label != "canonical"],
+            "guarded_unexpected_successes": [
+                label for label, row in matrix.items()
+                if row["guarded"]["status"] == 200 and label != "canonical"],
             "interpretation": "Any 200 is a synthetic proxy-policy counterexample, NOT application authentication bypass."
         }
 
@@ -208,6 +260,11 @@ def main():
         "redirect": data["results"].get("redirect_query_propagation"),
         "format_victim_output": data["results"].get("output_format", {}).get("victim_B_collision"),
         "format_victim_response": data["results"].get("response_format", {}).get("victim_B_collision"),
+        "response_lite_victim": data["results"].get("response_format_lite", {}).get("victim_B_collision"),
+        "target_form": {
+            label: {form: {"status": resp["status"], "body": resp["body"][:115]}
+                    for form, resp in forms.items()}
+            for label, forms in data["results"].get("backend_target_form_matrix", {}).items()},
     }, indent=2))
     return 0 if all(checks.values()) else 1
 

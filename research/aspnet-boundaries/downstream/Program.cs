@@ -141,6 +141,8 @@ public static class Lab
     public static int PrivateOutputCounter;
     public static int PrivateResponseCounter;
     public static int CookieCounter;
+    public static int FormatResponseCounter;
+    public static int FormatResponseLiteCounter;
 
     public static string Category(IQueryCollection q)
         => q.ContainsKey("a") ? "public-A"
@@ -196,9 +198,28 @@ public sealed class FormatResponseController : Controller
             ? "inline"
             : "attachment; filename=\"public-B.json\"";
         Response.Headers["X-Frame-Options"] = a ? "DENY" : "SAMEORIGIN";
+        var generation = Interlocked.Increment(ref Lab.FormatResponseCounter);
         return Content(
-            a ? "<!doctype html><title>fixture-A</title><p>PUBLIC-A</p>"
-              : "{\"document\":\"PUBLIC-B\"}",
+            (a ? "<!doctype html><title>fixture-A</title><p>PUBLIC-A</p>"
+               : "{\"document\":\"PUBLIC-B\"}") + ";generation=" + generation,
             a ? "text/html" : "application/json");
+    }
+}
+
+[Route("cache/format-response-lite")]
+public sealed class FormatResponseLiteController : Controller
+{
+    [HttpGet]
+    [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "*" })]
+    public IActionResult Get()
+    {
+        var a = Request.Query.ContainsKey("a");
+        Response.Headers["X-Lab-Format"] = a ? "plain-A" : "json-B";
+        Response.Headers["X-Lab-Download"] = a ? "view" : "json";
+        var generation = Interlocked.Increment(ref Lab.FormatResponseLiteCounter);
+        return Content(
+            a ? "PUBLIC-A;generation=" + generation
+              : "{\"document\":\"PUBLIC-B\",\"generation\":" + generation + "}",
+            a ? "text/plain" : "application/json");
     }
 }

@@ -51,7 +51,7 @@ jobs:
           haproxy -db -f research/aspnet-boundaries/downstream/haproxy-impact.cfg >third-pass-evidence/haproxy.log 2>&1 &
           proxy_pid=$!
           trap 'kill "$proxy_pid" "$server_pid" 2>/dev/null || true' EXIT
-          for port in 5102 5104; do
+          for port in 5102 5104 5105; do
             for i in $(seq 1 40); do
               if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
               sleep 0.5
