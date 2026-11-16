@@ -39,8 +39,7 @@ static class Program
         {
             UseShellExecute=false, CreateNoWindow=true, RedirectStandardOutput=true, RedirectStandardError=true
         }};
-        p.StartInfo.ArgumentList.Add("/c");
-        p.StartInfo.ArgumentList.Add($"mklink /J \"{path}\" \"{target}\"");
+        p.StartInfo.Arguments = "/c mklink /J \"" + path + "\" \"" + target + "\"";
         p.Start();
         string logs = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
         p.WaitForExit();
