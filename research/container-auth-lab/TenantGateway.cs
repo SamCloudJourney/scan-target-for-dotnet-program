@@ -27,6 +27,7 @@ static class TenantGatewayLab
     static readonly List<object> Results=[];
     static string AAuth=>"Basic "+Convert.ToBase64String(Encoding.UTF8.GetBytes(AUser+":"+APass));
     record Hit(string At,string Method,string Path,bool AIdentity,bool BasicA);
+    record GatewayOutcome(int Status,bool Data,bool Granted);
     static async Task Reply(HttpContext c,int status,string? body=null,string? challenge=null)
     {
         c.Response.StatusCode=status;
@@ -164,7 +165,7 @@ static class TenantGatewayLab
                 JsonSerializer.Serialize(new{principal=session,operation,allowed,
                     syntheticPrivateDataReturned=allowed&&operation=="read",failure}));
         },tls:true);
-        async Task<(int Status,bool Data,bool Granted)> Request(string principal,string operation)
+        async Task<GatewayOutcome> Request(string principal,string operation)
         {
             using var client=new HttpClient(new HttpClientHandler{UseProxy=false});
             using var msg=new HttpRequestMessage(HttpMethod.Get,"https://third.lab.test:"+gateway.Port+"/job");
@@ -173,7 +174,7 @@ static class TenantGatewayLab
             using var response=await client.SendAsync(msg);
             string body=await response.Content.ReadAsStringAsync();
             using var json=JsonDocument.Parse(body);
-            return ((int)response.StatusCode,
+            return new GatewayOutcome((int)response.StatusCode,
                 json.RootElement.GetProperty("syntheticPrivateDataReturned").GetBoolean(),
                 json.RootElement.GetProperty("allowed").GetBoolean());
         }
@@ -183,6 +184,10 @@ static class TenantGatewayLab
         int aTokenAtPrime=tokenA;
         var bRead=await Request("B","read");
         var bWrite=await Request("B","write");
+        // Six separate authenticated HTTP sessions operating on behalf of B.
+        // They each receive a fresh SDK API instance but share the same hosting process.
+        GatewayOutcome[] bParallel=await Task.WhenAll(
+            Enumerable.Range(0,6).Select(_=>Request("B","read")));
         int aTokenAfterB=tokenA;
         revokeA=true;
         var bAfterRevocation=await Request("B","read");
@@ -192,13 +197,15 @@ static class TenantGatewayLab
             bAfterRevocation.Status==403 && !bAfterRevocation.Granted &&
             (IsPatched
                 ? bRead.Status==403 && !bRead.Data && bWrite.Status==403 && !bWrite.Granted &&
+                  bParallel.All(x=>x.Status==403 && !x.Granted) &&
                   privilegedReads==1 && privilegedWrites==0
                 : bRead.Status==200 && bRead.Data && bWrite.Status==200 && bWrite.Granted &&
-                  aTokenAfterB==aTokenAtPrime && privilegedReads==2 && privilegedWrites==1);
+                  bParallel.All(x=>x.Status==200 && x.Data) &&
+                  aTokenAfterB==aTokenAtPrime && privilegedReads==8 && privilegedWrites==1);
         var evidence=new{scenario="two-principal-sdk-publishing-gateway",
             passed=pass,sdk=Sdk,expectedPatchedImplementation=IsPatched,beforePrimingBRead=bBefore,beforePrimingBWrite=bWrite,
             privilegedARead=aRead,afterPrimingBRead=bRead,afterPrimingBWrite=bWrite,
-            afterRevocationBRead=bAfterRevocation,
+            sixParallelBReadAttempts=bParallel,afterRevocationBRead=bAfterRevocation,
             syntheticPrivateMarker=PrivateValue,privilegedReadCount=privilegedReads,
             privilegedWriteCount=privilegedWrites,privilegedTokenAcquisitionsBeforeB=aTokenAtPrime,
             privilegedTokenAcquisitionsAfterB=aTokenAfterB,totalPrivilegedTokenAcquisitions=tokenA,
