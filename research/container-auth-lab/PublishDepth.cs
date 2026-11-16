@@ -13,10 +13,11 @@ static class PublishDepthLab
     private const string SyntheticUser="PUBLISH_LAB_USER";
     private const string SyntheticPass="PUBLISH_LAB_PASSWORD_NO_SECRET";
     private const string SyntheticToken="PUBLISH_LAB_BEARER_NO_SECRET";
+    private const string SyntheticIdentity="PUBLISH_LAB_IDENTITY_TOKEN_NO_SECRET";
     private static readonly string Sdk=Environment.GetEnvironmentVariable("SDK_VER")??"unknown";
     private static readonly bool Is11=Sdk.StartsWith("11.");
     private static readonly List<object> Reports=[];
-    private record NetworkEvent(string Role,string Method,string Path,bool SyntheticBasic,bool SyntheticPasswordForm,bool SyntheticBearer);
+    private record NetworkEvent(string Role,string Method,string Path,bool SyntheticBasic,bool SyntheticPasswordForm,bool SyntheticIdentityForm,bool SyntheticBearer);
     private static string Basic=>"Basic "+Convert.ToBase64String(Encoding.ASCII.GetBytes(SyntheticUser+":"+SyntheticPass));
 
     public static async Task RunAsync()
@@ -24,7 +25,7 @@ static class PublishDepthLab
         bool success=true;
         try
         {
-            foreach(var mode in new[]{"direct-ip","dns-private","redirect307"})
+            foreach(var mode in new[]{"direct-ip","dns-private","redirect307","identity-direct-ip","identity-dns","identity-redirect307","no-credentials"})
             {
                 bool verified=await RunOne(mode);
                 Console.WriteLine("[PUBLISH "+Sdk+"] "+mode+": "+(verified?"PASS":"FAIL"));
@@ -40,6 +41,7 @@ static class PublishDepthLab
         if(!success)throw new Exception("Real dotnet publish authentication boundary assertion failed.");
     }
 
+    private static string RegistryHostName(int port)=>"registry.lab.test:"+port;
     private static string Hash(byte[] bytes)=>"sha256:"+Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     private static NetworkEvent Observe(string role,HttpContext ctx,string body)
     {
@@ -47,6 +49,7 @@ static class PublishDepthLab
         return new NetworkEvent(role,ctx.Request.Method,ctx.Request.Path.ToString(),
             authorization==Basic,
             body.Contains(SyntheticPass,StringComparison.Ordinal),
+            body.Contains(SyntheticIdentity,StringComparison.Ordinal),
             authorization=="Bearer "+SyntheticToken);
     }
     private static async Task Reply(HttpContext c,int status,string? body=null,
@@ -62,6 +65,10 @@ static class PublishDepthLab
 
     private static async Task<bool> RunOne(string mode)
     {
+        bool identityMode=mode.StartsWith("identity-",StringComparison.Ordinal);
+        bool missingCredentials=mode=="no-credentials";
+        bool redirectMode=mode.Contains("redirect307",StringComparison.Ordinal);
+        bool directMode=mode.Contains("direct-ip",StringComparison.Ordinal);
         var events=new ConcurrentQueue<NetworkEvent>();
         string? tokenEndpoint=null;
         string? fallbackEndpoint=null;
@@ -89,7 +96,7 @@ static class PublishDepthLab
         {
             string body=await new StreamReader(c.Request.Body).ReadToEndAsync();
             events.Enqueue(Observe("public-token",c,body));
-            if(mode=="redirect307")
+            if(redirectMode)
             {
                 if(c.Request.Method=="GET")await Reply(c,405);
                 else await Reply(c,307,location:fallbackEndpoint);
@@ -100,9 +107,9 @@ static class PublishDepthLab
         fallbackEndpoint="https://privateauth.lab.test:"+privateEndpoint.Port+"/oauth";
         tokenEndpoint=mode switch
         {
-            "direct-ip"=>"https://127.0.0.2:"+privateEndpoint.Port+"/token",
-            "dns-private"=> "https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
-            "redirect307"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
+            "direct-ip" or "identity-direct-ip"=>"https://127.0.0.2:"+privateEndpoint.Port+"/token",
+            "dns-private" or "identity-dns" or "no-credentials"=>"https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
+            "redirect307" or "identity-redirect307"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
             _=>throw new InvalidOperationException()
         };
 
@@ -192,16 +199,42 @@ static class PublishDepthLab
                 "-p:ContainerRuntimeIdentifier=linux-x64",
                 "-p:NuGetAudit=false"
             })p.ArgumentList.Add(arg);
-            foreach(string key in new[]{"HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"})
+            foreach(string key in new[]{"HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy",
+                "DOTNET_CONTAINER_PULL_REGISTRY_UNAME","DOTNET_CONTAINER_PULL_REGISTRY_PWORD",
+                "DOTNET_CONTAINER_PUSH_REGISTRY_UNAME","DOTNET_CONTAINER_PUSH_REGISTRY_PWORD",
+                "DOTNET_CONTAINER_REGISTRY_UNAME","DOTNET_CONTAINER_REGISTRY_PWORD",
+                "SDK_CONTAINER_REGISTRY_UNAME","SDK_CONTAINER_REGISTRY_PWORD"})
                 p.Environment.Remove(key);
             p.Environment["NO_PROXY"]="*";
             p.Environment["no_proxy"]="*";
-            p.Environment["DOTNET_CONTAINER_PULL_REGISTRY_UNAME"]=SyntheticUser;
-            p.Environment["DOTNET_CONTAINER_PULL_REGISTRY_PWORD"]=SyntheticPass;
-            p.Environment["DOTNET_CONTAINER_PUSH_REGISTRY_UNAME"]=SyntheticUser;
-            p.Environment["DOTNET_CONTAINER_PUSH_REGISTRY_PWORD"]=SyntheticPass;
-            p.Environment["DOTNET_CONTAINER_REGISTRY_UNAME"]=SyntheticUser;
-            p.Environment["DOTNET_CONTAINER_REGISTRY_PWORD"]=SyntheticPass;
+            if(!identityMode && !missingCredentials)
+            {
+                p.Environment["DOTNET_CONTAINER_PULL_REGISTRY_UNAME"]=SyntheticUser;
+                p.Environment["DOTNET_CONTAINER_PULL_REGISTRY_PWORD"]=SyntheticPass;
+                p.Environment["DOTNET_CONTAINER_PUSH_REGISTRY_UNAME"]=SyntheticUser;
+                p.Environment["DOTNET_CONTAINER_PUSH_REGISTRY_PWORD"]=SyntheticPass;
+                p.Environment["DOTNET_CONTAINER_REGISTRY_UNAME"]=SyntheticUser;
+                p.Environment["DOTNET_CONTAINER_REGISTRY_PWORD"]=SyntheticPass;
+            }
+            else
+            {
+                // The SDK's real Docker credentials provider reads this temporary config.
+                // A registry absent from the auths table should fail credential retrieval.
+                string configPath=Path.Combine(temp,"synthetic-auth.json");
+                string authConfig=missingCredentials
+                    ? "{\"auths\":{}}"
+                    : JsonSerializer.Serialize(new {
+                        auths=new Dictionary<string,object>{
+                            [RegistryHostName(registry.Port)]=new {
+                                identitytoken=SyntheticIdentity,
+                                auth=Convert.ToBase64String(Encoding.ASCII.GetBytes("placeholder:placeholder"))
+                            }
+                        }
+                    });
+                File.WriteAllText(configPath,authConfig);
+                p.Environment["REGISTRY_AUTH_FILE"]=configPath;
+                p.Environment["DOCKER_CONFIG"]=temp;
+            }
             p.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"]="1";
             p.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"]="1";
             using Process process=Process.Start(p)??throw new InvalidOperationException("Cannot launch dotnet publish");
@@ -226,12 +259,17 @@ static class PublishDepthLab
         var records=events.ToArray();
         bool privateBasic=records.Any(x=>x.Role=="private-token"&&x.SyntheticBasic);
         bool privateForm=records.Any(x=>x.Role=="private-token"&&x.SyntheticPasswordForm);
+        bool privateIdentity=records.Any(x=>x.Role=="private-token"&&x.SyntheticIdentityForm);
         bool startedManifestPull=records.Any(x=>x.Role=="registry"&&x.Path.Contains("/baseprobe/manifests/",StringComparison.Ordinal));
         bool authRetry=records.Any(x=>x.Role=="registry"&&x.SyntheticBearer);
-        bool directBlocked=mode=="direct-ip" && Is11;
+        bool directBlocked=directMode && Is11;
+        bool forwardedExpected=identityMode
+            ? privateIdentity && !privateForm && !privateBasic
+            : redirectMode ? privateForm && !privateBasic : privateBasic;
         bool pass=startedManifestPull && !timedOut &&
-            (directBlocked ? !privateBasic && !privateForm && !authRetry
-                : ((mode=="redirect307"?privateForm:privateBasic)&&authRetry));
+            (missingCredentials ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
+                : directBlocked ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
+                : exitCode==0 && producedManifest==1 && forwardedExpected && authRetry);
 
         var report=new {
             mode,passed=pass,sdk=Sdk,exitCode,timedOut,
@@ -241,6 +279,9 @@ static class PublishDepthLab
             startedManifestPull,authenticationRetried=authRetry,
             protectedEndpointGotSyntheticBasic=privateBasic,
             protectedEndpointGotSyntheticPasswordForm=privateForm,
+            protectedEndpointGotSyntheticIdentityForm=privateIdentity,
+            usedSyntheticIdentityToken=identityMode,
+            missingCredentialsControl=missingCredentials,
             protectedRequestCount=records.Count(x=>x.Role=="private-token"),
             publicRequestCount=records.Count(x=>x.Role=="public-token"),
             outputExcerpt,networkEvents=records
