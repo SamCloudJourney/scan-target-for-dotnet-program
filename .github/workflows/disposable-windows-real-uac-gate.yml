@@ -1,0 +1,43 @@
+name: Genuine Windows UAC ShellExecute consent gate - unattended runner
+on:
+  push:
+    branches: [research/windows-elevation-real-uac-gate-20261116]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: uac-gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  genuine-shell-execute-runas:
+    runs-on: windows-2022
+    timeout-minutes: 9
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.404', '11.0.100']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/real-uac-low-user.ps1
+            research/windows-elevation-boundary-20261116/real-uac-hosted-runner.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Attempt exact SDK UAC shell elevation under distinct ordinary Windows user
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/real-uac-hosted-runner.ps1 -SdkVersion '${{ matrix.sdk }}'
+      - name: Archive observed UAC gate result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-uac-gate-${{ matrix.sdk }}-evidence
+          path: ${{ runner.temp }}/real-uac-gate-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
