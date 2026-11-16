@@ -41,6 +41,18 @@ try
 {
     switch (mode)
     {
+        case "inspect":
+            var parserType = typeof(FormPipeReader);
+            var parsers = parserType.GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Where(m => m.Name == "ParseFormValues").ToArray();
+            var argsText = string.Join(" / ", parsers.Select(m =>
+                "(" + string.Join(",", m.GetParameters().Select(p => p.ParameterType.FullName)) + ")"));
+            detail = "assembly=" + parserType.Assembly.GetName().Version +
+                     ";module_mvid=" + parserType.Module.ModuleVersionId +
+                     ";parse_signatures=" + argsText +
+                     ";has_ref_long_scannedLength=" + parsers.Any(m => m.GetParameters()
+                         .Any(p => p.ParameterType == typeof(long).MakeByRefType()));
+            break;
         case "form":
             var input = Encoding.ASCII.GetBytes("x=" + new string('v', declared));
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8)))
