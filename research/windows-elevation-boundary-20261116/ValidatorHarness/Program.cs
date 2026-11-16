@@ -209,6 +209,58 @@ internal static class Program
                 "Windows Installer rejects an unregistered random product GUID, exit code " + msiResult,
                 "No request was sent to the workload broker; authorization of unrelated installed products remains untested.");
 
+
+            // Additional negative controls: validate traversal and sibling paths do NOT gain access.
+            trustedRoot.SetValue(null, client);
+            string siblingRoot = Directory.CreateDirectory(Path.Combine(testRoot, "client-neighbour")).FullName;
+            string siblingRequest = Path.Combine(siblingRoot, "sibling.log");
+            string siblingResult = InvokeLog(validateLog, siblingRequest, server);
+            Record("11-sibling-prefix-rejected", siblingResult == Path.Combine(server, "sibling.log"),
+                "A similarly-prefixed sibling directory is rejected and redirected into the isolated server root.");
+
+            string dotdotRequest = Path.Combine(client, "..", "isolated-outside", "dotdot.log");
+            string dotdotResult = InvokeLog(validateLog, dotdotRequest, server);
+            Record("12-dotdot-traversal-rejected", dotdotResult == Path.Combine(server, "dotdot.log"),
+                "Ordinary parent-directory traversal is normalized and rejected, unlike a reparse point.");
+
+            // Broker gate negative control: launch the real workload elevate command from this
+            // harness EXE (not dotnet.exe). The SDK is expected to reject the parent-image mismatch
+            // BEFORE opening any named-pipe session, modifying the MSI state or doing filesystem work.
+            string gateDirectory = Directory.CreateDirectory(Path.Combine(testRoot, "broker-gate")).FullName;
+            File.WriteAllText(Path.Combine(gateDirectory, "global.json"),
+                JsonSerializer.Serialize(new { sdk = new { version = sdk, rollForward = "disable" } }));
+            ProcessStartInfo gateStart = new("dotnet.exe")
+            {
+                WorkingDirectory = gateDirectory,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+                UseShellExecute = false, CreateNoWindow = true
+            };
+            gateStart.ArgumentList.Add("workload");
+            gateStart.ArgumentList.Add("elevate");
+            gateStart.ArgumentList.Add("--client-temp");
+            gateStart.ArgumentList.Add(client);
+            using (Process gate = new() { StartInfo = gateStart })
+            {
+                gate.Start();
+                bool exited = gate.WaitForExit(45000);
+                if (!exited) gate.Kill(entireProcessTree: true);
+                string diagnostic = gate.StandardOutput.ReadToEnd() + gate.StandardError.ReadToEnd();
+                env["brokerParentNegative"] = new {
+                    exited, exitCode = exited ? gate.ExitCode : -1,
+                    diagnostic = diagnostic.Length > 2000 ? diagnostic[..2000] : diagnostic,
+                    parentExecutable = Environment.ProcessPath,
+                    childExecutable = gateStart.FileName
+                };
+                bool claimedParentRejection =
+                    exited && gate.ExitCode != 0 &&
+                    (diagnostic.Contains("parent", StringComparison.OrdinalIgnoreCase) ||
+                     diagnostic.Contains("trust", StringComparison.OrdinalIgnoreCase));
+                Record("all-parent-image-broker-gate-rejected", claimedParentRejection,
+                    "Actual SDK workload elevate launch from an unrelated parent executable: " +
+                    (claimedParentRejection ? "parent gate denied" : "outcome requires inspection"),
+                    "This is a negative control under a high-integrity runner account, not a standard-user UAC experiment.");
+            }
+
             status = Failures == 0 ? "COMPLETED" : "TEST_FAILURE";
         }
         catch (Exception ex)
