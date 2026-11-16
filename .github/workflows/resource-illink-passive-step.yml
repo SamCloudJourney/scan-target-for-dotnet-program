@@ -1,0 +1,82 @@
+name: "Passive official ILLink custom-step symbol state"
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/LinkerCustom/**'
+      - '.github/workflows/resource-illink-passive-step.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  symbol-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Restore and build passive linker extension and owned assemblies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p linker-custom-evidence
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj -c Release
+          dotnet build research/bounded-resource-probes/Linker/Mutate/Mutate.csproj -c Release
+          dotnet research/bounded-resource-probes/Linker/Mutate/bin/Release/net10.0/Mutate.dll \
+            research/bounded-resource-probes/Sample/bin/Release/net10.0/Sample.dll \
+            research/bounded-resource-probes/Linker
+          dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net10.0
+          dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net11.0
+          dotnet restore research/bounded-resource-probes/LinkerCustom/HostAudit/HostAudit.csproj -p:PublishTrimmed=true
+      - name: Observe Sample.HasSymbols from real trimmer's own LinkContext
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then sdk=10.0.404; else sdk=11.0.100; fi
+            image="mcr.microsoft.com/dotnet/sdk:$sdk"
+            docker pull "$image"
+            for mode in InputBaseline InputAltered; do
+              host="$PWD/research/bounded-resource-probes/LinkerCustom/HostAudit"
+              testinputs="$PWD/research/bounded-resource-probes/Linker"
+              observer="$PWD/research/bounded-resource-probes/LinkerCustom/LinkerStep/bin/Release/$fx"
+              timeout --signal=TERM --kill-after=3s 90s docker run --rm \
+                --memory=768m --memory-swap=768m --cpus=2 --pids-limit=128 \
+                --network none --tmpfs /tmp:rw,nosuid,size=48m \
+                -e NUGET_PACKAGES=/home/runner/.nuget/packages \
+                -e DOTNET_CLI_HOME=/tmp/dotnet \
+                -e MSBUILDDISABLENODEREUSE=1 -e DOTNET_NOLOGO=1 \
+                -e FX="$fx" -e INPUT_MODE="$mode" \
+                -v "$host:/work:rw" -v "$testinputs:/fixtures:ro" -v "$observer:/probe:ro" \
+                -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
+                "$image" bash -c '
+                  cd /work
+                  rm -rf obj/Release bin
+                  dotnet publish HostAudit.csproj -f "$FX" -c Release --no-restore \
+                    -p:PublishTrimmed=true -p:UseSharedCompilation=false -m:1 \
+                    -p:SampleInputPath="/fixtures/$INPUT_MODE/Sample.dll" \
+                    -p:TrimmerAuditAssembly="/probe/ResearchLinkerStep.dll" \
+                    -o "/work/out-$FX-$INPUT_MODE" -v:normal > /tmp/output.log 2>&1
+                  ec=$?
+                  echo "CASE $FX $INPUT_MODE exit=$ec"
+                  grep -E "RESEARCH_LINKER|error MSB|error IL|error :|warning IL" /tmp/output.log | tail -n 45 || true
+                  if [ "$ec" != "0" ]; then tail -n 25 /tmp/output.log; fi
+                  exit 0
+                ' | tee -a linker-custom-evidence/linker-audit.log
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-illink-passive-symbol-state
+          path: linker-custom-evidence/
+          retention-days: 14
