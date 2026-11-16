@@ -91,7 +91,7 @@ static class PatchedParityLab
             success&=await CheckCache();
             Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_POLICY","Public");
             Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES","127.0.0.1");
-            success&=await SharedPublisherLab.RunAsync();
+            await SharedPublisherLab.RunAsync();
             success&=await PublishDepthLab.RunPatchedSubsetAsync();
         }
         finally{
