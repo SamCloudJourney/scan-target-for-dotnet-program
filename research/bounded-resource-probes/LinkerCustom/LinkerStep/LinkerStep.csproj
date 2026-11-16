@@ -9,7 +9,7 @@
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.15" GeneratePathProperty="true" PrivateAssets="all" Condition="'$(TargetFramework)' == 'net10.0'" />
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="11.0.0" GeneratePathProperty="true" PrivateAssets="all" Condition="'$(TargetFramework)' == 'net11.0'" />
     <Reference Include="illink">
-      <HintPath>$(PkgMicrosoft_NET_ILLink_Tasks)/tools/$(TargetFramework)/illink.dll</HintPath>
+      <HintPath>$(PkgMicrosoft_NET_ILLink_Tasks)/tools/net/illink.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
