@@ -1,0 +1,85 @@
+name: Instrumented official ILLink publish: per-process samples
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/LinkerTrace/**'
+      - '.github/workflows/resource-linker-instrumentation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  instrument-linker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Prepare controlled PE and diagnostic startup hook
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj -c Release
+          dotnet build research/bounded-resource-probes/Linker/Mutate/Mutate.csproj -c Release
+          dotnet build research/bounded-resource-probes/LinkerTrace/StartupHook/StartupHook.csproj -c Release
+          dotnet research/bounded-resource-probes/Linker/Mutate/bin/Release/net10.0/Mutate.dll \
+            research/bounded-resource-probes/Sample/bin/Release/net10.0/Sample.dll \
+            research/bounded-resource-probes/Linker
+          dotnet restore research/bounded-resource-probes/Linker/Host/Host.csproj -p:PublishTrimmed=true
+      - name: Trace actual dotnet publish linker and child taskhost processes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p linker-trace-evidence/traces
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then sdk=10.0.404; else sdk=11.0.100; fi
+            image="mcr.microsoft.com/dotnet/sdk:$sdk"
+            docker pull "$image"
+            for mode in InputBaseline InputSmall InputAltered; do
+              export TRIAL="$fx-$mode"
+              work="$PWD/research/bounded-resource-probes/Linker"
+              hook="$PWD/research/bounded-resource-probes/LinkerTrace/StartupHook/bin/Release/net10.0"
+              trace="$PWD/linker-trace-evidence/traces"
+              timeout --signal=TERM --kill-after=3s 90s docker run --rm \
+                --memory=768m --memory-swap=768m --cpus=2 --pids-limit=128 \
+                --network none --tmpfs /tmp:rw,nosuid,size=48m \
+                -e MSBUILDDISABLENODEREUSE=1 -e DOTNET_CLI_HOME=/tmp/dotnet \
+                -e DOTNET_NOLOGO=1 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+                -e NUGET_PACKAGES=/home/runner/.nuget/packages \
+                -e DOTNET_GCHeapHardLimit=0x20000000 \
+                -e DOTNET_STARTUP_HOOKS=/hook/StartupHook.dll \
+                -e RESEARCH_TRACE_ROOT=/trace -e RESEARCH_TRACE_CASE="$TRIAL" \
+                -e FX="$fx" -e INPUT_MODE="$mode" \
+                -v "$work:/work:rw" -v "$hook:/hook:ro" -v "$trace:/trace:rw" \
+                -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
+                "$image" bash -c '
+                  cd /work
+                  rm -rf Host/bin Host/obj/Release
+                  start=$(date +%s%3N)
+                  dotnet publish Host/Host.csproj -c Release -f "$FX" --no-restore \
+                    -p:PublishTrimmed=true -p:UseSharedCompilation=false -m:1 \
+                    -p:SampleInputPath="/work/$INPUT_MODE/Sample.dll" \
+                    -o "/work/out-trace-$FX-$INPUT_MODE" -v:quiet > /tmp/output.log 2>&1
+                  ec=$?
+                  printf "{\"test\":\"official-illink-instrumentation\",\"framework\":\"%s\",\"input\":\"%s\",\"exitCode\":%d,\"elapsedMs\":%s}\n" \
+                    "$FX" "$INPUT_MODE" "$ec" "$(($(date +%s%3N)-start))"
+                  if [ "$ec" != 0 ]; then tail -n 30 /tmp/output.log; fi
+                  exit 0
+                ' | tee -a linker-trace-evidence/results.jsonl
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-il-link-per-process-diagnostics
+          path: linker-trace-evidence/
+          retention-days: 14
