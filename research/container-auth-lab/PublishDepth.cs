@@ -16,6 +16,7 @@ static class PublishDepthLab
     private const string SyntheticIdentity="PUBLISH_LAB_IDENTITY_TOKEN_NO_SECRET";
     private static readonly string Sdk=Environment.GetEnvironmentVariable("SDK_VER")??"unknown";
     private static readonly bool Is11=Sdk.StartsWith("11.");
+    private static readonly bool IsPatched=Environment.GetEnvironmentVariable("SDK_EXPECT_PATCHED")=="1";
     private static readonly List<object> Reports=[];
     private record NetworkEvent(string Role,string Method,string Path,bool SyntheticBasic,bool SyntheticPasswordForm,bool SyntheticIdentityForm,bool SyntheticBearer);
     private static string Basic=>"Basic "+Convert.ToBase64String(Encoding.ASCII.GetBytes(SyntheticUser+":"+SyntheticPass));
@@ -25,7 +26,13 @@ static class PublishDepthLab
         bool success=true;
         try
         {
-            foreach(var mode in new[]{"direct-ip","dns-private","redirect307","identity-direct-ip","identity-dns","identity-redirect307","registry-302-basic","no-credentials"})
+            string[] modes=IsPatched
+                ? ["public-allowed","direct-ip","dns-private","redirect307","redirect308",
+                   "identity-dns","identity-redirect307","registry-302-basic","no-credentials"]
+                : ["public-allowed","direct-ip","dns-private","redirect301","redirect302","redirect303","redirect307",
+                   "redirect308","redirect-http","identity-direct-ip","identity-dns",
+                   "identity-redirect307","identity-redirect308","registry-302-basic","no-credentials"];
+            foreach(var mode in modes)
             {
                 bool verified=await RunOne(mode);
                 Console.WriteLine("[PUBLISH "+Sdk+"] "+mode+": "+(verified?"PASS":"FAIL"));
@@ -67,7 +74,12 @@ static class PublishDepthLab
     {
         bool identityMode=mode.StartsWith("identity-",StringComparison.Ordinal);
         bool missingCredentials=mode=="no-credentials";
-        bool redirectMode=mode.Contains("redirect307",StringComparison.Ordinal);
+        bool redirectMode=mode.Contains("redirect",StringComparison.Ordinal);
+        bool downgradeRedirect=mode=="redirect-http";
+        int redirectStatus=mode.EndsWith("301",StringComparison.Ordinal)?301:
+            mode.EndsWith("302",StringComparison.Ordinal)?302:
+            mode.EndsWith("303",StringComparison.Ordinal)?303:
+            mode.EndsWith("308",StringComparison.Ordinal)?308:307;
         bool registryRedirectBasic=mode=="registry-302-basic";
         bool directMode=mode.Contains("direct-ip",StringComparison.Ordinal);
         var events=new ConcurrentQueue<NetworkEvent>();
@@ -85,6 +97,12 @@ static class PublishDepthLab
         int producedManifest=0;
         int downloadedConfig=0;
 
+        int downgradeEndpointRequests=0;
+        await using var downgradeEndpoint=await LocalEndpoint.Start("127.0.0.2",async c=>
+        {
+            Interlocked.Increment(ref downgradeEndpointRequests);
+            await Reply(c,200,JsonSerializer.Serialize(new{token=SyntheticToken}),"application/json");
+        },tls:false);
         await using var privateEndpoint=await LocalEndpoint.Start("127.0.0.2",async c=>
         {
             string body=await new StreamReader(c.Request.Body).ReadToEndAsync();
@@ -109,17 +127,22 @@ static class PublishDepthLab
             if(redirectMode)
             {
                 if(c.Request.Method=="GET")await Reply(c,405);
-                else await Reply(c,307,location:fallbackEndpoint);
+                else await Reply(c,redirectStatus,location:fallbackEndpoint);
             }
             else await Reply(c,200,JsonSerializer.Serialize(new{token=SyntheticToken,expires_in=120}),"application/json");
         },tls:true);
 
-        fallbackEndpoint="https://privateauth.lab.test:"+privateEndpoint.Port+"/oauth";
+        fallbackEndpoint=downgradeRedirect
+            ? "http://privateauth.lab.test:"+downgradeEndpoint.Port+"/oauth"
+            : "https://privateauth.lab.test:"+privateEndpoint.Port+"/oauth";
         tokenEndpoint=mode switch
         {
             "direct-ip" or "identity-direct-ip"=>"https://127.0.0.2:"+privateEndpoint.Port+"/token",
             "dns-private" or "identity-dns" or "no-credentials"=>"https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
-            "redirect307" or "identity-redirect307" or "registry-302-basic"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
+            "public-allowed"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
+            "redirect301" or "redirect302" or "redirect303" or "redirect307" or "redirect308" or "redirect-http"
+                or "identity-redirect307" or "identity-redirect308" or "registry-302-basic"=>
+                    "https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
             _=>throw new InvalidOperationException()
         };
 
@@ -249,6 +272,11 @@ static class PublishDepthLab
                 p.Environment["REGISTRY_AUTH_FILE"]=configPath;
                 p.Environment["DOCKER_CONFIG"]=temp;
             }
+            if(IsPatched)
+            {
+                p.Environment["DOTNET_CONTAINER_AUTH_REALM_POLICY"]="AllowlistOnly";
+                p.Environment["DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES"]="127.0.0.1";
+            }
             p.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"]="1";
             p.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"]="1";
             using Process process=Process.Start(p)??throw new InvalidOperationException("Cannot launch dotnet publish");
@@ -277,13 +305,18 @@ static class PublishDepthLab
         bool startedManifestPull=records.Any(x=>x.Role=="registry"&&x.Path.Contains("/baseprobe/manifests/",StringComparison.Ordinal));
         bool registryGotBasic=records.Any(x=>x.Role=="registry"&&x.SyntheticBasic);
         bool authRetry=records.Any(x=>x.Role=="registry"&&(x.SyntheticBearer||x.SyntheticBasic));
-        bool directBlocked=directMode && Is11;
+        bool directBlocked=directMode && (Is11||IsPatched);
+        bool bodyPreserved=redirectStatus is 307 or 308;
         bool forwardedExpected=identityMode
             ? privateIdentity && !privateForm && !privateBasic
-            : redirectMode ? privateForm && !privateBasic : privateBasic;
+            : redirectMode ? (bodyPreserved ? privateForm && !privateBasic : !privateForm && !privateIdentity)
+                : privateBasic;
+        bool shouldBeRejected=missingCredentials || directBlocked || downgradeRedirect ||
+            (IsPatched && (mode is not "public-allowed"));
         bool pass=startedManifestPull && !timedOut &&
-            (missingCredentials ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
-                : directBlocked ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
+            (shouldBeRejected ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity &&
+                (downgradeEndpointRequests==0 || !downgradeRedirect) &&
+                (missingCredentials || directBlocked || downgradeRedirect || IsPatched)
                 : registryRedirectBasic ? exitCode==0 && producedManifest==1 && privateBasic &&
                     !privateForm && !privateIdentity && authRetry && registryGotBasic &&
                     records.Count(x=>x.Role=="private-token")>=2
@@ -300,6 +333,9 @@ static class PublishDepthLab
             protectedEndpointGotSyntheticIdentityForm=privateIdentity,
             registryRedirectBasicChallenge=registryRedirectBasic,
             registryReceivedSyntheticBasic=registryGotBasic,
+            expectedPatchedImplementation=IsPatched,
+            downgradeEndpointRequests,
+            redirectStatus=redirectMode?redirectStatus:null,
             usedSyntheticIdentityToken=identityMode,
             missingCredentialsControl=missingCredentials,
             protectedRequestCount=records.Count(x=>x.Role=="private-token"),
