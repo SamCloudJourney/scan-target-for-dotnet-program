@@ -65,11 +65,12 @@ results.append(restore("require_cold_verification_enabled", strict, ROOT/"cold-v
 results.append(restore("require_cold_verification_disabled", strict, ROOT/"cold-verify-off","false"))
 results.append(restore("accept_seed_shared_cache", accept, cache, "true"))
 results.append(restore("require_warm_cache_verification_enabled", strict, cache,"true"))
+b=cmd(["dotnet","build",str(project),"--no-restore","--verbosity","normal"],verify="true")
+results.append({"label":"build_after_strict_warm_cache","exit":b["exit"],"canary_target_executed":TARGET in b["log"],"log":b["log"]})
 results.append(restore("require_cold_second_control",strict,ROOT/"cold-control-2","true"))
 results.append(restore("mapped_trusted_feed_warm_shared_cache",mapped,cache,"true"))
 results.append(restore("mapped_trusted_feed_cold_control",mapped,ROOT/"cold-mapped","true"))
-b=cmd(["dotnet","build",str(project),"--no-restore","--verbosity","normal"],verify="true")
-results.append({"label":"build_after_warm_cache","exit":b["exit"],"canary_target_executed":TARGET in b["log"],"log":b["log"]})
+
 report={"sdk":sdk["log"].strip(),"package_path":str(package),"tests":results,
         "insecure_transport":"separate harness"}
 out=pathlib.Path(os.environ.get("BOUNDARY_OUTPUT","."))

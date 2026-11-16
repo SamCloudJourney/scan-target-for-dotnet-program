@@ -13,7 +13,7 @@ def run(args,cwd,home,mode):
         p=subprocess.run(args,cwd=cwd,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
                          text=True,timeout=130,preexec_fn=preexec)
         # Never store a synthetic JWT or key in a public CI log/artifact.
-        return {"exit":p.returncode,"output_tail_redacted":"<CLI output suppressed; may contain synthetic JWT>"}
+        return {"exit":p.returncode,"stdout_length":len(p.stdout),"output_mentions_token":("Token:" in p.stdout or "Token created" in p.stdout),"output_mentions_help":("Usage:" in p.stdout),"output_mentions_error":("Error:" in p.stdout or "error:" in p.stdout),"output_tail_redacted":"<CLI output suppressed; may contain synthetic JWT>"}
     except Exception as e: return {"exit":-999,"error":str(e)}
 def readable_by_other_user(path):
     if subprocess.run(["which","sudo"],stdout=subprocess.DEVNULL).returncode!=0:return None
@@ -32,7 +32,7 @@ for name,umask in [("ordinary_umask_022",0o022),("strict_umask_077",0o077)]:
     proj=app/"App.csproj"
     proj.write_text('<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
     init=run(["dotnet","user-secrets","init","--project",str(proj)],app,home,umask)
-    created=run(["dotnet","user-jwts","create","--project",str(proj)],app,home,umask)
+    created=run(["dotnet","user-jwts","create","--project",str(proj),"--audience","https://localhost:5001"],app,home,umask)
     uid_match=re.search(r"<UserSecretsId>([^<]+)</UserSecretsId>",proj.read_text())
     uid=uid_match.group(1) if uid_match else ""
     fallback=pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)
@@ -51,7 +51,7 @@ for name,umask in [("ordinary_umask_022",0o022),("strict_umask_077",0o077)]:
                               "group_or_other_readable":bool(mode_now & 0o044),
                               "readable_as_nobody":readable_by_other_user(p)})
         except Exception as e:inspected.append({"relative_path":str(p.relative_to(home)),"error":str(e)})
-    results.append({"scenario":name,"umask":oct(umask),"init":init,"create":created,"keys":inspected})
+    results.append({"scenario":name,"umask":oct(umask),"has_user_secrets_id":bool(uid),"file_candidate_count":len(candidates),"init":init,"create":created,"keys":inspected})
 report={"tests":results,"note":"No actual key material, JWT token, or signing secret included."}
 (OUT/"jwt-permissions-results.json").write_text(json.dumps(report,indent=2))
 for r in results:print(r["scenario"],"init",r["init"]["exit"],"create",r["create"]["exit"],"keys",r["keys"])

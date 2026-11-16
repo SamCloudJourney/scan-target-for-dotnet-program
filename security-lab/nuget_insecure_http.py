@@ -23,7 +23,7 @@ class Handler(httpserver.BaseHTTPRequestHandler):
             body=json.dumps({"versions":[VERSION]}).encode()
         elif self.path in (f"/flat/{LOW}/{VERSION}/{LOW}.{VERSION}.nupkg",):
             body=archive.read_bytes()
-        elif self.path=="/index.json":
+        elif self.path.startswith("/index-") and self.path.endswith(".json"):
             httpbase=self.server.service_package_base
             httpsbase=f"https://localhost:{self.server.https_port}"
             body=json.dumps({"version":"3.0.0","resources":[
@@ -75,10 +75,11 @@ tests=[]
 for mode in ("delegated_https_control","delegated_http_candidate"):
     https.service_package_base=(f"https://localhost:{https.server_port}/flat/" if mode=="delegated_https_control"
                                 else f"http://localhost:{http.server_port}/flat/")
+    cfg.write_text(f'''<?xml version="1.0"?><configuration><packageSources><clear/><add key="HTTPS-{mode}" value="https://localhost:{https.server_port}/index-{mode}.json" protocolVersion="3"/></packageSources></configuration>''')
     http.visits.clear();https.visits.clear()
     package_cache=ROOT/("cache-"+mode)
     env=dict(os.environ, DOTNET_CLI_TELEMETRY_OPTOUT="1",DOTNET_NOLOGO="1",
-             DOTNET_CLI_HOME=str(ROOT/"home"),NO_PROXY="localhost,127.0.0.1",no_proxy="localhost,127.0.0.1")
+             DOTNET_CLI_HOME=str(ROOT/"home"),NUGET_HTTP_CACHE_PATH=str(ROOT/("http-cache-"+mode)),NO_PROXY="localhost,127.0.0.1",no_proxy="localhost,127.0.0.1")
     try:
         proc=subprocess.run(["dotnet","restore",str(project),"--configfile",str(cfg),
                              "--packages",str(package_cache),"--force","--no-http-cache","-v","normal"],
@@ -92,4 +93,4 @@ for mode in ("delegated_https_control","delegated_http_candidate"):
 http.shutdown();https.shutdown()
 report={"trust":trust,"tests":tests}
 (OUT/"nuget-http-results.json").write_text(json.dumps(report,indent=2))
-for t in tests:print(t["name"],"exit",t.get("exit"),"http_package_requests",t.get("http_package_requests"),"cache_complete",t.get("cache_complete"));print(t.get("log_tail","")[-400:])
+for t in tests:print(t["name"],"exit",t.get("exit"),"http_package_requests",t.get("http_package_requests"),"http_requests",t.get("http_requests"),"https_requests",t.get("https_requests"),"cache_complete",t.get("cache_complete"));print(t.get("log_tail","")[-400:])

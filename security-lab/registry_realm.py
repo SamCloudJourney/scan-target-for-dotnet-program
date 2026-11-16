@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Actual SDK AuthHandshakeMessageHandler probe against loopback fake registry/realm only."""
-import base64, glob, http.server, json, os, pathlib, subprocess, tempfile, threading
+import base64, glob, http.server, json, os, pathlib, subprocess, tempfile, threading, socket
 ROOT=pathlib.Path(tempfile.mkdtemp(prefix="registry-realm-boundary-"))
 OUT=pathlib.Path(os.environ.get("BOUNDARY_OUTPUT","."))
 OUT.mkdir(parents=True,exist_ok=True)
 USERNAME="CANARY_REGISTRY_USER"
 PASSWORD="CANARY_REGISTRY_PASSWORD"
-alias="boundary-token.invalid"
+alias="boundary-token.localdomain"
 # This hostname is added to the disposable GitHub runner's hosts file only.
 try:
-    subprocess.run(["sudo","-n","sh","-c",f"printf '\\n127.0.0.1 {alias}\\n' >> /etc/hosts"],check=True,timeout=15)
-    hosts_ready=True
+    subprocess.run(["sudo","-n","tee","-a","/etc/hosts"],input=f"\n127.0.0.1 {alias}\n",text=True,capture_output=True,check=True,timeout=15)
+    hosts_ready=(socket.gethostbyname(alias)=='127.0.0.1')
 except Exception: hosts_ready=False
 dll_candidates=glob.glob("/opt/hostedtoolcache/dotnet/**/Microsoft.NET.Build.Containers.dll",recursive=True)
 if not dll_candidates:
@@ -48,7 +48,7 @@ compile=subprocess.run(["dotnet","build",str(proj/"sdkprobe.csproj"),"-c","Relea
 if not dll or compile.returncode!=0 or not hosts_ready:
     report={"ready":False,"dll_found":bool(dll),"hosts_ready":hosts_ready,"build_tail":compile.stdout[-1500:]+compile.stderr[-600:]}
 else:
-    report={"ready":True,"dll":dll,"tests":[]}
+    report={"ready":True,"dll":dll,"resolved_alias":socket.gethostbyname(alias),"tests":[]}
     class LabHandler(http.server.BaseHTTPRequestHandler):
         def log_message(self,*a):pass
         def do_GET(self):
