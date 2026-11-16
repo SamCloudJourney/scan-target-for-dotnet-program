@@ -20,3 +20,20 @@ Reproduce using `impact_test.py` and `haproxy-impact.cfg`. Raw result JSON, Kest
 **Attacker could:** retrieve a resource that a real deployment protects **only through the same type of upstream path ACL**, where the application serves it without an independent authorization check. This is the most concrete unauthorized *proxy-policy* crossing in this suite. The document is artificial; no private customer record or real access control was tested.
 
 **Cannot conclude:** Identity account takeover, access to an app-authenticated route, RCE, bypass of arbitrary HAProxy policies, or any novel root cause. The same parser inconsistency is documented in [Microsoft PR #65930](https://github.com/dotnet/aspnetcore/pull/65930), merged April 2026.
+
+---
+
+## Third validation pass — dot-segment canonicalization spans both releases
+
+An eight-case matrix compared **real HAProxy** raw-prefix and once-decoded prefix ACLs against Kestrel 10.0.15 and 11.0.0. Three additional findings:
+
+1. `/public/../gate/private-document` and `/public/%2e%2e/gate/private-document` returned the synthetic protected-document marker **on both releases**, through *both* the raw path ACL and the once-decoded path ACL. Both HTTP/1 origin-form and HTTP/1 absolute-form requests were canonicalized to the backend's `/gate/private-document` route. Consequently these are **not** specific to the .NET 10 absolute-form `%2F` regression.
+2. The previous `path,url_dec -m beg /gate/` mitigation rejects the original encoded-slash input, but misses the `../` family. It is a one-class mitigation and must not be described as comprehensive.
+3. A third HAProxy listener that additionally **denies literal and once-decoded parent-directory segments** (within the tested path forms) returned no synthetic document for any of the eight test vectors on either release. The separate ASP.NET `RequireAuthorization()` protected endpoint remained inaccessible (401/404), including under dot-segment paths.
+
+**Threat model:** an application whose only authorization barrier is a reverse-proxy raw-path rule can expose a synthetic backend route under inconsistent path normalization. An application with its own proper authentication/authorization remained protected. This is **a proxy/backend trust-boundary configuration issue**, not independently established as a novel ASP.NET Core security defect.
+
+HAProxy explicitly documents that URI normalization is not automatic and provides `normalize-uri` controls: https://www.haproxy.com/blog/announcing-haproxy-2-4 . An analogous path-ACL discussion was closed as works-as-designed: https://github.com/haproxy/haproxy/issues/2785 . Microsoft separately fixed the older Kestrel absolute-form encoded-slash inconsistency in PR #65930.
+
+**Evidence:** [Third-pass CI](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822012995) with direct origin/absolute comparisons, three real HAProxy listeners, positive 200 and negative 403/401/404 controls. The new strict rule is only validated for these inputs, **not** as a complete proof against all path encodings or normalization sequences.
+

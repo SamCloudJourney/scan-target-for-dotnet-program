@@ -1,24 +1,15 @@
-# Third-pass boundary consequence testing — local only
+# Third-pass: tested downstream effects and controls
 
-Additional experiments that extend the verified second-pass fixture.
-Both .NET 10.0.15 (SDK 10.0.404) and .NET 11.0.0 (SDK 11.0.100).
+This pass adds the real Chromium cookie-store check, a cacheable plain-text/JSON ResponseCaching variant, an HTML/JSON OutputCaching representation, and a broader HAProxy path comparison.
 
-1. Cookie: Python stdlib CookieJar parses the *actual* request-derived
-   authentication Set-Cookie value, records domain/path and checks whether it
-   would attach to an unrelated application-root path. This is not a full
-   Chromium/Firefox browser acceptance test.
-2. Caches: public HTML-vs-JSON query semantics deliberately yield different
-   `Content-Type`, `Content-Disposition`, X-Frame-Options, and bodies. Checks
-   show whether a colliding client's request receives *all* of the first
-   client's cached representation, not just its string body.
-3. Redirect: follow a benign synthetic query marker via a scheme-relative
-   redirect to a second 127.0.0.1-only origin; record destination request.
-   This is not a demonstration of real OAuth token disclosure.
-4. Proxy/Kestrel: run an eight-case path-normalization suite across HAProxy
-   raw and one-level decoded ACLs, and enumerate any returned synthetic
-   documents. Any unanticipated 200 requires analysis, not a vulnerability
-   designation.
+All tests occur on loopback 127.0.0.1. The HAProxy fixture exposes three local listeners:
 
-The framework's own `.RequireAuthorization()` controls are covered by the
-previous round; this additional suite does not assert an auth bypass.
-Only selected local ports 5100/5102/5103/5104 are reachable by the fixture.
+- 5102: raw `path_beg /gate/` check (fragile)
+- 5104: once-decoded `path,url_dec -m beg /gate/` check (fixes encoded slash but not traversal)
+- 5105: once-decoded path-prefix check **and** denial of literal/once-decoded `/../` segments (passes only the eight specified test variants, not claimed universal)
+
+The benign two-origin redirect receiver is port 5103. Cookie tests use local server port 5100.
+
+One HTML ResponseCaching fixture did not cache even on a repeated same query, so it is a meaningful negative control, **not** proof of a cache-key fix. A separate cacheable plain-text/JSON fixture demonstrates the .NET 10 collision with `Age: 0`. OutputCaching can cache and replay HTML plus its content type/disposition/other headers to a JSON-designated query.
+
+For detailed proof, see `reports/THIRD-PASS-CONCLUSIONS.md` and GitHub Actions artifacts. Original scan findings are proposals; do not file as novel MSRC reports based on known fixes or configuration-dependent proxies.

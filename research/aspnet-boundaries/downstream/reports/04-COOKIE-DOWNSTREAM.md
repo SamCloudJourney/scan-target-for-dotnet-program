@@ -19,3 +19,16 @@ Reproduce using `impact_test.py` and `haproxy-impact.cfg`. Raw result JSON, Kest
 **Attacker could:** influence `PathBase` when allowed by a trusted proxy; potentially alter ordinary cookie scope as a consequence of the application's proxy path mapping. **Not demonstrated:** cookie domain injection, browser cookie theft, session fixation, account takeover or HTTP response splitting. The explicit-path counterexample requires unsafe application control of cookie options. Microsoft already has public [cookie hardening](https://github.com/dotnet/aspnetcore/commit/a4866158cce1a2015e08fe0732e7f41b74423215).
 
 **Disposition:** original exploit thesis not reproduced; no MSRC readiness.
+
+---
+
+## Third validation pass — browser cookie handling (16 November 2026)
+
+This stage added actual Chrome/Chromium DevTools cookie-store checks instead of relying only on response-header inspection or Python's cookie jar. For the accepted trusted-prefix string `/;Domain=example.test`, both tested ASP.NET Core releases emitted a cookie Path of `/%3BDomain=example.test`. Chromium stored one **host-only**, **HttpOnly** cookie for `127.0.0.1`, did not interpret `example.test` as a separate cookie Domain, and did not attach the cookie to the unrelated `/whoami` path. It was eligible for the encoded path `/%3BDomain=example.test/whoami`.
+
+**Evidence:** the Chromium loopback test passed 6/6 assertions on .NET 10 and 6/6 on .NET 11. [Browser CI run](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822306490); the Python CookieJar path/domain control and source-to-sink checks also passed. Cookie values are redacted in the latest public evidence.
+
+**Security consequence:** changing the trusted prefix can change the ordinary *path scope* of a session cookie, which may affect an application's sign-in continuity under inconsistent proxy path configurations. It does **not** demonstrate domain widening, cookie exfiltration, session takeover, or a general browser vulnerability.
+
+**Disposition unchanged:** original attribute-injection claim was refuted for these controls; previously published Microsoft hardening exists.
+

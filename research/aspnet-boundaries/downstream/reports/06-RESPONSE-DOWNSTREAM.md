@@ -19,3 +19,14 @@ Reproduce using `impact_test.py` and `haproxy-impact.cfg`. Raw result JSON, Kest
 **Attacker could:** poison a public ResponseCaching representation's body/header for the colliding query shape on .NET 10, within the configured cache TTL. **Not demonstrated:** private data leakage, authentication bypass, write access, account takeover or RCE.
 
 **Prior public fix:** [PR #68510](https://github.com/dotnet/aspnetcore/pull/68510). Not a novel report.
+
+---
+
+## Third validation pass — cacheable content-type and header variation
+
+Two deliberately distinct fixtures produced different observations. An HTML-versus-JSON ResponseCaching endpoint with additional disposition and frame headers **was not cached** in this specific run; repeated same-shape requests were freshly generated, and the B request received JSON on both framework releases. The static body alone had initially masked that miss; the final test now includes a generation counter and does not claim HTML/JSON poisoning for that fixture.
+
+A second, demonstrably *cacheable* fixture served `text/plain` for A and `application/json` for B, with distinct `X-Lab-Format` and `X-Lab-Download` values. The first A result was reused for the identical request. On **.NET 10.0.15**, the colliding B request received A's `text/plain` body and `X-Lab-Format: plain-A` header, with `Age: 0`. On **.NET 11.0.0**, it correctly received JSON and B's header. This is a real public content-type/header collision, subject to a cacheable representation and the usual cache policy.
+
+**Controls:** authenticated/private-response isolation and no-cache handling as previously tested. [Third-pass CI](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822012995). No private account contents were exposed. Existing PR #68510 precedes these tests.
+

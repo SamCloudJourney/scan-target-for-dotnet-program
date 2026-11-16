@@ -19,3 +19,16 @@ Reproduce using `impact_test.py` and `haproxy-impact.cfg`. Raw result JSON, Kest
 **Attacker could:** seed a public response variant that other unauthenticated visitors receive when they request a distinct colliding query shape during cache lifetime, potentially misleading clients that trust the output. **Not demonstrated:** read private cache entries, alter persistent state, execute script or take over a user; those would require additional independently vulnerable application content/policy.
 
 **Novelty blocker:** [existing issue #68779](https://github.com/dotnet/aspnetcore/issues/68779) and [fix #68792](https://github.com/dotnet/aspnetcore/pull/68792). The tested releases still show the issue despite the public main-branch fix.
+
+---
+
+## Third validation pass — public representation and header substitution
+
+A new public endpoint deliberately served an HTML body (`text/html`, `Content-Disposition: inline`, `X-Frame-Options: DENY`) for decoded query key `a`, while decoded key `a=B` was intended to produce JSON (`application/json`, `Content-Disposition: attachment; filename=public-B.json`, `X-Frame-Options: SAMEORIGIN`). Request `?a=B%3D` seeded the cache; `?a%3DB=` then received **the HTML content and all three seeded headers**, including an `Age: 0` cache-hit indicator.
+
+**Versions:** reproduced on both ASP.NET Core 10.0.15 and 11.0.0. The request intended for JSON instead receives an HTML representation. This establishes a wrong-format and response-metadata integrity consequence, not stored XSS, cross-site scripting, credential theft, or remote code execution.
+
+**Controls:** second-round authenticated Alice/Bob output endpoints remained separate; `Set-Cookie` responses were not cached; Authorization-bearing requests generated fresh content. [Third-pass CI](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822012995).
+
+**Security readiness:** existing issue #68779 and fix #68792 mean this is not a novel discovery.
+

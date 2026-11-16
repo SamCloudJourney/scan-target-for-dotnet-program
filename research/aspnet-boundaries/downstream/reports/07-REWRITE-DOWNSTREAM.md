@@ -17,3 +17,14 @@ Reproduce using `impact_test.py` and `haproxy-impact.cfg`. Raw result JSON, Kest
 **Attacker could:** place an off-site navigation target in a genuine application-origin redirect URL **when the application installs an unsafe capture-first rule**. This can aid trust-based phishing in affected deployments. The experiment contains no external domain, OAuth state, credentials, token disclosure, JavaScript, or code execution.
 
 **Prior public fix:** [PR #66961](https://github.com/dotnet/aspnetcore/pull/66961). Misconfiguration-dependent; not novel MSRC-ready.
+
+---
+
+## Third validation pass — query forwarding to a second origin
+
+The loopback test used the deliberately unsafe regex rule and a benign `audit_marker=PUBLIC-FIXTURE` request query. On .NET 10, the application generated `Location: //127.0.0.1:5103/received?audit_marker=PUBLIC-FIXTURE` and an HTTP client followed it to the independent loopback receiver. The receiver recorded the marker in its query string. On .NET 11, the Location was rooted locally; the second origin received no request.
+
+**Downstream conclusion:** the original request's query can travel with the external redirect in the affected configuration. That does not prove disclosure of any *unknown* secret: the example marker was already in the URL. An OAuth-token or credential leak would require an additional, separately demonstrated application-specific path that introduces confidential query data.
+
+**Evidence:** [Third-pass CI](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822012995), request/response JSON plus independent receiver hits. Microsoft had already merged PR #66961.
+
