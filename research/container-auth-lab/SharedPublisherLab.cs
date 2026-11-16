@@ -24,6 +24,7 @@ static class SharedPublisherLab
     const string Repository="tenant-a/private";
     const string ManifestType="application/vnd.oci.image.manifest.v1+json";
     static readonly string Sdk=Environment.GetEnvironmentVariable("SDK_VER")??"unknown";
+    static readonly bool Patched=Sdk.StartsWith("12.",StringComparison.Ordinal);
     static readonly List<object> Tests=[];
     static readonly ConcurrentQueue<object> Network=[];
     static int AWrites;
@@ -188,14 +189,18 @@ static class SharedPublisherLab
         var parallel=await Task.WhenAll(Enumerable.Range(0,4).Select(_=>Request("LAB_WEB_USER_B")));
         int issuedAfter=IssuedB;
         int writes=BWritesWithAToken;
-        bool pass=noUser==401&&bDenied==403&&aAllowed==201&&
-            bInherited==201&&bNoCredentials==201&&parallel.All(x=>x==201)&&
-            issuedBeforeB==1&&issuedAfter==1&&IssuedA==1&&
-            AWrites==1&&writes==6;
+        bool pass=Patched
+            ? noUser==401&&bDenied==403&&aAllowed==201&&
+              bInherited==403&&bNoCredentials==403&&parallel.All(x=>x==403)&&
+              IssuedA==1&&IssuedB>=6&&AWrites==1&&writes==0
+            : noUser==401&&bDenied==403&&aAllowed==201&&
+              bInherited==201&&bNoCredentials==201&&parallel.All(x=>x==201)&&
+              issuedBeforeB==1&&issuedAfter==1&&IssuedA==1&&
+              AWrites==1&&writes==6;
 
         var details=new{
-            scenario="HTTP-multiuser-publishing-service-actual-sdk-PutAsync",
-            sdk=Sdk,passed=pass,
+            scenario=Patched?"HTTP-multiuser-publisher-patched-SDK-isolation":"HTTP-multiuser-publishing-service-actual-sdk-PutAsync",
+            sdk=Sdk,passed=pass,patchedSdk=Patched,
             anonymousRequest=noUser,
             userBIsolatedRegistryDenied=bDenied,
             userAPrivateManifestPublish=aAllowed,
@@ -204,9 +209,11 @@ static class SharedPublisherLab
             fourConcurrentUserBPublishResults=parallel,
             tokenServiceIssuedA=IssuedA,tokenServiceIssuedB=IssuedB,
             noAdditionalBTokenExchange=issuedBeforeB==issuedAfter,
+            freshBTokenExchangesInPatchedSdk=IssuedB-issuedBeforeB,
             syntheticManifestWritesUnderAToken=AWrites+BWritesWithAToken,
             unauthorizedBManifestWritesUsingAToken=BWritesWithAToken,
             requiresSameProcessAndSameRegistryAuthority=true,
+            unauthorizedBWritesBlockedInPatchedSdk=Patched&&writes==0,
             realDotnetPublishCliUsed=false,
             actualSdkManifestPutAsyncUsed=true
         };
