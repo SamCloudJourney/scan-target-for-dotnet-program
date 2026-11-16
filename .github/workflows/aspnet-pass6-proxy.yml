@@ -4,7 +4,16 @@ on:
     branches: [research/aspnet-impact-crossproxy-20261116]
     paths:
       - '.github/workflows/aspnet-pass6-proxy.yml'
-      - 'research/aspnet-boundaries/pass6/**'
+      - 'research/aspnet-boundaries/pass6/SecurityFixture.csproj'
+      - 'research/aspnet-boundaries/pass6/Program.cs'
+      - 'research/aspnet-boundaries/pass6/haproxy.cfg'
+      - 'research/aspnet-boundaries/pass6/nginx.conf'
+      - 'research/aspnet-boundaries/pass6/proxy_test.py'
+      - 'research/aspnet-boundaries/pass6/yarp_test.py'
+      - 'research/aspnet-boundaries/pass6/YarpFixture.csproj'
+      - 'research/aspnet-boundaries/pass6/YarpProgram.cs'
+      - 'research/aspnet-boundaries/pass6/H2Fixture.csproj'
+      - 'research/aspnet-boundaries/pass6/H2Program.cs'
   workflow_dispatch:
 permissions:
   contents: read

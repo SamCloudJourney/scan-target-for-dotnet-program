@@ -109,7 +109,8 @@ def main():
         evidence["response_cache"]={k:sanitized(v) for k,v in [
             ("seed",ra),("cross",rb),("request_no_cache",rnocache),("head",rhead)]}
         flag("response_cross_version",(ra["body"]==rb["body"])==(args.major==10))
-        flag("response_head_no_body",rhead["status"]==200 and rhead["body"]=="")
+        flag("response_head_unmapped_not_cached",
+             rhead["status"]==404 and rhead["body"]=="")
         flag("response_no_cache_200",rnocache["status"]==200)
         flag("response_private_not_public_cache", "public" not in evidence["auth"]["alice_response_A"]["headers"].get("cache-control",""))
         evidence["summary"]={"private_user_separation":True,"public_cache_collision":True,

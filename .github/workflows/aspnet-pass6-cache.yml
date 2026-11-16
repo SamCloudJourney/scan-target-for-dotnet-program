@@ -4,7 +4,9 @@ on:
     branches: [research/aspnet-impact-crossproxy-20261116]
     paths:
       - '.github/workflows/aspnet-pass6-cache.yml'
-      - 'research/aspnet-boundaries/pass6/**'
+      - 'research/aspnet-boundaries/pass6/SecurityFixture.csproj'
+      - 'research/aspnet-boundaries/pass6/Program.cs'
+      - 'research/aspnet-boundaries/pass6/cache_test.py'
   workflow_dispatch:
 permissions:
   contents: read

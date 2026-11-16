@@ -6,7 +6,7 @@ rows={}; checks={}
 def get(instance,path,headers=None):
     c=http.client.HTTPConnection(HOST,PORTS[instance],timeout=8)
     c.putrequest("GET",path,skip_host=True,skip_accept_encoding=True)
-    c.putheader("Host",f"{HOST}:{PORTS[instance]}")
+    c.putheader("Host","shared-fixture.internal.test")
     for k,v in (headers or {}).items(): c.putheader(k,v)
     c.endheaders()
     r=c.getresponse()
@@ -21,10 +21,14 @@ def main():
     try:
         rows["A_seed"]=get("A","/redis/public?a=B%3D")
         time.sleep(0.35)
+        rows["B_same_A"]=get("B","/redis/public?a=B%3D")
         rows["B_collision"]=get("B","/redis/public?a%3DB=")
         rows["B_noncrossing"]=get("B","/redis/public?a%3DB=&isolation=1")
         rows["B_client_nocache"]=get("B","/redis/public?a%3DB=",{"Cache-Control":"no-cache"})
         flag("A_seed_correct",rows["A_seed"]["status"]==200 and "instance=A;variant=A" in rows["A_seed"]["body"])
+        flag("same_request_truly_shared_between_instances",
+             rows["B_same_A"]["body"]==rows["A_seed"]["body"] and
+             rows["B_same_A"]["headers"].get("x-lab-instance")=="A")
         flag("B_cross_instance_collision",rows["B_collision"]["body"]==rows["A_seed"]["body"])
         flag("B_cross_instance_header",rows["B_collision"]["headers"].get("x-lab-instance")=="A")
         flag("B_control_isolated",rows["B_noncrossing"]["status"]==200 and "instance=B;variant=B" in rows["B_noncrossing"]["body"])
@@ -38,13 +42,13 @@ def main():
         # Concurrency after eviction on DIFFERENT new key shapes; observe
         # which server writes. It is evidence, not an assumed vulnerability.
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            concurrent=list(pool.map(lambda idx:get("A" if idx%2 else "B",
+            batch=list(pool.map(lambda idx:get("A" if idx%2 else "B",
                 "/redis/public?a=B%3D&scenario=parallel" if idx%2 else
                 "/redis/public?a%3DB=&scenario=parallel"),range(8)))
         rows["parallel"]={
-            "statuses":[x["status"] for x in concurrent],
-            "content_pairs":sorted(set(x["body"] for x in concurrent))}
-        flag("parallel_all_success",all(x["status"]==200 for x in concurrent))
+            "statuses":[x["status"] for x in batch],
+            "content_pairs":sorted(set(x["body"] for x in batch))}
+        flag("parallel_all_success",all(x["status"]==200 for x in batch))
     except Exception as e:
         rows["error"]={"kind":type(e).__name__,"detail":str(e)}
         flag("harness_error",False)
