@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - research/bounded-resource-probes-20261116
+    paths:
+      - 'research/bounded-resource-probes/Probe/**'
+      - 'research/bounded-resource-probes/Sample/**'
+      - '.github/workflows/bounded-resource-probes.yml'
   workflow_dispatch:
 
 permissions:

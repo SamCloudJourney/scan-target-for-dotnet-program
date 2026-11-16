@@ -25,13 +25,17 @@ jobs:
           sparse-checkout-cone-mode: false
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.404
+          dotnet-version: |
+            10.0.404
+            11.0.100
       - name: Build only investigator-controlled test and PDB
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          dotnet build research/bounded-resource-probes/WindowsGate/WindowsGate.csproj -c Release
-          if ($LASTEXITCODE -ne 0) { throw "Gate build failed" }
+          dotnet build research/bounded-resource-probes/WindowsGate/WindowsGate.csproj -c Release -f net10.0
+          if ($LASTEXITCODE -ne 0) { throw "Gate net10.0 build failed" }
+          dotnet build research/bounded-resource-probes/WindowsGate/WindowsGate.csproj -c Release -f net11.0
+          if ($LASTEXITCODE -ne 0) { throw "Gate net11.0 build failed" }
           dotnet build research/bounded-resource-probes/Portable/Portable.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw "Portable reader build failed" }
           dotnet build research/bounded-resource-probes/SourceSample/SourceSample.csproj -c Release
@@ -43,6 +47,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path windows-evidence | Out-Null
           $pdb = (Resolve-Path 'research/bounded-resource-probes/SourceSample/bin/Release/net10.0/SourceSample.pdb').Path
           $gate = (Resolve-Path 'research/bounded-resource-probes/WindowsGate/bin/Release/net10.0/WindowsGate.dll').Path
+          $gate11 = (Resolve-Path 'research/bounded-resource-probes/WindowsGate/bin/Release/net11.0/WindowsGate.dll').Path
           $managed = (Resolve-Path 'research/bounded-resource-probes/Portable/bin/Release/net10.0/Portable.dll').Path
           function Run-Bounded([string[]]$ProgramArgs) {
             $tempOut = Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString() + '.out')
@@ -67,6 +72,8 @@ jobs:
           Run-Bounded @($gate, $pdb, "0")
           Run-Bounded @($gate, $pdb, "1048576")
           Run-Bounded @($gate, $pdb, "8388608")
+          Run-Bounded @($gate11, $pdb, "0")
+          Run-Bounded @($gate11, $pdb, "8388608")
           # Managed bridge positive control, small and 8 MiB bounded forged size.
           Run-Bounded @($managed, $pdb, "0")
           Run-Bounded @($managed, $pdb, "8388608")
