@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetMajor Condition="'$(TargetMajor)'==''">10</TargetMajor>
+    <TargetFramework>net$(TargetMajor).0</TargetFramework>
+    <RedisVersion Condition="'$(RedisVersion)'==''">10.0.15</RedisVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Pass6RedisFixture</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="RedisProgram.cs"/>
+    <PackageReference Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(RedisVersion)"/>
+  </ItemGroup>
+</Project>

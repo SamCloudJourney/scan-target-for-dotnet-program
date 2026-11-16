@@ -1,0 +1,67 @@
+name: ASP.NET Pass 6 - Redis multi-instance shared output cache
+on:
+  push:
+    branches: [research/aspnet-impact-crossproxy-20261116]
+    paths:
+      - '.github/workflows/aspnet-pass6-redis.yml'
+      - 'research/aspnet-boundaries/pass6/RedisFixture.csproj'
+      - 'research/aspnet-boundaries/pass6/RedisProgram.cs'
+      - 'research/aspnet-boundaries/pass6/redis_test.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  redis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            redis_version: '10.0.15'
+            major: 10
+          - sdk: '11.0.100'
+            redis_version: '11.0.0'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/pass6
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Install loopback Redis, pinned Microsoft Redis output cache package
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y redis-server
+          mkdir -p redis-evidence
+          redis-server --version >redis-evidence/redis-version.txt
+          dotnet --info >redis-evidence/dotnet-info.txt
+          redis-server --bind 127.0.0.1 --port 6379 --save '' --appendonly no --daemonize yes
+          redis-cli -h 127.0.0.1 ping
+          dotnet build research/aspnet-boundaries/pass6/RedisFixture.csproj             -p:TargetMajor=${{ matrix.major }} -p:RedisVersion=${{ matrix.redis_version }}             -o /tmp/pass6-redis
+      - name: Compare public responses across two ASP.NET worker processes
+        run: |
+          PASS6_INSTANCE=A ASPNETCORE_URLS=http://127.0.0.1:5210 dotnet /tmp/pass6-redis/Pass6RedisFixture.dll >redis-evidence/app-A.log 2>&1 &
+          pid_a=$!
+          PASS6_INSTANCE=B ASPNETCORE_URLS=http://127.0.0.1:5211 dotnet /tmp/pass6-redis/Pass6RedisFixture.dll >redis-evidence/app-B.log 2>&1 &
+          pid_b=$!
+          trap 'kill "$pid_a" "$pid_b" 2>/dev/null || true' EXIT
+          for port in 5210 5211; do
+            for i in $(seq 1 40); do
+              if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
+              sleep 0.5
+            done
+            curl -fsS http://127.0.0.1:$port/healthz >/dev/null
+          done
+          python3 research/aspnet-boundaries/pass6/redis_test.py --major ${{ matrix.major }} --output redis-evidence/redis-${{ matrix.major }}.json
+      - name: Upload evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass6-redis-net${{ matrix.major }}
+          path: redis-evidence/
+          retention-days: 30
