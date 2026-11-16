@@ -15,6 +15,8 @@ $data=[ordered]@{
   isAdministrator=$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
   canWriteOwn=$false
   directProtectedWriteDenied=$false
+  protectedPayloadReadDenied=$false
+  protectedPayloadReadError=''
   linkedProtectedWriteDenied=$false
   junctionCreated=$false
   overbroadTempSelected=$false
@@ -46,6 +48,9 @@ try {
   } finally {
     $env:TMP=$oldTmp
   }
+  $secretFile=Join-Path $Protected 'fixture-admin-only.dat'
+  try { $null=[IO.File]::ReadAllBytes($secretFile); $data.protectedPayloadReadError='unexpected read succeeded' }
+  catch { $data.protectedPayloadReadDenied=$true; $data.protectedPayloadReadError=$_.Exception.GetType().Name }
   try { [IO.File]::AppendAllText($canary,'LOW-UNEXPECTED'); $data.directError='unexpected write succeeded' }
   catch { $data.directProtectedWriteDenied=$true; $data.directError=$_.Exception.GetType().Name }
   $link=Join-Path $Client 'junction'
@@ -79,6 +84,6 @@ try {
   $data | ConvertTo-Json -Depth 5 | Set-Content -Path $Output -Encoding utf8
   Write-Host ("LOW_ACCOUNT_RECORD="+$Output)
 }
-if($data.isAdministrator -or !$data.canWriteOwn -or !$data.directProtectedWriteDenied -or !$data.registryWriteDenied){ exit 1 }
+if($data.isAdministrator -or !$data.canWriteOwn -or !$data.directProtectedWriteDenied -or !$data.protectedPayloadReadDenied -or !$data.registryWriteDenied){ exit 1 }
 if($data.junctionCreated -and !$data.linkedProtectedWriteDenied){exit 1}
 if($data.hardlinkCreated -and !$data.hardlinkWriteDenied){exit 1}
