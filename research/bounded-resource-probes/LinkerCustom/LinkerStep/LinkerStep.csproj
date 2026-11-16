@@ -12,5 +12,9 @@
       <HintPath>$(PkgMicrosoft_NET_ILLink_Tasks)/tools/net/illink.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Mono.Cecil">
+      <HintPath>$(PkgMicrosoft_NET_ILLink_Tasks)/tools/net/Mono.Cecil.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 </Project>
