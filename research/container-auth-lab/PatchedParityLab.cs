@@ -94,6 +94,7 @@ static class PatchedParityLab
             await SharedPublisherLab.RunAsync();
             success&=await PublishDepthLab.RunPatchedSubsetAsync();
             await SplitRegistryPublishLab.RunAsync();
+            await ResponseReflectionLab.RunAsync();
         }
         finally{
             HttpClient.DefaultProxy=proxy;
