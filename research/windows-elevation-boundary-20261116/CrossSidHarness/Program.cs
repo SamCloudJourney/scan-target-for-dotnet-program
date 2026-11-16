@@ -299,16 +299,18 @@ internal static class Program
             }));
             string cacheFile=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "dotnet","workloads",cacheId,"1.0.0","protected-payload.dat");
-            bool sourceGone=!File.Exists(target);
+            // The standard user cannot reliably determine protected-file existence:
+            // File.Exists may return false solely because the ACL blocks enumeration.
+            // Source disappearance is verified independently by the administrator controller.
             bool nowReadable=false;string? readHash=null;
             try{
                 readHash=Sha256(cacheFile);
                 nowReadable=true;
             }catch(Exception e){env["cacheReadFailure"]=e.GetType().Name;}
-            Record("cross-sid-protected-source-moved",cacheError==0&&sourceGone);
+            Record("cross-sid-broker-cache-request-accepted",cacheError==0);
             Record("cross-sid-standard-user-read-cache",nowReadable&&readHash!=null);
             env["cacheRequestError"]=cacheError;
-            env["protectedSourceRemoved"]=sourceGone;
+            env["protectedSourceRemovalVerifiedByLowUser"]=false;
             env["standardUserCachedSha256"]=readHash;
             env["cacheFile"]=cacheFile;
 
