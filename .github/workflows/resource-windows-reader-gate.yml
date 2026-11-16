@@ -64,7 +64,9 @@ jobs:
             }
           }
           # Native factory uses only a VALID small baseline PDB (never mutated).
-          Run-Bounded @($gate, $pdb)
+          Run-Bounded @($gate, $pdb, "0")
+          Run-Bounded @($gate, $pdb, "1048576")
+          Run-Bounded @($gate, $pdb, "8388608")
           # Managed bridge positive control, small and 8 MiB bounded forged size.
           Run-Bounded @($managed, $pdb, "0")
           Run-Bounded @($managed, $pdb, "8388608")
