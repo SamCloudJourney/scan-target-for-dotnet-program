@@ -81,7 +81,7 @@ static class ExtendedImpactLab
     {
         var auth=ctx.Request.Headers.Authorization.ToString();
         var basic="Basic "+Convert.ToBase64String(Encoding.ASCII.GetBytes(User+":"+Password));
-        return new ImpactObservation(role,ctx.Request.Method,ctx.Request.Path,
+        return new ImpactObservation(role,ctx.Request.Method,ctx.Request.Path.ToString(),
             auth==basic,body.Contains(Password,StringComparison.Ordinal),
             auth=="Bearer "+ProtectedCanary);
     }
