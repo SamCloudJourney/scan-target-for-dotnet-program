@@ -23,6 +23,7 @@ static class TenantGatewayLab
     const string AuthUserHeader="X-Lab-Session";
     const string AuthOperationHeader="X-Lab-Operation";
     static readonly string Sdk=Environment.GetEnvironmentVariable("SDK_VER")??"unknown";
+    static readonly bool IsPatched=Environment.GetEnvironmentVariable("SDK_EXPECT_PATCHED")=="1";
     static readonly List<object> Results=[];
     static string AAuth=>"Basic "+Convert.ToBase64String(Encoding.UTF8.GetBytes(AUser+":"+APass));
     record Hit(string At,string Method,string Path,bool AIdentity,bool BasicA);
@@ -187,13 +188,15 @@ static class TenantGatewayLab
         var bAfterRevocation=await Request("B","read");
         bool pass=bBefore.Status==403 && bWriteBefore.Status==403 &&
             aRead.Status==200 && aRead.Data &&
-            bRead.Status==200 && bRead.Data &&
-            bWrite.Status==200 && bWrite.Granted &&
-            aTokenAtPrime==1 && aTokenAfterB==aTokenAtPrime &&
-            privilegedReads==2 && privilegedWrites==1 &&
-            bAfterRevocation.Status==403 && !bAfterRevocation.Granted;
+            aTokenAtPrime==1 &&
+            bAfterRevocation.Status==403 && !bAfterRevocation.Granted &&
+            (IsPatched
+                ? bRead.Status==403 && !bRead.Data && bWrite.Status==403 && !bWrite.Granted &&
+                  privilegedReads==1 && privilegedWrites==0
+                : bRead.Status==200 && bRead.Data && bWrite.Status==200 && bWrite.Granted &&
+                  aTokenAfterB==aTokenAtPrime && privilegedReads==2 && privilegedWrites==1);
         var evidence=new{scenario="two-principal-sdk-publishing-gateway",
-            passed=pass,sdk=Sdk,beforePrimingBRead=bBefore,beforePrimingBWrite=bWrite,
+            passed=pass,sdk=Sdk,expectedPatchedImplementation=IsPatched,beforePrimingBRead=bBefore,beforePrimingBWrite=bWrite,
             privilegedARead=aRead,afterPrimingBRead=bRead,afterPrimingBWrite=bWrite,
             afterRevocationBRead=bAfterRevocation,
             syntheticPrivateMarker=PrivateValue,privilegedReadCount=privilegedReads,
