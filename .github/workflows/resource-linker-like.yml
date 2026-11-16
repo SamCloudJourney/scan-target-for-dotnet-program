@@ -52,7 +52,7 @@ jobs:
                 | tee -a linker-like-evidence/results.jsonl
             }
             for declared in 256 1048576 8388608 -1; do
-              for mode in disabled linker direct; do
+              for mode in disabled linker direct builtin; do
                 run_probe "$declared" "$mode"
               done
             done

@@ -7,7 +7,7 @@ using Mono.Cecil.Cil;
 
 if (args.Length != 3 || !int.TryParse(args[1], out int declared) ||
     (declared != -1 && (declared < 1 || declared > 8 * 1024 * 1024)) ||
-    args[2] is not ("disabled" or "direct" or "linker"))
+    args[2] is not ("disabled" or "direct" or "linker" or "builtin"))
 {
     Console.Error.WriteLine("Usage: LinkerLike controlled.dll DECLARED(1..8388608|-1) disabled|direct|linker");
     return 2;
@@ -36,7 +36,18 @@ var timer = Stopwatch.StartNew();
 try
 {
     File.WriteAllBytes(path, input);
-    if (args[2] == "direct")
+    if (args[2] == "builtin")
+    {
+        // Compare .NET's built-in System.Reflection.Metadata parser on the same
+        // investigator-controlled PE and debug-directory payload.
+        using var image = new PEReader(new MemoryStream(input));
+        var entry = image.ReadDebugDirectory().First(d => d.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
+        using var provider = image.ReadEmbeddedPortablePdbDebugDirectoryData(entry);
+        var metadata = provider.GetMetadataReader();
+        providerType = "System.Reflection.Metadata.MetadataReaderProvider";
+        hasSymbols = metadata.Documents.Count > 0;
+    }
+    else if (args[2] == "direct")
     {
         using var module = ModuleDefinition.ReadModule(path, new ReaderParameters { ReadSymbols = true });
         hasSymbols = module.HasSymbols;
