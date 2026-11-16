@@ -17,10 +17,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddAntiforgery();
 builder.Services.AddResponseCaching();
 builder.Services.AddOutputCache(options =>
+{
     options.AddPolicy("public-query-all", policy => policy.SetVaryByQuery("*")
-        .Expire(TimeSpan.FromMinutes(3)))
-       .AddPolicy("named-query-a", policy => policy.SetVaryByQuery("a")
-        .Expire(TimeSpan.FromMinutes(3))));
+        .Expire(TimeSpan.FromMinutes(3)));
+    options.AddPolicy("named-query-a", policy => policy.SetVaryByQuery("a")
+        .Expire(TimeSpan.FromMinutes(3)));
+});
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {
