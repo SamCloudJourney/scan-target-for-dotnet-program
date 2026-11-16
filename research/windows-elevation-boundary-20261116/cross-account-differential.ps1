@@ -144,7 +144,22 @@ try {
     $summary.status='JUNCTION_BLOCKED_OR_UNCERTAIN'
     throw 'Standard user did not establish a usable, denied-write junction into admin-only scratch'
   }
-  Write-Host ('LOW-SID='+$sid+' LOW_DIRECT_DENIED=True LOW_JUNCTION_CREATED=True LOW_LINK_DENIED=True LOW_HKLM_DENIED=True')
+  $testLink=Join-Path $client 'junction'
+  $logicalProtected=Join-Path $testLink 'canary.log'
+  $linkedItem=Get-Item -LiteralPath $testLink -Force
+  $originalFileId=(& fsutil.exe file queryfileid (Join-Path $protected 'canary.log') 2>&1 | Out-String).Trim()
+  $linkedFileId=(& fsutil.exe file queryfileid $logicalProtected 2>&1 | Out-String).Trim()
+  $summary.beforeFilesystem.junctionLinkType=$linkedItem.LinkType
+  $summary.beforeFilesystem.junctionTarget=$linkedItem.Target
+  $summary.beforeFilesystem.realProtectedFileId=$originalFileId
+  $summary.beforeFilesystem.viaJunctionFileId=$linkedFileId
+  $sameFileId=($originalFileId -eq $linkedFileId -and $originalFileId -match '0x[0-9a-f]+')
+  $summary.beforeFilesystem.sameFileIdBeforeBroker=$sameFileId
+  if(!$sameFileId) {
+    Write-Host ('FILESYSTEM_IDENTITY_DIAGNOSTIC: '+$originalFileId+' vs '+$linkedFileId)
+    throw 'Junction did not resolve to identical protected NTFS file object in preflight'
+  }
+  Write-Host ('LOW-SID='+$sid+' LOW_DIRECT_DENIED=True LOW_JUNCTION_CREATED=True LOW_LINK_DENIED=True LOW_HKLM_DENIED=True FILE_ID_MATCH='+$sameFileId)
   $env:BROKER_CROSS_CLIENT=$client
   $env:BROKER_CROSS_PROTECTED=$protected
   $env:BROKER_CROSS_PROVIDER=$provider
