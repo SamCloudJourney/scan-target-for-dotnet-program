@@ -1,0 +1,71 @@
+name: ASP.NET pass7 - real browser CORS query collision
+on:
+  push:
+    branches: [research/aspnet-impact-crossproxy-20261116]
+    paths:
+      - '.github/workflows/aspnet-pass7-cors-browser.yml'
+      - 'research/aspnet-boundaries/pass6/cors_origin.py'
+      - 'research/aspnet-boundaries/pass6/cors_seed.py'
+      - 'research/aspnet-boundaries/pass6/cors_browser.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/pass6
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Build fixture
+        run: |
+          mkdir -p pass7-cors-evidence
+          (google-chrome --version || chromium --version || true) >pass7-cors-evidence/chrome-version.txt 2>&1
+          dotnet --info >pass7-cors-evidence/sdk-info.txt
+          dotnet build research/aspnet-boundaries/pass6/SecurityFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass7-app
+      - name: Seed colliding public response and test actual cross-origin JS fetch
+        run: |
+          dotnet /tmp/pass7-app/SixthFixture.dll >pass7-cors-evidence/backend.log 2>&1 &
+          app_pid=$!
+          python3 research/aspnet-boundaries/pass6/cors_origin.py >pass7-cors-evidence/origin.log 2>&1 &
+          origin_pid=$!
+          trap 'kill "$origin_pid" "$app_pid" 2>/dev/null || true' EXIT
+          for url in http://127.0.0.1:5200/healthz http://127.0.0.1:5207/page; do
+            for i in $(seq 1 40); do
+              if curl -fsS "$url" >/dev/null 2>&1; then break; fi
+              sleep 0.3
+            done
+            curl -fsS "$url" >/dev/null
+          done
+          python3 research/aspnet-boundaries/pass6/cors_seed.py pass7-cors-evidence/cors-seed-${{ matrix.major }}.json
+          CHROME="$(command -v google-chrome || command -v chromium)"
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --no-proxy-server            --no-first-run --no-default-browser-check --remote-debugging-port=5229 --remote-allow-origins='*'            --user-data-dir=/tmp/pass7-cors-profile about:blank >pass7-cors-evidence/chrome.log 2>&1 &
+          chrome_pid=$!
+          trap 'kill "$chrome_pid" "$origin_pid" "$app_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5229/json/version >/dev/null 2>&1; then break; fi
+            sleep 0.3
+          done
+          curl -fsS http://127.0.0.1:5229/json/version >/dev/null
+          node --experimental-websocket research/aspnet-boundaries/pass6/cors_browser.mjs pass7-cors-evidence/chrome-cors-${{ matrix.major }}.json
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass7-cors-net${{ matrix.major }}
+          path: pass7-cors-evidence/
+          retention-days: 30
