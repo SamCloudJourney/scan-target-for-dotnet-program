@@ -1,0 +1,76 @@
+name: ASP.NET Pass 6 - six-stack differential path corpus
+on:
+  push:
+    branches: [research/aspnet-impact-crossproxy-20261116]
+    paths:
+      - '.github/workflows/aspnet-pass6-fuzz.yml'
+      - 'research/aspnet-boundaries/pass6/fuzz_paths.py'
+      - 'research/aspnet-boundaries/pass6/haproxy.cfg'
+      - 'research/aspnet-boundaries/pass6/nginx.conf'
+      - 'research/aspnet-boundaries/pass6/Program.cs'
+      - 'research/aspnet-boundaries/pass6/YarpProgram.cs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  differential:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/pass6
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Install proxies and build independent Microsoft code paths
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx haproxy
+          mkdir -p corpus-evidence
+          dotnet --info >corpus-evidence/dotnet-info.txt
+          nginx -v >corpus-evidence/nginx-version.txt 2>&1 || true
+          haproxy -vv >corpus-evidence/haproxy-version.txt
+          haproxy -c -f research/aspnet-boundaries/pass6/haproxy.cfg
+          mkdir -p /tmp/pass6-nginx-client /tmp/pass6-nginx-proxy
+          nginx -t -c "$PWD/research/aspnet-boundaries/pass6/nginx.conf"
+          dotnet build research/aspnet-boundaries/pass6/SecurityFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-corpus-app
+          dotnet build research/aspnet-boundaries/pass6/YarpFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-corpus-yarp
+      - name: Run 32 normalization cases across six listener configurations
+        run: |
+          dotnet /tmp/pass6-corpus-app/SixthFixture.dll >corpus-evidence/backend.log 2>&1 &
+          app_pid=$!
+          dotnet /tmp/pass6-corpus-yarp/SixthYarp.dll >corpus-evidence/yarp.log 2>&1 &
+          yarp_pid=$!
+          haproxy -db -f research/aspnet-boundaries/pass6/haproxy.cfg >corpus-evidence/haproxy.log 2>&1 &
+          hap_pid=$!
+          nginx -c "$PWD/research/aspnet-boundaries/pass6/nginx.conf" -g "daemon off;" >corpus-evidence/nginx.log 2>&1 &
+          nx_pid=$!
+          trap 'kill "$nx_pid" "$hap_pid" "$yarp_pid" "$app_pid" 2>/dev/null || true' EXIT
+          for port in 5200 5202 5203 5204 5205 5206; do
+            for i in $(seq 1 50); do
+              if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
+              sleep 0.3
+            done
+            curl -fsS http://127.0.0.1:$port/healthz >/dev/null
+          done
+          python3 research/aspnet-boundaries/pass6/fuzz_paths.py --major ${{ matrix.major }} --output corpus-evidence/corpus-${{ matrix.major }}.json
+          cp /tmp/pass6-nginx-access.log corpus-evidence/nginx-access.log || true
+          cp /tmp/pass6-nginx-error.log corpus-evidence/nginx-errors.log || true
+      - name: Preserve raw path decisions, including failed assertions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass6-corpus-net${{ matrix.major }}
+          path: corpus-evidence/
+          retention-days: 30
