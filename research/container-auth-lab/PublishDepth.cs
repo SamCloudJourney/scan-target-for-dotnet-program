@@ -300,6 +300,7 @@ static class PublishDepthLab
         }
         var records=events.ToArray();
         bool privateBasic=records.Any(x=>x.Role=="private-token"&&x.SyntheticBasic);
+        bool publicBasic=records.Any(x=>x.Role=="public-token"&&x.SyntheticBasic);
         bool privateForm=records.Any(x=>x.Role=="private-token"&&x.SyntheticPasswordForm);
         bool privateIdentity=records.Any(x=>x.Role=="private-token"&&x.SyntheticIdentityForm);
         bool startedManifestPull=records.Any(x=>x.Role=="registry"&&x.Path.Contains("/baseprobe/manifests/",StringComparison.Ordinal));
@@ -317,6 +318,8 @@ static class PublishDepthLab
             (shouldBeRejected ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity &&
                 (downgradeEndpointRequests==0 || !downgradeRedirect) &&
                 (missingCredentials || directBlocked || downgradeRedirect || IsPatched)
+                : mode=="public-allowed" ? exitCode==0 && producedManifest==1 && authRetry &&
+                    publicBasic && !privateBasic && !privateForm && !privateIdentity
                 : registryRedirectBasic ? exitCode==0 && producedManifest==1 && privateBasic &&
                     !privateForm && !privateIdentity && authRetry && registryGotBasic &&
                     records.Count(x=>x.Role=="private-token")>=2
@@ -329,6 +332,7 @@ static class PublishDepthLab
             baseConfigDownloaded=downloadedConfig,
             startedManifestPull,authenticationRetried=authRetry,
             protectedEndpointGotSyntheticBasic=privateBasic,
+            allowedPublicEndpointGotSyntheticBasic=publicBasic,
             protectedEndpointGotSyntheticPasswordForm=privateForm,
             protectedEndpointGotSyntheticIdentityForm=privateIdentity,
             registryRedirectBasicChallenge=registryRedirectBasic,
