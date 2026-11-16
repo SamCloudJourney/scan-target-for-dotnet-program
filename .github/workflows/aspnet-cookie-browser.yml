@@ -1,0 +1,66 @@
+name: ASP.NET browser cookie-scope boundary (Chromium loopback)
+on:
+  push:
+    branches: [research/aspnet-boundary-five-20261116]
+    paths:
+      - '.github/workflows/aspnet-cookie-browser.yml'
+      - 'research/aspnet-boundaries/downstream/chrome_cookie_scope.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/downstream
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Build fixture and check browser availability
+        run: |
+          mkdir -p chrome-evidence
+          (command -v google-chrome || command -v chromium || true) >chrome-evidence/chrome-command.txt
+          (google-chrome --version || chromium --version || true) >chrome-evidence/chrome-version.txt
+          node --version >chrome-evidence/node-version.txt
+          dotnet build research/aspnet-boundaries/downstream/ImpactFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/browser-fixture
+      - name: Browser cookie scope and domain controls
+        run: |
+          dotnet /tmp/browser-fixture/ImpactFixture.dll >chrome-evidence/aspnet.log 2>&1 &
+          backend_pid=$!
+          trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:5100/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:5100/healthz >/dev/null
+          CHROME="$(command -v google-chrome || command -v chromium || true)"
+          test -n "$CHROME"
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-default-browser-check             --remote-debugging-port=5121 --remote-allow-origins='*'             --user-data-dir=/tmp/aspnet-browser-cookie-fixture about:blank >chrome-evidence/chrome.log 2>&1 &
+          chrome_pid=$!
+          trap 'kill "$chrome_pid" "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5121/json/version >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
+          curl -fsS http://127.0.0.1:5121/json/version >/dev/null
+          node --experimental-websocket research/aspnet-boundaries/downstream/chrome_cookie_scope.mjs chrome-evidence/browser-${{ matrix.major }}.json
+      - name: Preserve browser and ASP.NET evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspnet-chromium-cookie-net${{ matrix.major }}
+          path: chrome-evidence/
+          retention-days: 30
