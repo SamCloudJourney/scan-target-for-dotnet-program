@@ -27,7 +27,7 @@ static class PublishDepthLab
         try
         {
             string[] modes=IsPatched
-                ? ["public-allowed","direct-ip","dns-private","redirect307","redirect308",
+                ? ["public-allowed","explicitly-allowlisted-private","policy-none-private","direct-ip","dns-private","redirect307","redirect308",
                    "identity-dns","identity-redirect307","registry-302-basic","no-credentials"]
                 : ["public-allowed","direct-ip","dns-private","redirect301","redirect302","redirect303","redirect307",
                    "redirect308","redirect-http","identity-direct-ip","identity-dns",
@@ -138,7 +138,9 @@ static class PublishDepthLab
         tokenEndpoint=mode switch
         {
             "direct-ip" or "identity-direct-ip"=>"https://127.0.0.2:"+privateEndpoint.Port+"/token",
-            "dns-private" or "identity-dns" or "no-credentials"=>"https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
+            "dns-private" or "identity-dns" or "no-credentials" or
+                "explicitly-allowlisted-private" or "policy-none-private"=>
+                    "https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
             "public-allowed"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
             "redirect301" or "redirect302" or "redirect303" or "redirect307" or "redirect308" or "redirect-http"
                 or "identity-redirect307" or "identity-redirect308" or "registry-302-basic"=>
@@ -274,8 +276,10 @@ static class PublishDepthLab
             }
             if(IsPatched)
             {
-                p.Environment["DOTNET_CONTAINER_AUTH_REALM_POLICY"]="AllowlistOnly";
-                p.Environment["DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES"]="127.0.0.1";
+                p.Environment["DOTNET_CONTAINER_AUTH_REALM_POLICY"]=
+                    mode=="policy-none-private"?"None":"AllowlistOnly";
+                p.Environment["DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES"]=
+                    mode=="explicitly-allowlisted-private"?"127.0.0.1;127.0.0.2":"127.0.0.1";
             }
             p.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"]="1";
             p.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"]="1";
@@ -312,14 +316,17 @@ static class PublishDepthLab
             ? privateIdentity && !privateForm && !privateBasic
             : redirectMode ? (bodyPreserved ? privateForm && !privateBasic : !privateForm && !privateIdentity)
                 : privateBasic;
+        bool explicitlyRelaxedPolicy=mode is "explicitly-allowlisted-private" or "policy-none-private";
         bool shouldBeRejected=missingCredentials || directBlocked || downgradeRedirect ||
-            (IsPatched && (mode is not "public-allowed"));
+            (IsPatched && !(mode=="public-allowed" || explicitlyRelaxedPolicy));
         bool pass=startedManifestPull && !timedOut &&
             (shouldBeRejected ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity &&
                 (downgradeEndpointRequests==0 || !downgradeRedirect) &&
                 (missingCredentials || directBlocked || downgradeRedirect || IsPatched)
                 : mode=="public-allowed" ? exitCode==0 && producedManifest==1 && authRetry &&
                     publicBasic && !privateBasic && !privateForm && !privateIdentity
+                : explicitlyRelaxedPolicy ? exitCode==0 && producedManifest==1 && authRetry &&
+                    privateBasic && !privateForm && !privateIdentity
                 : registryRedirectBasic ? exitCode==0 && producedManifest==1 && privateBasic &&
                     !privateForm && !privateIdentity && authRetry && registryGotBasic &&
                     records.Count(x=>x.Role=="private-token")>=2
@@ -338,6 +345,7 @@ static class PublishDepthLab
             registryRedirectBasicChallenge=registryRedirectBasic,
             registryReceivedSyntheticBasic=registryGotBasic,
             expectedPatchedImplementation=IsPatched,
+            explicitlyRelaxedPolicy,
             downgradeEndpointRequests,
             redirectStatus=redirectMode?(int?)redirectStatus:null,
             usedSyntheticIdentityToken=identityMode,
