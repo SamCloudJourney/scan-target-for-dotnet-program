@@ -1,0 +1,72 @@
+name: Segmented and multibyte FormPipeReader regression matrix
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/FormMatrix/**'
+      - '.github/workflows/resource-form-matrix.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  form-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build controlled FormPipeReader harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build research/bounded-resource-probes/FormMatrix/FormMatrix.csproj -c Release -f net10.0
+          dotnet build research/bounded-resource-probes/FormMatrix/FormMatrix.csproj -c Release -f net11.0
+      - name: Test fragmented UTF-8, UTF-16LE and UTF-16BE in offline capped containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p form-matrix-evidence
+          for runtime in 10.0.12 10.0.15 11.0.0; do
+            image="mcr.microsoft.com/dotnet/aspnet:$runtime"
+            docker pull "$image"
+            if [ "$runtime" = "11.0.0" ]; then fx=net11.0; else fx=net10.0; fi
+            app="$PWD/research/bounded-resource-probes/FormMatrix/bin/Release/$fx"
+            run_case() {
+              timeout --signal=TERM --kill-after=2s 12s docker run --rm \
+                --memory=384m --memory-swap=384m --cpus=1 --pids-limit=48 \
+                --network none --read-only --tmpfs /tmp:rw,nosuid,size=16m \
+                -e DOTNET_GCHeapHardLimit=0x10000000 \
+                -v "$app:/app:ro" "$image" \
+                dotnet /app/FormMatrix.dll "$@" | tee -a form-matrix-evidence/measurements.jsonl
+            }
+            if [ "$runtime" = "10.0.12" ]; then
+              for count in 1024 4096; do
+                for step in 1 32; do
+                  run_case utf8-segmented "$count" "$step"
+                done
+              done
+            else
+              for count in 1024 4096; do
+                for kind in utf8-segmented utf8-contiguous utf16-segmented utf16be-segmented; do
+                  for step in 1 32; do
+                    run_case "$kind" "$count" "$step"
+                  done
+                done
+              done
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bounded-form-pipe-encoding-matrix
+          path: form-matrix-evidence/
+          retention-days: 14
