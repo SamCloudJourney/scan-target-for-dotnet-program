@@ -220,7 +220,8 @@ internal static class Program
     static int LowParent(string[] args)
     {
         string sdk=args[1],client=args[2],adminFolder=args[3],control=args[4],
-            cacheId=args[5],provider=args[6],result=args[7];
+            cacheId=args[5],provider=args[6],result=args[7],
+            selfAuthoredProductCode=args[8],productMarker=args[9];
         var checks=new List<object>();
         var errors=new List<string>();
         var env=new Dictionary<string,object?>();
@@ -323,6 +324,24 @@ internal static class Program
             uint regError=ErrorOf(add);
             env["providerAddError"]=regError;
             Record("cross-sid-admin-only-registry-write",regError==0&&deniedRegistry);
+            // #13: the test administrator installed this self-authored, randomly named
+            // unrelated MSI fixture under the isolated admin-only scratch root. Direct
+            // standard-user modification of the installed marker is denied; the actual
+            // elevated workload broker is requested to uninstall it by its product code.
+            bool directMsiDeleteDenied=false;
+            try{File.Delete(productMarker);}catch(UnauthorizedAccessException){directMsiDeleteDenied=true;}
+            catch(System.Security.SecurityException){directMsiDeleteDenied=true;}
+            Record("low-cannot-delete-admin-only-msi-marker",directMsiDeleteDenied);
+            string uninstallLog=Path.Combine(client,"cross-sid-unrelated-msi-uninstall.log");
+            uint productUninstall=ErrorOf(Send(request,new{
+                RequestType=301,ProductCode=selfAuthoredProductCode,LogFile=uninstallLog
+            }));
+            env["unrelatedInstalledMsiProductCode"]=selfAuthoredProductCode;
+            env["unrelatedInstalledMsiUninstallCode"]=productUninstall;
+            Record("cross-sid-unrelated-installed-msi-uninstalled",
+                (productUninstall==0||productUninstall==3010)&&File.Exists(uninstallLog));
+            // Source file removal and installed-state checks are independently verified
+            // by the test administrator, not inferred from File.Exists under low ACLs.
             var shutdown=Send(request,new{RequestType=0});
             env["brokerShutdownReplyError"]=ErrorOf(shutdown);
             env["brokerPid"]=brokerPid;
