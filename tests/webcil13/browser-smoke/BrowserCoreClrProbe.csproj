@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
@@ -7,6 +7,7 @@
     <UseMonoRuntime>false</UseMonoRuntime>
     <WasmMainJSPath>wwwroot/main.mjs</WasmMainJSPath>
     <WasmBuildNative>false</WasmBuildNative>
+    <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
     <PublishTrimmed>false</PublishTrimmed>
     <Nullable>enable</Nullable>
   </PropertyGroup>
