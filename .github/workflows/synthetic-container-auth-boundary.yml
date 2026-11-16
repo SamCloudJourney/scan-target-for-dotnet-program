@@ -2,7 +2,7 @@ name: Synthetic .NET container auth boundary validation
 on:
   push:
     branches:
-      - research/container-auth-downstream-20261116
+      - research/container-auth-chain-depth-20261116
 permissions:
   contents: read
 jobs:
@@ -27,8 +27,9 @@ jobs:
         shell: bash
         run: |
           echo "127.0.0.2 privateauth.lab.test" | sudo tee -a /etc/hosts
+          echo "127.0.0.3 third.lab.test" | sudo tee -a /etc/hosts
           getent ahostsv4 privateauth.lab.test
-          echo "127.0.0.1 registry.lab.test publicauth.lab.test" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 registry.lab.test registry-alt.lab.test publicauth.lab.test" | sudo tee -a /etc/hosts
       - name: Create ephemeral trusted TLS certificates for local endpoints
         shell: bash
         run: |
@@ -43,7 +44,7 @@ jobs:
             -subj "/CN=registry.lab.test" \
             -keyout "$d/server.key" -out "$d/server.csr" >/dev/null 2>&1
           cat > "$d/server.ext" <<'EOF'
-          subjectAltName=DNS:registry.lab.test,DNS:publicauth.lab.test,DNS:privateauth.lab.test
+          subjectAltName=DNS:registry.lab.test,DNS:registry-alt.lab.test,DNS:publicauth.lab.test,DNS:privateauth.lab.test,DNS:third.lab.test
           extendedKeyUsage=serverAuth
           keyUsage=digitalSignature,keyEncipherment
           basicConstraints=critical,CA:FALSE
@@ -71,7 +72,7 @@ jobs:
           echo "DOTNET_SDK_CONTAINER_ASSEMBLY=$DLL" >> "$GITHUB_ENV"
           echo "SDK_VER=$SDK_VER" >> "$GITHUB_ENV"
           echo "Selected installed assembly: $DLL"
-      - name: Execute actual SDK handler against loopback HTTP and trusted lab HTTPS
+      - name: Run SDK registry, multi-hop, tenant-isolation and guard experiments
         shell: bash
         run: |
           set -euo pipefail
