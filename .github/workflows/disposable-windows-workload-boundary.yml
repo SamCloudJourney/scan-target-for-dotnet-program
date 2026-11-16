@@ -1,15 +1,21 @@
 name: Disposable Windows SDK validator experiment
 on:
   push:
-    branches:
-      - research/windows-elevation-boundary-20261116
+    branches: [research/windows-elevation-boundary-20261116]
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: windows-boundary-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  windows-sdk-11:
+  isolated-path-validation:
     runs-on: windows-2022
-    timeout-minutes: 14
+    timeout-minutes: 16
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['11.0.100', '10.0.404']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,18 +23,21 @@ jobs:
           filter: blob:none
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            research/windows-elevation-boundary-20261116/isolated-windows-validator.ps1
+            research/windows-elevation-boundary-20261116/ValidatorHarness/Program.cs
+            research/windows-elevation-boundary-20261116/ValidatorHarness/ValidatorHarness.csproj
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '11.0.100'
-      - name: Invoke shipped SDK path validators against disposable junctions
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Invoke actual SDK path validators with disposable fixtures
         shell: pwsh
-        run: ./research/windows-elevation-boundary-20261116/isolated-windows-validator.ps1 -SdkVersion '11.0.100'
+        run: dotnet run --project ./research/windows-elevation-boundary-20261116/ValidatorHarness/ValidatorHarness.csproj --configuration Release -- ${{ matrix.sdk }}
       - name: Preserve experiment results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: isolated-windows-sdk11-evidence
-          path: ${{ runner.temp }}/windows-elevation-11.0.100.json
+          name: isolated-windows-${{ matrix.sdk }}-evidence
+          path: ${{ runner.temp }}/windows-elevation-${{ matrix.sdk }}.json
           if-no-files-found: warn
           retention-days: 7
