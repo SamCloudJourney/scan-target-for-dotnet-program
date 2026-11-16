@@ -431,6 +431,72 @@ internal static class Program
                         "Admin runner deliberately authorized its own broker. This does not prove UAC EoP.");
                 }
             }
+            else if (label == "cross-junction" || label == "cross-broad")
+            {
+                // Controlled boundary experiment: the *real* SDK broker is still started
+                // by an already-elevated runneradmin parent. The separately-created standard
+                // user owns clientDir but is NOT the connecting IPC client. No UAC transition.
+                string protectedCanary = Path.Combine(outsideDir,"canary.log");
+                string markerBefore = File.ReadAllText(protectedCanary);
+                if (label == "cross-junction")
+                {
+                    uint directError = Uninstall(protectedCanary);
+                    bool directRemained = File.ReadAllText(protectedCanary) == markerBefore;
+                    Check("11-standard-owned-client-direct-protected-control",
+                        directError == 1605 && directRemained,
+                        "With only the standard-user-owned client root trusted, the live broker did not alter the admin-only canary through its direct path.",
+                        "Broker client is pre-authorized admin test harness, not the standard-user process.");
+
+                    string viaJunction = Path.Combine(clientDir, "junction", "canary.log");
+                    uint indirectError = Uninstall(viaJunction);
+                    bool didChange = File.ReadAllText(protectedCanary) != markerBefore;
+                    Check("12-standard-created-junction-admin-canary-modified",
+                        indirectError == 1605 && didChange,
+                        "The real SDK broker modified a disposable admin-only canary using a junction created by a separate standard user.",
+                        "No UAC approval or standard-user IPC connection occurred; this tests distinct filesystem principals only.");
+
+                    string provider = Environment.GetEnvironmentVariable("BROKER_CROSS_PROVIDER")
+                        ?? throw new InvalidOperationException("Missing BROKER_CROSS_PROVIDER fixture name");
+                    string dependent = "FixtureDependent." + Guid.NewGuid().ToString("N");
+                    string keyPath = @"SOFTWARE\Classes\Installer\Dependencies\" + provider;
+                    using (RegistryKey? existing = Registry.LocalMachine.OpenSubKey(keyPath))
+                        if (existing != null) throw new IOException("Refusing existing HKLM provider");
+                    try
+                    {
+                        object response = ReadResponse(request, JsonSerializer.Serialize(new {
+                            RequestType=200,ProviderKeyName=provider,Dependent=dependent
+                        }));
+                        string dependentPath=keyPath+@"\Dependents\"+dependent;
+                        using RegistryKey? created=Registry.LocalMachine.OpenSubKey(dependentPath);
+                        bool registered=created!=null;
+                        Check("13-admin-broker-changes-standard-denied-HKLM",
+                            ErrorOf(response)==0 && registered,
+                            "Actual elevated broker created a uniquely named HKLM installer dependency that the standard-user probe could not create directly.",
+                            "Pre-approved administrator client retained access; no separate-user IPC was demonstrated.");
+                        object deleted=ReadResponse(request, JsonSerializer.Serialize(new {
+                            RequestType=201,ProviderKeyName=provider,Dependent=dependent
+                        }));
+                        using RegistryKey? after=Registry.LocalMachine.OpenSubKey(dependentPath);
+                        Check("13-disposable-provider-cleanup",ErrorOf(deleted)==0 && after==null,
+                            "Broker removed only the generated dependent.",
+                            "Owner additionally removes fixture provider root.");
+                    }
+                    finally
+                    {
+                        using RegistryKey? dependencyRoot=Registry.LocalMachine.OpenSubKey(
+                            @"SOFTWARE\Classes\Installer\Dependencies", writable:true);
+                        dependencyRoot?.DeleteSubKeyTree(provider,throwOnMissingSubKey:false);
+                    }
+                }
+                else
+                {
+                    uint broadError=Uninstall(protectedCanary);
+                    bool changed=File.ReadAllText(protectedCanary)!=markerBefore;
+                    Check("11-overbroad-root-admin-only-canary-modified",broadError==1605 && changed,
+                        "Actual broker changed the same administrator-only scratch canary after trust root was broadened to its parent.",
+                        "An already-elevated admin process supplied the overbroad root. Not proof of unauthorized elevation.");
+                }
+            }
             else
             {
                 string broadened = Path.Combine(outsideDir, "broad-trust-root.log");
@@ -554,6 +620,17 @@ internal static class Program
                 }
                 Session(sdkVersion, dotnetExe, sdk, cwd, client, "narrow", client, outside, fixture);
                 Session(sdkVersion, dotnetExe, sdk, cwd, root, "broad", client, outside, null);
+                string? crossClient = Environment.GetEnvironmentVariable("BROKER_CROSS_CLIENT");
+                string? crossProtected = Environment.GetEnvironmentVariable("BROKER_CROSS_PROTECTED");
+                if (!string.IsNullOrWhiteSpace(crossClient) && !string.IsNullOrWhiteSpace(crossProtected))
+                {
+                    if (!Directory.Exists(crossClient) || !Directory.Exists(crossProtected))
+                        throw new DirectoryNotFoundException("Cross-account test fixture missing");
+                    env["crossClientRoot"] = crossClient;
+                    env["crossAdminOnlyDirectory"] = crossProtected;
+                    Session(sdkVersion, dotnetExe, sdk, cwd, crossClient, "cross-junction", crossClient, crossProtected, null);
+                    Session(sdkVersion, dotnetExe, sdk, cwd, Path.GetDirectoryName(crossClient)!, "cross-broad", crossClient, crossProtected, null);
+                }
                 status = Failures == 0 ? "COMPLETED" : "TEST_FAILURE";
                 env["wuauservAfter"] = Run("sc.exe", "query wuauserv").output;
             }
