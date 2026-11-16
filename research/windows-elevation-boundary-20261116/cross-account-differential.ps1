@@ -30,6 +30,9 @@ $summary=[ordered]@{
   status='RUNNING'
   lowAccount=$account
   lowSid=$null
+  rootProvenance=$null
+  beforeFilesystem=$null
+  afterFilesystem=$null
   lowRecord=$null
   lowCacheReadRecord=$null
   cacheRootInitiallyExists=(Test-Path -LiteralPath $cacheRoot)
@@ -74,6 +77,22 @@ try {
   @{Payload='fixture-broad-only.dat'} | ConvertTo-Json -Compress | Set-Content (Join-Path $protected 'fixture-broad.msi.json') -Encoding utf8
   $cacheSourceHashes.junction=(Get-FileHash -Algorithm SHA256 -LiteralPath $adminPayload).Hash
   $cacheSourceHashes.broad=(Get-FileHash -Algorithm SHA256 -LiteralPath $broadPayload).Hash
+  $adminOnlyCanary=Join-Path $protected 'canary.log'
+  $adminOnlyAcl=(Get-Acl -LiteralPath $protected).Sddl
+  $adminFileAcl=(Get-Acl -LiteralPath $adminPayload).Sddl
+  $readSddl=[ordered]@{
+    protectedDirectorySddl=$adminOnlyAcl
+    protectedPayloadSddl=$adminFileAcl
+    clientRootSddl=(Get-Acl -LiteralPath $client).Sddl
+  }
+  $preCanaryHash=(Get-FileHash -LiteralPath $adminOnlyCanary -Algorithm SHA256).Hash
+  $prePayloadHash=$cacheSourceHashes.junction
+  $summary.beforeFilesystem=[ordered]@{
+    protectedCanarySha256=$preCanaryHash
+    protectedPayloadSha256=$prePayloadHash
+    protectedBroadPayloadSha256=$cacheSourceHashes.broad
+    acl=$readSddl
+  }
   if((Test-Path -LiteralPath (Join-Path $cacheRoot $cacheIdJunction)) -or
      (Test-Path -LiteralPath (Join-Path $cacheRoot $cacheIdBroad))){
     throw 'Refusing collision with pre-existing workload cache entries'
@@ -107,8 +126,18 @@ try {
   }
   $observations=Get-Content -Raw -LiteralPath $localRecord | ConvertFrom-Json
   $summary.lowRecord=$observations
+  $expectedRoot=[IO.Path]::GetFullPath($root).TrimEnd('\')
+  $actualLowRoot=[IO.Path]::GetFullPath($observations.requestedTempRoot).TrimEnd('\')
+  $summary.rootProvenance=[ordered]@{
+    chosenUsingStandardUserTMP=$observations.overbroadTempSelected
+    expectedRootMatches=($actualLowRoot -eq $expectedRoot)
+    lowUserControlledEnvironmentalRoot=$actualLowRoot
+    protectedDirectoryInsideRoot=([IO.Path]::GetFullPath($protected).StartsWith($actualLowRoot+'\',[StringComparison]::OrdinalIgnoreCase))
+    executableClientSource='InstallClientElevationContext.Elevate => Path.GetTempPath => workload elevate --client-temp'
+    actualUacInvocationTested=$false
+  }
   if($lowProc.ExitCode -ne 0 -or $observations.isAdministrator -or !$observations.canWriteOwn -or
-     !$observations.directProtectedWriteDenied -or !$observations.protectedPayloadReadDenied -or !$observations.registryWriteDenied) {
+     !$observations.directProtectedWriteDenied -or !$observations.protectedPayloadReadDenied -or !$observations.registryWriteDenied -or !$observations.overbroadTempSelected -or !$summary.rootProvenance.expectedRootMatches) {
     throw 'Low-user ACL negative controls were not upheld'
   }
   if(!$observations.junctionCreated -or !$observations.linkedProtectedWriteDenied) {
@@ -179,6 +208,19 @@ try {
     broad=(($broadProbe.Count -eq 1) -and $broadProbe[0].readable -and ($broadProbe[0].sha256 -eq $cacheSourceHashes.broad))
   }
   Write-Host ('LOW_CACHE_READ_RESULT: junction='+$summary.postCacheReadByLowUser.junction+' broad='+$summary.postCacheReadByLowUser.broad)
+  $summary.afterFilesystem=[ordered]@{
+    originalProtectedCanarySha256=(Get-FileHash -LiteralPath $adminOnlyCanary -Algorithm SHA256).Hash
+    protectedDirectorySddl=(Get-Acl -LiteralPath $protected).Sddl
+    cachedJunctionPayloadSha256=(Get-FileHash -LiteralPath $cachedJunction -Algorithm SHA256).Hash
+    cachedBroadPayloadSha256=(Get-FileHash -LiteralPath $cachedBroad -Algorithm SHA256).Hash
+    cachedJunctionPayloadSddl=(Get-Acl -LiteralPath $cachedJunction).Sddl
+    cachedBroadPayloadSddl=(Get-Acl -LiteralPath $cachedBroad).Sddl
+  }
+  if(!$summary.postCacheReadByLowUser.junction -or !$summary.postCacheReadByLowUser.broad -or
+    $summary.afterFilesystem.cachedJunctionPayloadSha256 -ne $cacheSourceHashes.junction -or
+    $summary.afterFilesystem.cachedBroadPayloadSha256 -ne $cacheSourceHashes.broad) {
+    throw 'Cache-readback did not reproduce the expected protected-file hashes'
+  }
 
   $summary.adminBrokerIdentity=$broker.environment.runnerUser
   $summary.adminBrokerSid=$broker.environment.runnerSid
