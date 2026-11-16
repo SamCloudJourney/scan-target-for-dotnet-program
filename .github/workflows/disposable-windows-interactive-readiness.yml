@@ -65,6 +65,36 @@ jobs:
           path: ${{ runner.temp }}/interactive-kit-readiness.json
           if-no-files-found: warn
           retention-days: 7
+  smoke-disposable-fixture:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Prepare-InteractiveFixture.ps1
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Smoke-Administrator.ps1
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Smoke-LowUser.ps1
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Verify-And-Cleanup.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Real low-user broad-root write, junction and protected ACL controls
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Smoke-Administrator.ps1
+      - name: Preserve standard-user ACL experiment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interactive-fixture-real-low-user
+          path: ${{ runner.temp }}/interactive-fixture-smoke.json
+          if-no-files-found: warn
+          retention-days: 7
   audit-normal-client:
     runs-on: windows-2022
     timeout-minutes: 12
