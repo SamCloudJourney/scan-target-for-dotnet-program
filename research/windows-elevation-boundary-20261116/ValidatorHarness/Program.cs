@@ -121,6 +121,16 @@ internal static class Program
             string fallback = InvokeLog(validateLog, unrelated, server);
             Record("11-outside-path-control", fallback == Path.Combine(server, "unrelated.log"),
                 "An unrelated path is redirected under the test server root.");
+            string savedTmp = Environment.GetEnvironmentVariable("TMP") ?? "";
+            try
+            {
+                Environment.SetEnvironmentVariable("TMP", other);
+                string clientSelectedTemp = Path.GetTempPath();
+                Record("11-process-temp-selection", Path.GetFullPath(clientSelectedTemp).TrimEnd(Path.DirectorySeparatorChar).Equals(other, StringComparison.OrdinalIgnoreCase),
+                    "Changing this process's TMP changes the Path.GetTempPath() selection.",
+                    "Test executed under runneradmin, not a separate standard-user account.");
+            }
+            finally { Environment.SetEnvironmentVariable("TMP", savedTmp); }
             trustedRoot.SetValue(null, testRoot);
             string broadened = InvokeLog(validateLog, unrelated, server);
             Record("11-broad-trust-root", broadened == Path.GetFullPath(unrelated),
@@ -162,6 +172,34 @@ internal static class Program
                 "A post-validation junction change changes the destination of an ordinary file-open.",
                 "Deterministic staged change; not evidence of a practical broker race.");
 
+            // #13: send arbitrary labels through the actual SDK JSON deserializer (not the live pipe).
+            Type messageType = assembly.GetType("Microsoft.DotNet.Cli.Installer.Windows.InstallRequestMessage", throwOnError: true)!;
+            Type requestEnum = assembly.GetType("Microsoft.DotNet.Cli.Installer.Windows.InstallRequestType", throwOnError: true)!;
+            MethodInfo fromBytes = messageType.GetMethod("Create", PublicStatic)
+                ?? throw new MissingMethodException("InstallRequestMessage.Create");
+            int uninstallKind = Convert.ToInt32(Enum.Parse(requestEnum, "UninstallMsi"));
+            int dependentKind = Convert.ToInt32(Enum.Parse(requestEnum, "AddDependent"));
+            string unrelatedCode = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
+            string wireJson = JsonSerializer.Serialize(new {
+                RequestType = uninstallKind, ProductCode = unrelatedCode,
+                LogFile = Path.Combine(server, "unregistered-msi.log")
+            });
+            object parsed = fromBytes.Invoke(null, new object[] { System.Text.Encoding.UTF8.GetBytes(wireJson) })!;
+            string returnedProduct = (string?)messageType.GetProperty("ProductCode")?.GetValue(parsed) ?? "";
+            Record("13-json-product-preserved", string.Equals(unrelatedCode, returnedProduct, StringComparison.OrdinalIgnoreCase),
+                "The shipped SDK message deserializer preserves an arbitrary MSI product code.",
+                "No broker transaction or MSI operation was performed.");
+            string provider = "IsolatedFixture." + Guid.NewGuid().ToString("N");
+            string dependent = "IsolatedDependent." + Guid.NewGuid().ToString("N");
+            string depWire = JsonSerializer.Serialize(new {
+                RequestType = dependentKind, ProviderKeyName = provider, Dependent = dependent
+            });
+            object depParsed = fromBytes.Invoke(null, new object[] { System.Text.Encoding.UTF8.GetBytes(depWire) })!;
+            string returnedProvider = (string?)messageType.GetProperty("ProviderKeyName")?.GetValue(depParsed) ?? "";
+            string returnedDependent = (string?)messageType.GetProperty("Dependent")?.GetValue(depParsed) ?? "";
+            Record("13-json-dependent-preserved", returnedProvider == provider && returnedDependent == dependent,
+                "The shipped SDK message deserializer preserves arbitrary provider/dependent identifiers.",
+                "No machine-wide dependency registration was changed.");
             // #13: minimal Windows Installer rejection control only. No products or providers are touched.
             string bogusProduct = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
             int msiResult = RunProcess("msiexec.exe", "/x " + bogusProduct + " /qn /norestart", out string msiOutput);
