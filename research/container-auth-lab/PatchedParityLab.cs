@@ -89,6 +89,9 @@ static class PatchedParityLab
                         "allowlist-dns","redirect-307-allowlist","registry-302-basic"})
                 success&=await CheckRealm(mode);
             success&=await CheckCache();
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_POLICY","Public");
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES","127.0.0.1");
+            success&=await SharedPublisherLab.RunAsync();
             success&=await PublishDepthLab.RunPatchedSubsetAsync();
         }
         finally{
