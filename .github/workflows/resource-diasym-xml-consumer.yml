@@ -1,0 +1,64 @@
+name: Official Pdb2Xml library real embedded-source conversion
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/XmlConsumer/**'
+      - '.github/workflows/resource-diasym-xml-consumer.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-consumer:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Restore and build bounded official Pdb2Xml converter consumer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Path xml-evidence -Force | Out-Null
+          dotnet build research/bounded-resource-probes/SourceSample/SourceSample.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "Fixture failed"}
+          dotnet build research/bounded-resource-probes/XmlConsumer/XmlConsumer.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "Official converter package consumer failed to compile"}
+      - name: Compare optional source extraction and forced Windows native reader
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $folder=(Resolve-Path 'research/bounded-resource-probes/SourceSample/bin/Release/net10.0').Path
+          $pdb=Join-Path $folder 'SourceSample.pdb'
+          $pe=Join-Path $folder 'SourceSample.dll'
+          $app=(Resolve-Path 'research/bounded-resource-probes/XmlConsumer/bin/Release/net10.0/XmlConsumer.dll').Path
+          $cases=@(
+            @(0,"false","false"),@(8388608,"false","false"),
+            @(0,"true","false"),@(1048576,"true","false"),@(8388608,"true","false"),
+            @(0,"true","true"),@(1048576,"true","true"),@(8388608,"true","true")
+          )
+          foreach($case in $cases){
+            $out=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.out')
+            $err=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.err')
+            $argv=@($app,$pdb,$pe,"$($case[0])",$case[1],$case[2])
+            $p=Start-Process -FilePath dotnet -ArgumentList $argv -Wait:$false -PassThru -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow
+            try {
+              if(-not $p.WaitForExit(15000)){$p.Kill($true);throw "15s runner limit exceeded"}
+              if($p.ExitCode -ne 0){throw "Consumer failed: $(Get-Content $err -Raw)"}
+              Get-Content $out | Tee-Object xml-evidence/pdb2xml-results.jsonl -Append
+            } finally{Remove-Item $out,$err -Force -ErrorAction SilentlyContinue}
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-pdb2xml-consumer-evidence
+          path: xml-evidence/
+          retention-days: 14
+          if-no-files-found: warn
