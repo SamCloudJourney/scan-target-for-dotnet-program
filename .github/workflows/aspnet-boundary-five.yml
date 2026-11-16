@@ -1,0 +1,55 @@
+name: ASP.NET boundary validation (loopback)
+on:
+  push:
+    branches:
+      - research/aspnet-boundary-five-20261116
+    paths:
+      - '.github/workflows/aspnet-boundary-five.yml'
+      - 'research/aspnet-boundaries/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Build isolated fixture
+        run: |
+          dotnet --info >dotnet-info-${{ matrix.major }}.txt
+          dotnet build research/aspnet-boundaries/BoundaryFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/aspnet-fixture
+      - name: Run fixture and loopback HTTP tests
+        run: |
+          mkdir -p REPRODUCTION-EVIDENCE
+          dotnet /tmp/aspnet-fixture/BoundaryFixture.dll >REPRODUCTION-EVIDENCE/server-${{ matrix.major }}.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:5089/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          python3 research/aspnet-boundaries/test_requests.py --major ${{ matrix.major }} --output REPRODUCTION-EVIDENCE/results-${{ matrix.major }}.json
+      - name: Upload raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspnet-boundaries-net${{ matrix.major }}
+          path: |
+            REPRODUCTION-EVIDENCE/
+            dotnet-info-${{ matrix.major }}.txt
