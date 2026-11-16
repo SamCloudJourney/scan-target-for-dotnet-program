@@ -9,7 +9,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Mono.Cecil;
 
-const int MaxFormBytes = 65_536;
+const int MaxFormBytes = 524_288;
 const int MaxDeclBytes = 8 * 1024 * 1024;
 if (args.Length < 2)
 {
@@ -49,7 +49,7 @@ try
                 var form = new FormPipeReader(testReader, Encoding.UTF8)
                 {
                     KeyLengthLimit = 2_048,
-                    ValueLengthLimit = 65_536,
+                    ValueLengthLimit = 524_288,
                     ValueCountLimit = 4
                 };
                 var result = form.ReadFormAsync(cts.Token).GetAwaiter().GetResult();
