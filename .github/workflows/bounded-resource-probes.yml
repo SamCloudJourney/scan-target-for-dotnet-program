@@ -1,0 +1,76 @@
+name: Bounded .NET resource reproduction
+on:
+  push:
+    branches:
+      - research/bounded-resource-probes-20261116
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build isolated source probes and controlled assembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --info
+          dotnet build research/bounded-resource-probes/Probe/Probe.csproj --configuration Release --framework net10.0
+          dotnet build research/bounded-resource-probes/Probe/Probe.csproj --configuration Release --framework net11.0
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj --configuration Release
+      - name: Run only bounded tests inside network-isolated CPU/memory-limited containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p resource-results
+          dotnet --list-runtimes | tee resource-results/host-runtime-versions.txt
+          docker pull mcr.microsoft.com/dotnet/aspnet:10.0.15
+          docker pull mcr.microsoft.com/dotnet/aspnet:11.0.0
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then image=mcr.microsoft.com/dotnet/aspnet:10.0.15; else image=mcr.microsoft.com/dotnet/aspnet:11.0.0; fi
+            probe="$PWD/research/bounded-resource-probes/Probe/bin/Release/$fx"
+            sample="$PWD/research/bounded-resource-probes/Sample/bin/Release/net10.0"
+            run_probe() {
+              timeout --signal=TERM --kill-after=2s 12s docker run --rm \
+                --memory=384m --memory-swap=384m --cpus=1 --pids-limit=64 \
+                --network none --read-only --tmpfs /tmp:rw,nosuid,size=32m \
+                -e DOTNET_GCHeapHardLimit=0x10000000 \
+                -v "$probe:/app:ro" -v "$sample:/sample:ro" \
+                "$image" dotnet /app/Probe.dll "$@" | tee -a resource-results/measurements.jsonl
+            }
+            for n in 4096 16384 65536; do
+              for step in 1 64; do run_probe form "$n" "$step"; done
+            done
+            for declared in 256 4096 1048576 8388608; do
+              run_probe cecil-model "$declared"
+              run_probe diasym-model "$declared"
+            done
+            for declared in 1024 1048576 8388608; do
+              run_probe cecil "$declared" /sample/Sample.dll
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bounded-resource-measurements
+          path: resource-results/
+          if-no-files-found: warn
+          retention-days: 7
