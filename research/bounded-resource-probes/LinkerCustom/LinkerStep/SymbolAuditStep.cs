@@ -13,6 +13,14 @@ public sealed class SymbolAuditStep : IStep
 {
     public void Process(LinkContext context)
     {
+        // Read process-wide cumulative metrics before auditing any assemblies.
+        // This is an after-ingestion total, not a direct call-site allocation count.
+        long cumulativeAllocatedAtStep = GC.GetTotalAllocatedBytes(false);
+        long managedHeapAtStep = GC.GetGCMemoryInfo().HeapSizeBytes;
+        int gc2AtStep = GC.CollectionCount(2);
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        process.Refresh();
+        long workingSetAtStep = process.WorkingSet64;
         try
         {
             int sampleCount = 0;
@@ -42,6 +50,10 @@ public sealed class SymbolAuditStep : IStep
                 Console.Error.WriteLine(
                     "RESEARCH_LINKER_AUDIT sample=Sample" +
                     " hasSymbols=" + symbolsAlreadyRead +
+                    " gcCumulativeAtStep=" + cumulativeAllocatedAtStep +
+                    " gcHeapAtStep=" + managedHeapAtStep +
+                    " gc2AtStep=" + gc2AtStep +
+                    " workingSetAtStep=" + workingSetAtStep +
                     " expected=" + (Environment.GetEnvironmentVariable("INPUT_MODE") ?? "") +
                     " path=" + path.Replace(" ","_") +
                     " sha16=" + Convert.ToHexString(

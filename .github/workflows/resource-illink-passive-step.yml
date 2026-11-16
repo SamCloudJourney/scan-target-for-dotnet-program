@@ -46,12 +46,14 @@ jobs:
         run: |
           set -euo pipefail
           for fx in net10.0 net11.0; do
+            iteration=0
             if [ "$fx" = net10.0 ]; then sdk=10.0.404; else sdk=11.0.100; fi
             image="mcr.microsoft.com/dotnet/sdk:$sdk"
             docker pull "$image"
-            for mode in InputBaseline InputAltered; do
+            for mode in InputBaseline InputSmall InputAltered InputAltered InputSmall InputBaseline; do
+              iteration=$((iteration+1))
               hostroot="$PWD/research/bounded-resource-probes/LinkerCustom/HostAudit"
-              sandbox="$PWD/independent-linker-work/$fx-$mode"
+              sandbox="$PWD/independent-linker-work/$fx-$iteration-$mode"
               rm -rf "$sandbox"
               mkdir -p "$sandbox"
               cp "$hostroot/HostAudit.csproj" "$hostroot/Program.cs" "$sandbox/"
