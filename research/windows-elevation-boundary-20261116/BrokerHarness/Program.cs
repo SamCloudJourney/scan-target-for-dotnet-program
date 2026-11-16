@@ -91,7 +91,7 @@ internal static class Program
             uint error = root.TryGetProperty("Error", out var e) ? e.GetUInt32() : uint.MaxValue;
             int hresult = root.TryGetProperty("HResult", out var hr) ? hr.GetInt32() : int.MinValue;
             string? description = root.TryGetProperty("Message", out var m) ? m.ToString() : null;
-            return new { error, hresult, description };
+            return (object)new { error, hresult, description };
         });
         if (!task.Wait(TimeSpan.FromSeconds(30)))
             throw new TimeoutException("Actual SDK broker did not answer IPC within 30 seconds");
