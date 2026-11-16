@@ -147,6 +147,7 @@ jobs:
         if: steps.daily.outcome == 'success'
         id: identify
         shell: bash
+        continue-on-error: true
         run: |
           set -euo pipefail
           DAILY="$RUNNER_TEMP/dotnet-daily"
@@ -154,7 +155,7 @@ jobs:
           case "$SDK_VER" in 12.*) ;; *) echo "Not a .NET 12 daily SDK: $SDK_VER"; exit 2;; esac
           DLL="$(find "$DAILY/sdk/$SDK_VER" -type f -name Microsoft.NET.Build.Containers.dll -print -quit)"
           test -n "$DLL"
-          if ! grep -aqF 'DOTNET_CONTAINER_AUTH_REALM_POLICY' "$DLL"; then
+          if ! strings -el "$DLL" | grep -F 'DOTNET_CONTAINER_AUTH_REALM_POLICY' > /dev/null; then
             echo "The fetched SDK assembly does not expose the merged AntiSSRF policy option."
             exit 3
           fi
