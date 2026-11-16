@@ -40,13 +40,18 @@ jobs:
         shell: bash
         run: |
           set -eux
-          bundle="$(find tests/webcil13/browser-smoke/bin/Release -type f -name dotnet.js | grep '/publish/' | head -n 1)"
-          test -n "$bundle"
-          bundle="$(dirname "$bundle")"
+          root="tests/webcil13/browser-smoke/bin/Release"
+          bundle="$(find "$root" -type d -name AppBundle | sed -n '1p')"
+          if [ -z "$bundle" ]; then
+            bundle="$(find "$root" -type f -name dotnet.js | grep '/publish/' | sed -n '1p')"
+            bundle="$(dirname "$bundle")"
+          fi
           echo "Published .NET 11 wasm bundle: $bundle"
-          ls -la "$bundle" | sed -n '1,25p'
+          find "$bundle" -maxdepth 2 -type f | sed -n '1,35p'
           cp tests/webcil13/browser-smoke/wwwroot/runner.mjs "$bundle/runner.mjs"
-          sed -i "s|'./_framework/dotnet.js'|'./dotnet.js'|" "$bundle/runner.mjs"
+          if [ -f "$bundle/dotnet.js" ]; then
+            sed -i "s|'./_framework/dotnet.js'|'./dotnet.js'|" "$bundle/runner.mjs"
+          fi
           cd "$bundle"
           node runner.mjs | tee /tmp/webcil13-actual-smoke.log
           grep -q 'WEBCIL13_RUNTIME_SMOKE_PASS=true' /tmp/webcil13-actual-smoke.log
