@@ -13,13 +13,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 record ImpactObservation(
     string Role, string Method, string Path,
-    bool SyntheticBasic, bool SyntheticPasswordInForm,
+    bool SyntheticBasic, bool SyntheticPasswordInForm, bool SyntheticIdentityTokenInForm,
     bool ProtectedCanaryBearer);
 
 static class ExtendedImpactLab
 {
     private const string User="LAB_USER_NON_SECRET";
     private const string Password="LAB_PASS_SYNTHETIC_ONLY_20261116";
+    private const string Identity="LAB_IDENTITY_TOKEN_SYNTHETIC_20261116";
     private const string RegistryBearer="LAB_BEARER_NON_SECRET";
     private const string ProtectedCanary="LAB_PROTECTED_JSON_TOKEN_SYNTHETIC";
     private const string ProtectedResource="LAB_REPLAY_RESOURCE_SYNTHETIC";
@@ -40,6 +41,13 @@ static class ExtendedImpactLab
         "redirect302-no-body",
         "https-to-http-downgrade",
         "registry-302-basic-challenge",
+        "registry-307-basic-challenge",
+        "registry-302-no-challenge",
+        "registry-302-digest-challenge",
+        "identity-direct-private",
+        "identity-307-private",
+        "identity-308-private",
+        "identity-302-no-body",
         "conditional-credential-replay"
     ];
 
@@ -67,10 +75,10 @@ static class ExtendedImpactLab
         if(!allValid)throw new Exception("A downstream regression assertion failed; inspect artifact");
     }
 
-    private static HttpClient SdkClient(Assembly asm,string registry)
+    private static HttpClient SdkClient(Assembly asm,string registry,bool identityMode)
     {
         var handlerType=asm.GetType("Microsoft.NET.Build.Containers.AuthHandshakeMessageHandler",true)!;
-        var mode=Enum.Parse(asm.GetType("Microsoft.NET.Build.Containers.RegistryMode",true)!,"Push");
+        var mode=Enum.Parse(asm.GetType("Microsoft.NET.Build.Containers.RegistryMode",true)!,identityMode?"Pull":"Push");
         var inner=new SocketsHttpHandler{UseCookies=false,UseProxy=false,ConnectTimeout=TimeSpan.FromSeconds(5)};
         object[] args=Is11?[registry,false,inner,NullLogger.Instance,mode]:[registry,inner,NullLogger.Instance,mode];
         var ctor=handlerType.GetConstructors(BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance).Single(c=>c.GetParameters().Length==args.Length);
@@ -83,7 +91,7 @@ static class ExtendedImpactLab
         var basic="Basic "+Convert.ToBase64String(Encoding.ASCII.GetBytes(User+":"+Password));
         return new ImpactObservation(role,ctx.Request.Method,ctx.Request.Path.ToString(),
             auth==basic,body.Contains(Password,StringComparison.Ordinal),
-            auth=="Bearer "+ProtectedCanary);
+            body.Contains(Identity,StringComparison.Ordinal),auth=="Bearer "+ProtectedCanary);
     }
     private static async Task Respond(HttpContext ctx,int status,string text="",string? location=null,string? challenge=null)
     {
@@ -100,6 +108,7 @@ static class ExtendedImpactLab
     private static async Task<(bool? pass,string outcome)> RunOneAsync(Assembly asm,string scenario)
     {
         bool downgrade=scenario=="https-to-http-downgrade";
+        bool identityMode=scenario.StartsWith("identity-",StringComparison.Ordinal);
         var protectedObservations=new ConcurrentQueue<ImpactObservation>();
         var allowedObservations=new ConcurrentQueue<ImpactObservation>();
         var registryObservations=new ConcurrentQueue<ImpactObservation>();
@@ -116,10 +125,20 @@ static class ExtendedImpactLab
             var obs=Observe("private",ctx,body);
             protectedObservations.Enqueue(obs);
 
-            if(scenario=="registry-302-basic-challenge")
+            if(scenario is "registry-302-basic-challenge" or "registry-307-basic-challenge")
             {
                 if(obs.SyntheticBasic)await Respond(ctx,200,"{}");
                 else await Respond(ctx,401,challenge:"Basic realm=\"synthetic-protected\"");
+                return;
+            }
+            if(scenario=="registry-302-no-challenge")
+            {
+                await Respond(ctx,200,"{}");
+                return;
+            }
+            if(scenario=="registry-302-digest-challenge")
+            {
+                await Respond(ctx,401,challenge:"Digest realm=\"synthetic-digest\",nonce=\"test\"");
                 return;
             }
             if(scenario=="conditional-credential-replay")
@@ -148,7 +167,7 @@ static class ExtendedImpactLab
         {
             "redirect307-write"=>privateUrl+"/mock-action",
             "https-to-http-downgrade"=>"http://"+PrivateHost+":"+privateServer.Port+"/capture",
-            "registry-302-basic-challenge"=>privateUrl+"/challenge",
+            "registry-302-basic-challenge" or "registry-307-basic-challenge" or "registry-302-no-challenge" or "registry-302-digest-challenge"=>privateUrl+"/challenge",
             _=>privateUrl+"/capture"
         };
 
@@ -161,7 +180,7 @@ static class ExtendedImpactLab
                 capturedBasicAuth=ctx.Request.Headers.Authorization.ToString();
 
             if(scenario.StartsWith("redirect",StringComparison.Ordinal) ||
-                scenario=="https-to-http-downgrade")
+                identityMode || scenario=="https-to-http-downgrade")
             {
                 if(ctx.Request.Method=="GET")
                 {
@@ -170,7 +189,8 @@ static class ExtendedImpactLab
                 }
                 int redirectCode=scenario switch
                 {
-                    "redirect302-no-body"=>302,
+                    "redirect302-no-body" or "identity-302-no-body"=>302,
+                    "identity-308-private"=>308,
                     "redirect308-canary"=>308,
                     _=>307
                 };
@@ -178,7 +198,7 @@ static class ExtendedImpactLab
             }
             else await Respond(ctx,200,publicJson);
         },tls:true);
-        registryRealm=(scenario.StartsWith("internal-",StringComparison.Ordinal))
+        registryRealm=(scenario.StartsWith("internal-",StringComparison.Ordinal) || scenario=="identity-direct-private")
             ? privateUrl+"/token" : "https://"+PublicHost+":"+publicServer.Port+"/token";
 
         await using var registryServer=await LocalEndpoint.Start(PublicAddress,async ctx=>
@@ -187,9 +207,10 @@ static class ExtendedImpactLab
             var obs=Observe("registry",ctx,body);
             registryObservations.Enqueue(obs);
 
-            if(scenario=="registry-302-basic-challenge")
+            if(scenario is "registry-302-basic-challenge" or "registry-307-basic-challenge"
+                or "registry-302-no-challenge" or "registry-302-digest-challenge")
             {
-                await Respond(ctx,302,location:redirectDestination);
+                await Respond(ctx,scenario=="registry-307-basic-challenge"?307:302,location:redirectDestination);
                 return;
             }
             if(ctx.Request.Headers.Authorization.ToString().StartsWith("Bearer ",StringComparison.Ordinal))
@@ -202,13 +223,40 @@ static class ExtendedImpactLab
 
         int? sdkStatus=null;
         string? sdkError=null;
+        string? originalAuthFile=Environment.GetEnvironmentVariable("REGISTRY_AUTH_FILE");
+        string? originalPullUser=Environment.GetEnvironmentVariable("DOTNET_CONTAINER_PULL_REGISTRY_UNAME");
+        string? originalPullPass=Environment.GetEnvironmentVariable("DOTNET_CONTAINER_PULL_REGISTRY_PWORD");
+        string? tempAuthFile=null;
         try
         {
-            using var sdk=SdkClient(asm,RegistryHost+":"+registryServer.Port);
+            if(identityMode)
+            {
+                // The shipped SDK's Docker credentials provider loads this synthetic identity token.
+                tempAuthFile=Path.GetTempFileName();
+                string auth=Convert.ToBase64String(Encoding.UTF8.GetBytes("__:__"));
+                string registryKey=RegistryHost+":"+registryServer.Port;
+                string dockerConfig=JsonSerializer.Serialize(new {
+                    auths=new Dictionary<string,object> {
+                        [registryKey]=new{identitytoken=Identity,auth}
+                    }
+                });
+                File.WriteAllText(tempAuthFile,dockerConfig);
+                Environment.SetEnvironmentVariable("REGISTRY_AUTH_FILE",tempAuthFile);
+                Environment.SetEnvironmentVariable("DOTNET_CONTAINER_PULL_REGISTRY_UNAME",null);
+                Environment.SetEnvironmentVariable("DOTNET_CONTAINER_PULL_REGISTRY_PWORD",null);
+            }
+            using var sdk=SdkClient(asm,RegistryHost+":"+registryServer.Port,identityMode);
             using var response=await sdk.GetAsync("https://"+RegistryHost+":"+registryServer.Port+"/v2/");
             sdkStatus=(int)response.StatusCode;
         }
         catch(Exception ex) {sdkError=ex.GetBaseException().GetType().Name+": "+ex.GetBaseException().Message;}
+        finally
+        {
+            Environment.SetEnvironmentVariable("REGISTRY_AUTH_FILE",originalAuthFile);
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_PULL_REGISTRY_UNAME",originalPullUser);
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_PULL_REGISTRY_PWORD",originalPullPass);
+            if(tempAuthFile is not null)File.Delete(tempAuthFile);
+        }
 
         int? replayStatus=null;bool replayedResource=false;
         if(scenario=="conditional-credential-replay" && capturedBasicAuth is not null)
@@ -228,6 +276,7 @@ static class ExtendedImpactLab
         var r=registryObservations.ToArray();
         bool protectedVisited=p.Length>0;
         bool protectedGotPassword=p.Any(x=>x.SyntheticPasswordInForm);
+        bool protectedGotIdentity=p.Any(x=>x.SyntheticIdentityTokenInForm);
         bool protectedGotBasic=p.Any(x=>x.SyntheticBasic);
         bool registryGotPrivateCanary=r.Any(x=>x.ProtectedCanaryBearer);
         bool protectedGotPost=p.Any(x=>x.Method=="POST");
@@ -241,17 +290,26 @@ static class ExtendedImpactLab
             "redirect307-write"=> sdkStatus==200 && protectedGotPost && protectedGotPassword && syntheticSideEffects==1,
             "redirect302-no-body"=> sdkStatus==200 && protectedGotGet && !protectedGotPassword && !protectedGotPost,
             "https-to-http-downgrade"=> !protectedVisited && sdkStatus!=200,
-            "registry-302-basic-challenge"=> null, // exploratory: no pre-assertion of redirected Basic response
+            "registry-302-basic-challenge" or "registry-307-basic-challenge"=>
+                sdkStatus==200 && p.Length==2 && !p[0].SyntheticBasic && p[1].SyntheticBasic,
+            "registry-302-no-challenge"=> sdkStatus==200 && p.Length==1 && !protectedGotBasic,
+            "registry-302-digest-challenge"=> sdkStatus==401 && p.Length==1 && !protectedGotBasic,
+            "identity-direct-private"=> sdkStatus==200 && protectedGotPost && protectedGotIdentity &&
+                registryGotPrivateCanary && a.Length==0,
+            "identity-307-private" or "identity-308-private"=> sdkStatus==200 && protectedGotPost &&
+                protectedGotIdentity && registryGotPrivateCanary,
+            "identity-302-no-body"=> sdkStatus==200 && protectedGotGet && !protectedGotIdentity && !protectedGotPost,
             "conditional-credential-replay"=> sdkStatus==200 && replayedResource && replayStatus==200 && a.Any(x=>x.SyntheticBasic),
             _=>false
         };
-        string outcome=scenario=="registry-302-basic-challenge"
-            ? (protectedGotBasic?"redirected-basic-received":"redirected-basic-not-received")
-            : pass is true?"expected-controlled-observation":"control-mismatch";
+        string outcome=pass is true
+            ? (scenario.StartsWith("registry-30",StringComparison.Ordinal) && protectedGotBasic
+                ? "cross-origin-basic-credential-delivered":"expected-controlled-observation")
+            : "control-mismatch";
         Reports.Add(new {
             scenario,pass,outcome,sdkStatus,sdkError,
             protectedRequestCount=p.Length,publicTokenRequestCount=a.Length,registryRequestCount=r.Length,
-            protectedGotBasic,protectedGotPassword,protectedGotPost,protectedGotGet,
+            protectedGotBasic,protectedGotPassword,protectedGotIdentity,protectedGotPost,protectedGotGet,
             registryGotPrivateCanary,syntheticSideEffects,
             allowedServiceSawSyntheticBasic=a.Any(x=>x.SyntheticBasic),
             replayStatus,replayedResource,
