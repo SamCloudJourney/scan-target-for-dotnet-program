@@ -44,7 +44,7 @@ jobs:
           test -n "$bundle"
           bundle="$(dirname "$bundle")"
           echo "Published .NET 11 wasm bundle: $bundle"
-          ls -la "$bundle" | head -n 50
+          ls -la "$bundle" | sed -n '1,25p'
           cp tests/webcil13/browser-smoke/wwwroot/runner.mjs "$bundle/runner.mjs"
           sed -i "s|'./_framework/dotnet.js'|'./dotnet.js'|" "$bundle/runner.mjs"
           cd "$bundle"
