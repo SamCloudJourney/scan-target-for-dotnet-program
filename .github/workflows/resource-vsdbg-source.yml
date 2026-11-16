@@ -40,22 +40,29 @@ jobs:
           $pdb=(Join-Path $built 'Debuggee.pdb')
           dotnet research/bounded-resource-probes/Debugger/Dap/Mutator/bin/Release/net10.0/Mutator.dll $pdb (Join-Path $env:RUNNER_TEMP 'DapAltered') 8388608 | Tee-Object dap-evidence/mutation.jsonl
           if($LASTEXITCODE -ne 0){throw "PDB mutation failed"}
-      - name: Download official Microsoft vsdbg for isolated DAP test
+      - name: Download pinned Microsoft CSharp extension debugger and verify SHA256
         shell: pwsh
         run: |
           $ErrorActionPreference="Stop"
           $dir=Join-Path $env:RUNNER_TEMP 'research-vsdbg'
           New-Item -ItemType Directory -Force $dir | Out-Null
-          $script=Join-Path $env:RUNNER_TEMP 'getvsdbg.ps1'
-          Invoke-WebRequest -Uri 'https://aka.ms/getvsdbgps1' -UseBasicParsing -OutFile $script
-          & $script -Version latest -RuntimeID win-x64 -InstallPath $dir
-          if(!(Test-Path (Join-Path $dir 'vsdbg.exe'))){ throw "Microsoft vsdbg was not installed" }
-          "vsdbgPresent=true" | Tee-Object dap-evidence/adapter-install.txt
+          # URL and checksum from official dotnet/vscode-csharp package.json runtimeDependencies.
+          $url='https://download.visualstudio.microsoft.com/download/pr/2ddf3563-22a7-41a6-ac32-e968dce63287/coreclr-debug-win7-x64.zip'
+          $expect='EF52F5924B4456808AB7286861E6EC5B618E4D49F93FEF5F3881ECF5C9EEF2CF'
+          $archive=Join-Path $env:RUNNER_TEMP 'debugger-official.zip'
+          Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $archive
+          $actual=(Get-FileHash $archive -Algorithm SHA256).Hash
+          if($actual -ne $expect){throw "Checksum mismatch for debugger package: $actual"}
+          Expand-Archive -Path $archive -DestinationPath $dir -Force
+          $adapter=Get-ChildItem -Path $dir -Recurse -File -Include 'vsdbg.exe','vsdbg-ui.exe' | Sort-Object @{Expression={if($_.Name -eq 'vsdbg.exe'){0}else{1}}} | Select-Object -First 1
+          if($null -eq $adapter){throw "No Microsoft debugger executable found in verified ZIP"}
+          $adapter.FullName | Set-Content dap-evidence/adapter-path.txt
+          "sha256=$actual" | Tee-Object dap-evidence/adapter-install.txt
       - name: Request source through actual vsdbg DAP for baseline and malformed PDB
         shell: pwsh
         run: |
           $ErrorActionPreference="Stop"
-          $vsdbg=Join-Path $env:RUNNER_TEMP 'research-vsdbg\vsdbg.exe'
+          $vsdbg=(Get-Content dap-evidence/adapter-path.txt -Raw).Trim()
           $source=(Resolve-Path 'research/bounded-resource-probes/Debugger/Dap/Debuggee/Program.cs').Path
           # Hide only the local source file on the ephemeral runner, to prevent
           # the debugger from trivially reading it off disk.
