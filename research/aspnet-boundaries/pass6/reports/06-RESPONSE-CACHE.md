@@ -26,3 +26,13 @@ Public response integrity only on the tested .NET10 GA runtime; no account takeo
 
 ## Severity / novelty
 Moderate, currently not novel to MSRC. A qualifying new result would need a *separate* Microsoft-owned cause and security-sensitive reachability, not just deeper reproductions of public response confusion.
+
+---
+
+## Seventh pass — actual browser CORS decision and no-store negative control
+
+[Latest Chromium run](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43915322085), 10/10 per SDK and HTTP seed checks 10/10 per SDK. The earlier MVC ResponseCaching query-key collision also changed a real browser's cross-origin `fetch` result: on ASP.NET Core **10.0.15**, the distinct B request received cached public A body and A's `Access-Control-Allow-Origin` header, allowing synthetic public A to be read by JavaScript on another origin. On **11.0.0**, B was correctly isolated and the browser rejected the response. The noncolliding B URL was blocked on both.
+
+A separate browser fetch using `cache: "no-store"` caused B to be rejected on both versions. An earlier initial run used `no-store` for the primary test, yielding a *false negative* on .NET 10; this was corrected by testing normal browser caching and keeping `no-store` as an explicit negative control. Do not misclassify this as a sensitive cross-origin read: it returned **A's public body**, not B's private contents.
+
+Previously public ResponseCaching fix #68510 and all private-account authorization controls remain decisive MSRC novelty/impact limitations.

@@ -26,3 +26,11 @@ Can seed publicly cacheable integrity-confusing response representations across 
 
 ## Severity / novelty
 Moderate public integrity failure; Important only if an independently shown protected boundary is crossed under supported defaults. Known and public issue #68779 and fix PR #68792 substantially undermine new MSRC bounty eligibility.
+
+---
+
+## Seventh pass — real cross-origin JavaScript impact
+
+[Successful Chromium test on .NET 10 and 11](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43915322085), 10/10 checks in each job, plus ten HTTP checks in each job. A page at `http://127.0.0.1:5207` executed a real `fetch` to a *different-origin* ASP.NET application at `http://127.0.0.1:5200`. At URL `?a%3DB=`, the browser received a cached **public A** HTML response seeded under `?a=B%3D`, carrying A's `Access-Control-Allow-Origin` permission. Browser CORS processing let the external-origin script read that A public body on both supported runtimes. When requesting the noncolliding B URL, the actual B `Access-Control-Allow-Origin: null` response was blocked with `TypeError`; `credentials: include` was also blocked.
+
+**What this means:** Wrong cached response **and wrong CORS decision for the URL** are visible in a real browser, not merely a response-header diff. It does **not** mean the script read sensitive B data: the only body exposed was the *already publicly cacheable A representation*. There was no private account data and no XSS. MSRC Important remains unsubstantiated and upstream issue #68779/#68792 predates this experiment.

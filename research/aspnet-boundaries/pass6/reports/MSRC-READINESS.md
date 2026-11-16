@@ -39,3 +39,11 @@ Prior public root-cause material:
 MSRC .NET bounty program: https://www.microsoft.com/en-us/msrc/bounty-dot-net-core
 
 **Submission recommendation: no new critical or important bounty submission for these five without an independently novel Microsoft-owned root cause and real qualifying customer impact.**
+
+---
+
+## Additional actual-browser CORS assessment
+
+[Seventh-pass two-runtime browser run](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43915322085) demonstrates that #5 and #6's wrong cached **public** response envelopes affect real Chromium cross-origin JavaScript decisions: two origin-distinct pages, a colliding B URL, and A's cached allow-origin response. #5 reproduced on .NET 10 and 11; #6 reproduced on .NET 10 with normal fetch, but .NET 11 rejected B and `fetch(..., {cache:"no-store"})` prevented #6's replay.
+
+**Severity caveat:** The cross-origin JavaScript received the previously public **A** representation that itself allowed that origin. No restricted **B** content, authentication credentials, or private account data crossed the boundary. This strengthens the technical *public integrity* proof, not an Important/Critical impact determination. It also does not establish novel root causes, given the existing public Microsoft fixes.

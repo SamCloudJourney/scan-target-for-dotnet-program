@@ -47,3 +47,13 @@ Prior public root-cause material:
 MSRC .NET bounty program: https://www.microsoft.com/en-us/msrc/bounty-dot-net-core
 
 **Submission recommendation: no new critical or important bounty submission for these five without an independently novel Microsoft-owned root cause and real qualifying customer impact.**
+
+---
+
+## Seventh pass — actual Chromium CORS request replay
+
+[Final two-version run](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43915322085) passed **10/10 browser checks for each runtime**, plus 10/10 HTTP cache seed checks per runtime. An actual Chromium 157 document at `http://127.0.0.1:5207` fetched a different-origin cached ASP.NET response at `http://127.0.0.1:5200`. The public A response carried `Access-Control-Allow-Origin: http://127.0.0.1:5207`. Its colliding public B URL returned that cached A representation and a browser-origin JavaScript fetch succeeded. The noncolliding B control (`Access-Control-Allow-Origin: null`) failed with a browser `TypeError`. Credentialed requests failed and all responses contained artificial, public lab content.
+
+ResponseCaching had the same cross-origin public-content substitution on **.NET 10 with a normal browser fetch**, but not on .NET 11. A `cache: "no-store"` browser fetch bypassed this ResponseCaching replay on both tested runtimes. This is a **browser-visible replay of A under B's URL, not unauthorized reading of B's original protected data**. No private data leak, browser XSS, or credential disclosure was demonstrated.
+
+The original all-five disposition is unchanged: #5/#6 public response integrity defects already known to upstream, #8 proxy-only policy mismatch, #7 unsafe rewrite, #4 request-derived Domain injection unproven.
