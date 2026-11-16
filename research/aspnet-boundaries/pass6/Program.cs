@@ -136,6 +136,11 @@ app.MapGet("/cache/public", (HttpContext c) =>
         variant == "A" ? "text/html" : "application/json");
 }).CacheOutput("vary-all");
 
+app.MapGet("/cache/pathbase", (HttpContext c) =>
+    Results.Text("pathbase=" + c.Request.PathBase
+        + ";generation=" + Interlocked.Increment(ref Lab.CachePublic)))
+    .CacheOutput("vary-all");
+
 app.MapGet("/cache/set-cookie", (HttpContext c) =>
 {
     c.Response.Cookies.Append("pass6.marker", "no-secret");

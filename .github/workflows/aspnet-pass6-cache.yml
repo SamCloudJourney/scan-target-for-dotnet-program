@@ -1,0 +1,54 @@
+name: ASP.NET Pass 6 - authenticated caching and concurrency
+on:
+  push:
+    branches: [research/aspnet-impact-crossproxy-20261116]
+    paths:
+      - '.github/workflows/aspnet-pass6-cache.yml'
+      - 'research/aspnet-boundaries/pass6/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/pass6
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Build synthetic Identity and caching fixture
+        run: |
+          mkdir -p pass6-cache-evidence
+          dotnet --info >pass6-cache-evidence/dotnet-info.txt
+          dotnet build research/aspnet-boundaries/pass6/SecurityFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-cache-app
+      - name: Exercise authenticated accounts and public response integrity
+        run: |
+          dotnet /tmp/pass6-cache-app/SixthFixture.dll >pass6-cache-evidence/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5200/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.4
+          done
+          curl -fsS http://127.0.0.1:5200/healthz >/dev/null
+          python3 research/aspnet-boundaries/pass6/cache_test.py --major ${{ matrix.major }} --output pass6-cache-evidence/cache-${{ matrix.major }}.json
+      - name: Upload raw results including failed checks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass6-cache-net${{ matrix.major }}
+          path: pass6-cache-evidence/
+          retention-days: 30
