@@ -5,7 +5,8 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.DiaSymReader.Tools;
 
-if (args.Length != 5 || !int.TryParse(args[2],out int declared) ||
+bool repeat3=args.Length == 6 && args[5] == "repeat3";
+if ((args.Length != 5 && !repeat3) || !int.TryParse(args[2],out int declared) ||
     (declared != 0 && declared != 1048576 && declared != 8388608) ||
     !bool.TryParse(args[3],out bool includeSources) ||
     !bool.TryParse(args[4],out bool useNative))
@@ -35,6 +36,7 @@ using(var provider=MetadataReaderProvider.FromPortablePdbStream(stream,MetadataS
     }
 }
 if(offset<0)throw new InvalidDataException("Fixture missing embedded source");
+byte[] validPdb=(byte[])pdb.Clone();
 if(declared>0)BitConverter.GetBytes(declared).CopyTo(pdb,offset);
 var opts=PdbToXmlOptions.ExcludeMethods;
 if(includeSources)opts|=PdbToXmlOptions.IncludeEmbeddedSources;
@@ -56,4 +58,36 @@ Console.WriteLine(JsonSerializer.Serialize(new {
     elapsedMs=Math.Round(timer.Elapsed.TotalMilliseconds,3),
     runtime=RuntimeInformation.FrameworkDescription,os=RuntimeInformation.OSDescription
 }));
+if (repeat3)
+{
+    var proc=Process.GetCurrentProcess();
+    for(int iteration=1;iteration<=3;iteration++)
+    {
+        var timer2=Stopwatch.StartNew();
+        long b=GC.GetTotalAllocatedBytes();
+        int g=GC.CollectionCount(2);
+        string bad=ConvertOnce(pdb,pe,opts);
+        string good=ConvertOnce(validPdb,pe,opts);
+        timer2.Stop();proc.Refresh();
+        Console.WriteLine(JsonSerializer.Serialize(new {
+            test="pdb2xml-same-process-recovery",iteration,declared,
+            includeSources,useNative,malformedResult=bad,validResult=good,
+            allocatedBytes=GC.GetTotalAllocatedBytes()-b,
+            gen2Collections=GC.CollectionCount(2)-g,
+            workingSet=proc.WorkingSet64,privateMemory=proc.PrivateMemorySize64,
+            elapsedMs=Math.Round(timer2.Elapsed.TotalMilliseconds,3)
+        }));
+        if (good!="ok") throw new InvalidDataException("Controlled benign converter recovery failed");
+    }
+}
 return 0;
+
+static string ConvertOnce(byte[] p,byte[] a,PdbToXmlOptions opt)
+{
+    try{
+        using var ps=new MemoryStream(p,writable:false);
+        using var asm=new MemoryStream(a,writable:false);
+        _=PdbToXmlConverter.ToXml(ps,asm,opt);
+        return "ok";
+    }catch(Exception e){return e.GetType().Name;}
+}

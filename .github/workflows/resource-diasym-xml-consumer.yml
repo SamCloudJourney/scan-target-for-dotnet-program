@@ -46,12 +46,13 @@ jobs:
           $cases=@(
             @(0,"false","false"),@(8388608,"false","false"),
             @(0,"true","false"),@(1048576,"true","false"),@(8388608,"true","false"),
-            @(0,"true","true"),@(1048576,"true","true"),@(8388608,"true","true")
+            @(0,"true","true"),@(1048576,"true","true"),@(8388608,"true","true"),
+            @(8388608,"true","false","repeat3"),@(8388608,"true","true","repeat3")
           )
           foreach($case in $cases){
             $out=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.out')
             $err=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.err')
-            $argv=@($app,$pdb,$pe,"$($case[0])",$case[1],$case[2])
+            $argv=@($app,$pdb,$pe,"$($case[0])",$case[1],$case[2]); if($case.Count -eq 4){$argv+= $case[3]}
             $p=Start-Process -FilePath dotnet -ArgumentList $argv -Wait:$false -PassThru -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow
             try {
               if(-not $p.WaitForExit(15000)){$p.Kill($true);throw "15s runner limit exceeded"}
