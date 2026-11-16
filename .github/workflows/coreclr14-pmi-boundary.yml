@@ -34,6 +34,7 @@ jobs:
             release-sources/dotnet-10.0.15/runtime/src/coreclr/scripts/superpmi.py
             scan-target-v11.0.100/src/runtime/src/coreclr/scripts/superpmi.py
             scan-target-v11.0.100/src/runtime/src/coreclr/scripts/jitutil.py
+            scan-target-v11.0.100/src/runtime/src/coreclr/scripts/coreclr_arguments.py
             .github/workflows/coreclr14-pmi-boundary.yml
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,3 +43,7 @@ jobs:
       - name: Test source-extracted PMI function (benign stdout marker)
         shell: bash
         run: python -I research/coreclr14/pmi_filename_boundary.py
+      - name: Exercise real SuperPMI CLI ingress with stubbed .NET tooling
+        if: runner.os != 'Windows'
+        shell: bash
+        run: python -I research/coreclr14/pmi_full_cli_smoke.py
