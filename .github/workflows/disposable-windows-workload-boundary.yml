@@ -1,7 +1,7 @@
 name: Disposable Windows SDK validator experiment
 on:
   push:
-    branches: [research/windows-elevation-deeper-20261116]
+    branches: [research/windows-elevation-cross-account-20261116]
   workflow_dispatch:
 permissions:
   contents: read
@@ -138,5 +138,43 @@ jobs:
         with:
           name: cache-downstream-${{ matrix.sdk }}-evidence
           path: ${{ runner.temp }}/cache-downstream-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
+
+
+  cross-account-acl-differential:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['11.0.100', '10.0.404']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/cross-account-low-probe.ps1
+            research/windows-elevation-boundary-20261116/cross-account-differential.ps1
+            research/windows-elevation-boundary-20261116/BrokerHarness/Program.cs
+            research/windows-elevation-boundary-20261116/BrokerHarness/BrokerHarness.csproj
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Verify separate standard-user ACLs and real admin broker effects
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/cross-account-differential.ps1 -SdkVersion '${{ matrix.sdk }}'
+      - name: Preserve cross-account and broker evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-account-${{ matrix.sdk }}-evidence
+          path: |
+            ${{ runner.temp }}/cross-account-${{ matrix.sdk }}.json
+            ${{ runner.temp }}/broker-process-${{ matrix.sdk }}.json
           if-no-files-found: warn
           retention-days: 7
