@@ -49,7 +49,7 @@ jobs:
             if [ "$fx" = net10.0 ]; then sdk=10.0.404; else sdk=11.0.100; fi
             image="mcr.microsoft.com/dotnet/sdk:$sdk"
             docker pull "$image"
-            for mode in InputBaseline InputAltered; do
+            for mode in InputBaseline InputSmall InputAltered InputAltered InputSmall InputBaseline; do
               echo "START $fx $mode" | tee -a illink-evidence/publish.log
               work="$PWD/research/bounded-resource-probes/Linker"
               # No external network; 768 MiB memory, 2 CPUs, 128 PIDs; <=120s.
@@ -65,7 +65,7 @@ jobs:
                 -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
                 "$image" bash -c '
                   cd /work
-                  rm -rf Host/bin Host/obj/Release
+                  rm -rf Host/bin Host/obj/Release "/work/out-$FX-$INPUT_MODE"
                   start=$(date +%s%3N)
                   dotnet publish Host/Host.csproj -f "$FX" -c Release \
                     --no-restore -p:PublishTrimmed=true \

@@ -10,7 +10,11 @@ SafeReadSymbols catches errors, but they may occur after allocation.
 This test builds two **identical self-generated** assemblies except
 the Embedded Portable PDB declared length field:
 - baseline: original (controlled) declaration;
+- small: exactly 1 MiB declared;
 - altered: exactly 8 MiB declared (no large actual decompression payload).
+
+Each case is repeated twice per framework with a balanced input order.
+This helps distinguish one-off build/JIT variance from a size-dependent effect.
 
 It supplies either assembly as a file reference to an independently
 built Host console project, uses official .NET 10/11 SDKs and attempts

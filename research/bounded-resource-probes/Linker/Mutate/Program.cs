@@ -13,10 +13,13 @@ if (!raw.AsSpan(entry.DataPointer, 4).SequenceEqual("MPDB"u8))
     throw new InvalidDataException("Bad embedded PDB signature");
 int originalDeclared = BitConverter.ToInt32(raw, entry.DataPointer + 4);
 byte[] altered = (byte[])raw.Clone();
+byte[] small = (byte[])raw.Clone();
 const int BoundedDeclared = 8 * 1024 * 1024;
+const int SmallDeclared = 1 * 1024 * 1024;
 BitConverter.GetBytes(BoundedDeclared).CopyTo(altered, entry.DataPointer + 4);
+BitConverter.GetBytes(SmallDeclared).CopyTo(small, entry.DataPointer + 4);
 foreach ((string folder, byte[] body) in new[] {
-    ("InputBaseline", raw), ("InputAltered", altered)
+    ("InputBaseline", raw), ("InputSmall", small), ("InputAltered", altered)
 })
 {
     string path = Path.Combine(args[1], folder);
@@ -25,7 +28,7 @@ foreach ((string folder, byte[] body) in new[] {
 }
 Console.WriteLine(JsonSerializer.Serialize(new {
  test="illink-controlled-inputs", originalSize=raw.Length,
- originalDeclared, alteredDeclared=BoundedDeclared,
+ originalDeclared, smallDeclared=SmallDeclared, alteredDeclared=BoundedDeclared,
  byteDiffCount = raw.Zip(altered, (x,y)=>x==y ? 0 : 1).Sum(),
  mode="owned_and_local"
 }));
