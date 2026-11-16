@@ -1,0 +1,78 @@
+name: ASP.NET Pass 6 - Firefox and Edge cookie scope (best effort)
+on:
+  push:
+    branches: [research/aspnet-impact-crossproxy-20261116]
+    paths:
+      - '.github/workflows/aspnet-pass6-alt-browsers.yml'
+      - 'research/aspnet-boundaries/pass6/other_browsers.py'
+      - 'research/aspnet-boundaries/pass6/receiver.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+            browser: firefox
+          - sdk: '11.0.100'
+            major: 11
+            browser: firefox
+          - sdk: '10.0.404'
+            major: 10
+            browser: msedge
+          - sdk: '11.0.100'
+            major: 11
+            browser: msedge
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/pass6
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Build local fixture and install Python Playwright
+        run: |
+          mkdir -p alternate-browser-evidence
+          python3 -m venv /tmp/pass6-playwright-env
+          /tmp/pass6-playwright-env/bin/python -m pip install --disable-pip-version-check playwright >alternate-browser-evidence/pip-install.log 2>&1
+          dotnet build research/aspnet-boundaries/pass6/SecurityFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-alt-browser
+      - name: Install selected Firefox or Edge browser
+        id: browser_install
+        continue-on-error: true
+        run: |
+          /tmp/pass6-playwright-env/bin/python -m playwright install --with-deps ${{ matrix.browser }}             >alternate-browser-evidence/browser-install.log 2>&1
+      - name: Verify browser cookie scope and redirect decisions
+        if: steps.browser_install.outcome == 'success'
+        run: |
+          dotnet /tmp/pass6-alt-browser/SixthFixture.dll >alternate-browser-evidence/server.log 2>&1 &
+          app_pid=$!
+          python3 research/aspnet-boundaries/pass6/receiver.py >alternate-browser-evidence/receiver.log 2>&1 &
+          receiver_pid=$!
+          trap 'kill "$app_pid" "$receiver_pid" 2>/dev/null || true' EXIT
+          for port in 5200 5207; do
+            for i in $(seq 1 45); do
+              if curl --noproxy '*' -fsS http://127.0.0.$([ "$port" = 5207 ] && echo 2 || echo 1):$port/healthz >/dev/null 2>&1; then break; fi
+              if [ "$port" = 5207 ] && curl --noproxy '*' -fsS http://127.0.0.2:5207/_events >/dev/null 2>&1; then break; fi
+              sleep 0.4
+            done
+          done
+          /tmp/pass6-playwright-env/bin/python research/aspnet-boundaries/pass6/other_browsers.py             --browser ${{ matrix.browser }} --major ${{ matrix.major }}             --output alternate-browser-evidence/result-${{ matrix.browser }}-${{ matrix.major }}.json
+      - name: Preserve browser evidence and installation limitation
+        if: always()
+        run: |
+          echo "browser_install_outcome=${{ steps.browser_install.outcome }}"             >alternate-browser-evidence/install-status.txt
+      - name: Upload experiments
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass6-${{ matrix.browser }}-net${{ matrix.major }}
+          path: alternate-browser-evidence/
+          retention-days: 30
