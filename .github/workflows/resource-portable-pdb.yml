@@ -50,6 +50,15 @@ jobs:
               -v "$app:/app:ro" -v "$src:/sample:ro" \
               "$image" dotnet /app/Portable.dll /sample/SourceSample.pdb "$size" \
               | tee -a portable-evidence/portable-reader.jsonl
+            if [ "$size" = 0 ] || [ "$size" = 256 ] || [ "$size" = 8388608 ]; then
+              timeout --signal=TERM --kill-after=2s 12s docker run --rm \
+                --memory=384m --memory-swap=384m --cpus=1 --pids-limit=48 \
+                --network none --read-only --tmpfs /tmp:rw,nosuid,size=16m \
+                -e DOTNET_GCHeapHardLimit=0x10000000 \
+                -v "$app:/app:ro" -v "$src:/sample:ro" \
+                "$image" dotnet /app/Portable.dll /sample/SourceSample.pdb "$size" guarded \
+                | tee -a portable-evidence/portable-reader.jsonl
+            fi
           done
       - uses: actions/upload-artifact@v4
         if: always()

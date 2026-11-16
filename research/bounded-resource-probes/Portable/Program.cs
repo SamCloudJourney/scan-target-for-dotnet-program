@@ -8,7 +8,8 @@ using Microsoft.DiaSymReader;
 using Microsoft.DiaSymReader.PortablePdb;
 
 const int MaxDeclared = 8 * 1024 * 1024;
-if (args.Length != 2 || !int.TryParse(args[1], out var declared) || (declared != 0 && declared is < 1 or > MaxDeclared))
+bool guarded = args.Length == 3 && args[2] == "guarded";
+if ((args.Length != 2 && !guarded) || !int.TryParse(args[1], out var declared) || (declared != 0 && declared is < 1 or > MaxDeclared))
 {
     Console.Error.WriteLine("Usage: PortableBridge <self-generated.pdb> <0=unaltered|256|1048576|8388608>");
     return 2;
@@ -50,6 +51,29 @@ int resultLength = -1, readerDocumentCount = 0;
 var sw = Stopwatch.StartNew();
 try
 {
+    if (guarded)
+    {
+        // Investigator-only bounded preflight. This is NOT a shipped DiaSymReader fix.
+        const int MaxSource = 256 * 1024;
+        int declaredNow = BitConverter.ToInt32(pdb, offset);
+        if (declaredNow < 0 || declaredNow > MaxSource)
+            throw new InvalidDataException("Guarded rejection: declared embedded source exceeds 256 KiB");
+        if (declaredNow != 0)
+        {
+            using var encoded = new MemoryStream(pdb, offset + 4, blobLength - 4, false);
+            using var inflater = new System.IO.Compression.DeflateStream(encoded, System.IO.Compression.CompressionMode.Decompress);
+            byte[] chunk = new byte[4096];
+            int total = 0, n;
+            while ((n = inflater.Read(chunk)) > 0)
+            {
+                total = checked(total + n);
+                if (total > MaxSource)
+                    throw new InvalidDataException("Guarded rejection: actual source exceeds 256 KiB");
+            }
+            if (total != declaredNow)
+                throw new InvalidDataException("Guarded rejection: declared/actual embedded source mismatch");
+        }
+    }
     using var stream = new MemoryStream(pdb);
     // A REAL managed Portable PDB reader; unlike the prior synthetic document,
     // this parses the PDB's metadata and exposes its ISymUnmanagedDocument.
@@ -75,7 +99,7 @@ catch (Exception ex) { status = "exception"; error = ex.GetType().FullName ?? ex
 sw.Stop();
 Console.WriteLine(JsonSerializer.Serialize(new
 {
-    test = "portable-pdb-real-reader", status, error, declared, originalDeclared,
+    test = "portable-pdb-real-reader", status, error, guarded, declared, originalDeclared,
     pdbBytes = pdb.Length, sourceBlobLength = blobLength, documentCount,
     readerDocumentCount, sourceDataOffset = offset, resultLength,
     elapsedMs = Math.Round(sw.Elapsed.TotalMilliseconds, 3),

@@ -7,7 +7,8 @@ using Mono.Cecil;
 
 const int MaxInflated = 2 * 1024 * 1024;
 const int MaxPayload = 128 * 1024;
-if (args.Length != 4 || !int.TryParse(args[1], out int declared) ||
+bool guarded = args.Length == 5 && args[4] == "guarded";
+if ((args.Length != 4 && !guarded) || !int.TryParse(args[1], out int declared) ||
     !int.TryParse(args[2], out int appendZeros) || !bool.TryParse(args[3], out bool symbols) ||
     declared is < 1 or > 8 * 1024 * 1024 ||
     appendZeros is < 0 or > 1024 * 1024)
@@ -87,6 +88,33 @@ bool parsedSymbols = false;
 var sw = Stopwatch.StartNew();
 try
 {
+    if (guarded)
+    {
+        // Investigator-only fail-closed policy, not a claim about shipped Mono.Cecil.
+        const int AbsoluteOutputLimit = 256 * 1024;
+        using var preflight = new PEReader(new MemoryStream(mutated));
+        var debug = preflight.ReadDebugDirectory().First(e => e.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
+        if (debug.DataSize < 9 || debug.DataPointer < 0 || debug.DataPointer + debug.DataSize > mutated.Length)
+            throw new InvalidDataException("Embedded PDB bounds invalid");
+        var embedded = mutated.AsSpan(debug.DataPointer, debug.DataSize);
+        if (!embedded[..4].SequenceEqual("MPDB"u8))
+            throw new InvalidDataException("Embedded PDB signature mismatch");
+        int prefix = BitConverter.ToInt32(embedded[4..8]);
+        if (prefix < 1 || prefix > AbsoluteOutputLimit)
+            throw new InvalidDataException("Guarded rejection: declared PDB size outside 256 KiB budget");
+        using var compressed = new MemoryStream(mutated, debug.DataPointer + 8, debug.DataSize - 8, writable: false);
+        using var inflater = new DeflateStream(compressed, CompressionMode.Decompress);
+        byte[] slice = new byte[4096];
+        int actual = 0, read;
+        while ((read = inflater.Read(slice)) > 0)
+        {
+            actual = checked(actual + read);
+            if (actual > AbsoluteOutputLimit)
+                throw new InvalidDataException("Guarded rejection: inflated PDB output over 256 KiB budget");
+        }
+        if (actual != prefix)
+            throw new InvalidDataException("Guarded rejection: declared/actual PDB size mismatch");
+    }
     using var stream = new MemoryStream(mutated);
     using var module = ModuleDefinition.ReadModule(stream, new ReaderParameters { ReadSymbols = symbols });
     parsedSymbols = module.HasSymbols;
@@ -96,7 +124,7 @@ sw.Stop();
 
 Console.WriteLine(JsonSerializer.Serialize(new {
     mode = "cecil-recompressed-real-pe", framework = RuntimeInformation.FrameworkDescription,
-    status, error, symbols, parsedSymbols, declared,
+    status, error, symbols, guarded, parsedSymbols, declared,
     originalPeBytes = original.Length, newPeBytes = mutated.Length,
     originalPdbSize, originalCompressed, appendedZeroBytes = appendZeros,
     newActualInflatedPdb, debugFileOffset,
