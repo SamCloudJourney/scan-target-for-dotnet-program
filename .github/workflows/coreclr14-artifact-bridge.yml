@@ -1,0 +1,64 @@
+name: CoreCLR14 synthetic CI artifact trust boundary
+
+on:
+  push:
+    branches:
+      - research/coreclr14-pmi-boundary-20261116
+    paths:
+      - ".github/workflows/coreclr14-artifact-bridge.yml"
+      - "research/coreclr14/artifact_trust_bridge.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contributor-surrogate:
+    name: Surrogate contributor (untrusted filenames)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/coreclr14/artifact_trust_bridge.py
+      - name: Create empty dummy assemblies with adversarial filenames
+        run: python3 -I research/coreclr14/artifact_trust_bridge.py produce ${{ runner.temp }}/artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contributor-surrogate-input
+          path: ${{ runner.temp }}/artifacts/
+          if-no-files-found: error
+          retention-days: 1
+
+  collector-surrogate:
+    name: Unprivileged isolated collector simulation
+    needs: contributor-surrogate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/coreclr14/artifact_trust_bridge.py
+            release-sources/dotnet-10.0.15/runtime/src/coreclr/scripts/superpmi.py
+            release-sources/dotnet-10.0.15/runtime/src/coreclr/scripts/jitutil.py
+            release-sources/dotnet-10.0.15/runtime/src/coreclr/scripts/superpmi_collect_setup.py
+            scan-target-v11.0.100/src/runtime/src/coreclr/scripts/superpmi.py
+            scan-target-v11.0.100/src/runtime/src/coreclr/scripts/jitutil.py
+            scan-target-v11.0.100/src/runtime/src/coreclr/scripts/superpmi_collect_setup.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: contributor-surrogate-input
+          path: ${{ runner.temp }}/received
+      - name: Confirm download integrity and run real source-extracted staging/shell call
+        shell: bash
+        run: python3 -I research/coreclr14/artifact_trust_bridge.py consume "${{ runner.temp }}/received"
