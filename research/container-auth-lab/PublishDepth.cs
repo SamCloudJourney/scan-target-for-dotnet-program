@@ -25,7 +25,7 @@ static class PublishDepthLab
         bool success=true;
         try
         {
-            foreach(var mode in new[]{"direct-ip","dns-private","redirect307","identity-direct-ip","identity-dns","identity-redirect307","no-credentials"})
+            foreach(var mode in new[]{"direct-ip","dns-private","redirect307","identity-direct-ip","identity-dns","identity-redirect307","registry-302-basic","no-credentials"})
             {
                 bool verified=await RunOne(mode);
                 Console.WriteLine("[PUBLISH "+Sdk+"] "+mode+": "+(verified?"PASS":"FAIL"));
@@ -68,6 +68,7 @@ static class PublishDepthLab
         bool identityMode=mode.StartsWith("identity-",StringComparison.Ordinal);
         bool missingCredentials=mode=="no-credentials";
         bool redirectMode=mode.Contains("redirect307",StringComparison.Ordinal);
+        bool registryRedirectBasic=mode=="registry-302-basic";
         bool directMode=mode.Contains("direct-ip",StringComparison.Ordinal);
         var events=new ConcurrentQueue<NetworkEvent>();
         string? tokenEndpoint=null;
@@ -88,7 +89,16 @@ static class PublishDepthLab
         {
             string body=await new StreamReader(c.Request.Body).ReadToEndAsync();
             events.Enqueue(Observe("private-token",c,body));
-            await Reply(c,200,JsonSerializer.Serialize(new{token=SyntheticToken,expires_in=120}),
+            if(registryRedirectBasic)
+            {
+                if(c.Request.Headers.Authorization.ToString()!=Basic)
+                    await Reply(c,401,challenge:"Basic realm=\"synthetic-cross-origin\"");
+                else if(c.Request.Path.Value?.Contains("/manifests/",StringComparison.Ordinal)==true)
+                    await Reply(c,200,c.Request.Method=="HEAD"?null:manifest,
+                        "application/vnd.oci.image.manifest.v1+json",digest:manifestHash);
+                else await Reply(c,404);
+            }
+            else await Reply(c,200,JsonSerializer.Serialize(new{token=SyntheticToken,expires_in=120}),
                 "application/json");
         },tls:true);
 
@@ -109,7 +119,7 @@ static class PublishDepthLab
         {
             "direct-ip" or "identity-direct-ip"=>"https://127.0.0.2:"+privateEndpoint.Port+"/token",
             "dns-private" or "identity-dns" or "no-credentials"=>"https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
-            "redirect307" or "identity-redirect307"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
+            "redirect307" or "identity-redirect307" or "registry-302-basic"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
             _=>throw new InvalidOperationException()
         };
 
@@ -117,13 +127,17 @@ static class PublishDepthLab
         {
             string body=await new StreamReader(c.Request.Body).ReadToEndAsync();
             events.Enqueue(Observe("registry",c,body));
-            if(c.Request.Headers.Authorization.ToString()!="Bearer "+SyntheticToken)
-            {
-                await Reply(c,401,challenge:"Bearer realm=\""+tokenEndpoint+"\",service=\"lab\",scope=\"repository:baseprobe:pull\"");
-                return;
-            }
             string path=c.Request.Path.Value??"";
             string method=c.Request.Method;
+            bool authenticated=c.Request.Headers.Authorization.ToString()=="Bearer "+SyntheticToken ||
+                (registryRedirectBasic && c.Request.Headers.Authorization.ToString()==Basic);
+            if(!authenticated)
+            {
+                if(registryRedirectBasic && path.Contains("/baseprobe/manifests/",StringComparison.Ordinal))
+                    await Reply(c,302,location:"https://privateauth.lab.test:"+privateEndpoint.Port+path);
+                else await Reply(c,401,challenge:"Bearer realm=\""+tokenEndpoint+"\",service=\"lab\",scope=\"repository:baseprobe:pull\"");
+                return;
+            }
             if(path.Contains("/manifests/",StringComparison.Ordinal))
             {
                 if(method=="GET" || method=="HEAD")
@@ -261,7 +275,8 @@ static class PublishDepthLab
         bool privateForm=records.Any(x=>x.Role=="private-token"&&x.SyntheticPasswordForm);
         bool privateIdentity=records.Any(x=>x.Role=="private-token"&&x.SyntheticIdentityForm);
         bool startedManifestPull=records.Any(x=>x.Role=="registry"&&x.Path.Contains("/baseprobe/manifests/",StringComparison.Ordinal));
-        bool authRetry=records.Any(x=>x.Role=="registry"&&x.SyntheticBearer);
+        bool registryGotBasic=records.Any(x=>x.Role=="registry"&&x.SyntheticBasic);
+        bool authRetry=records.Any(x=>x.Role=="registry"&&(x.SyntheticBearer||x.SyntheticBasic));
         bool directBlocked=directMode && Is11;
         bool forwardedExpected=identityMode
             ? privateIdentity && !privateForm && !privateBasic
@@ -269,6 +284,9 @@ static class PublishDepthLab
         bool pass=startedManifestPull && !timedOut &&
             (missingCredentials ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
                 : directBlocked ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
+                : registryRedirectBasic ? exitCode==0 && producedManifest==1 && privateBasic &&
+                    !privateForm && !privateIdentity && authRetry && registryGotBasic &&
+                    records.Count(x=>x.Role=="private-token")>=2
                 : exitCode==0 && producedManifest==1 && forwardedExpected && authRetry);
 
         var report=new {
@@ -280,6 +298,8 @@ static class PublishDepthLab
             protectedEndpointGotSyntheticBasic=privateBasic,
             protectedEndpointGotSyntheticPasswordForm=privateForm,
             protectedEndpointGotSyntheticIdentityForm=privateIdentity,
+            registryRedirectBasicChallenge=registryRedirectBasic,
+            registryReceivedSyntheticBasic=registryGotBasic,
             usedSyntheticIdentityToken=identityMode,
             missingCredentialsControl=missingCredentials,
             protectedRequestCount=records.Count(x=>x.Role=="private-token"),
