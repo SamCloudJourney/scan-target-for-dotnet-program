@@ -86,7 +86,7 @@ internal static class Program
             int length = BitConverter.ToInt32(buffer, 0);
             if (length < 0 || length > n - 4 || length > 3500)
                 throw new InvalidDataException("Malformed broker response; payload=" + n + " length=" + length);
-            using JsonDocument document = JsonDocument.Parse(buffer.AsSpan(4, length));
+            using JsonDocument document = JsonDocument.Parse(buffer.AsMemory(4, length));
             var root = document.RootElement;
             uint error = root.TryGetProperty("Error", out var e) ? e.GetUInt32() : uint.MaxValue;
             int hresult = root.TryGetProperty("HResult", out var hr) ? hr.GetInt32() : int.MinValue;
