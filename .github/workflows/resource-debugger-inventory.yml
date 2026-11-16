@@ -1,0 +1,32 @@
+name: Windows debugger and source-retrieval tool inventory
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/Debugger/**'
+      - '.github/workflows/resource-debugger-inventory.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  debugger-inventory:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - name: Inspect official debugging and source-reading tools
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force debugger-evidence | Out-Null
+          ./research/bounded-resource-probes/Debugger/inspect-tools.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: debugger-inventory
+          path: debugger-evidence/
+          retention-days: 14
