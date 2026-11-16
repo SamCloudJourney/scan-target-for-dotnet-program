@@ -1,0 +1,104 @@
+name: Controlled ILLink build-worker memory availability experiment
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/Capacity/**'
+      - '.github/workflows/resource-illink-capacity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cap-study:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build only local fixtures and symbol audit custom step
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capacity-evidence
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj -c Release
+          dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net10.0
+          dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net11.0
+          python3 research/bounded-resource-probes/Capacity/make_cases.py \
+            research/bounded-resource-probes/Sample/bin/Release/net10.0/Sample.dll \
+            capacity-inputs | tee capacity-evidence/fixture-provenance.jsonl
+      - name: Compare official ILLink under fixed small worker budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then sdk=10.0.404; limit=560m; else sdk=11.0.100; limit=640m; fi
+            docker pull "mcr.microsoft.com/dotnet/sdk:$sdk"
+            observer="$PWD/research/bounded-resource-probes/LinkerCustom/LinkerStep/bin/Release/$fx"
+            inputs="$PWD/capacity-inputs"
+            case_number=0
+            for mode in Baseline Small8MiB Large64MiB Large64MiB Small8MiB Baseline; do
+              case_number=$((case_number+1))
+              workspace="$PWD/capacity-work/$fx-$case_number-$mode"
+              mkdir -p "$workspace"
+              cp research/bounded-resource-probes/LinkerCustom/HostAudit/HostAudit.csproj "$workspace/HostAudit.csproj"
+              cp research/bounded-resource-probes/LinkerCustom/HostAudit/Program.cs "$workspace/Program.cs"
+              dockerName="bounded-link-$(echo "$fx" | tr '.' '-')-$case_number"
+              echo "CAPACITY_START fx=$fx mode=$mode limit=$limit case=$case_number" | tee -a capacity-evidence/capacity-results.log
+              set +e
+              timeout --signal=TERM --kill-after=3s 80s docker run --name "$dockerName" \
+                --memory="$limit" --memory-swap="$limit" --cpus=2 --pids-limit=128 \
+                --network none --tmpfs /tmp:rw,nosuid,size=48m \
+                -e NUGET_PACKAGES=/home/runner/.nuget/packages \
+                -e DOTNET_CLI_HOME=/tmp/dotnet -e DOTNET_NOLOGO=1 \
+                -e MSBUILDDISABLENODEREUSE=1 -e FX="$fx" -e INPUT_MODE="$mode" \
+                -v "$workspace:/work:rw" -v "$inputs:/inputs:ro" -v "$observer:/probe:ro" \
+                -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
+                "mcr.microsoft.com/dotnet/sdk:$sdk" bash -c '
+                  cd /work
+                  dotnet restore HostAudit.csproj -p:TargetFrameworks="$FX" -p:PublishTrimmed=true \
+                    --ignore-failed-sources > /tmp/restore.log 2>&1
+                  restore=$?
+                  if [ "$restore" -ne 0 ]; then
+                    echo "RESEARCH_CAPACITY_RESTORE_FAILED fx=$FX mode=$INPUT_MODE code=$restore"
+                    tail -n 15 /tmp/restore.log
+                    exit "$restore"
+                  fi
+                  dotnet publish HostAudit.csproj -f "$FX" -c Release --no-restore \
+                    -p:TargetFrameworks="$FX" -p:PublishTrimmed=true \
+                    -p:SampleInputPath="/inputs/$INPUT_MODE/Sample.dll" \
+                    -p:TrimmerAuditAssembly=/probe/ResearchLinkerStep.dll \
+                    -p:UseSharedCompilation=false -m:1 -o /work/published -v:normal \
+                    > /tmp/publish.log 2>&1
+                  result=$?
+                  echo "RESEARCH_CAPACITY_PUBLISH fx=$FX mode=$INPUT_MODE code=$result"
+                  grep -E "RESEARCH_LINKER|error MSB|error IL|error :|warning IL" /tmp/publish.log | tail -n 25 || true
+                  if [ "$result" -ne 0 ]; then tail -n 25 /tmp/publish.log; fi
+                  if [ -r /sys/fs/cgroup/memory.peak ]; then
+                    echo "RESEARCH_CAPACITY_CGROUP_PEAK $(cat /sys/fs/cgroup/memory.peak)"
+                  fi
+                  exit "$result"
+                ' | tee -a capacity-evidence/capacity-results.log
+              rc=$?
+              state=$(docker inspect -f '{{.State.OOMKilled}}' "$dockerName" 2>/dev/null || echo unknown)
+              docker rm -f "$dockerName" > /dev/null 2>&1 || true
+              set -e
+              echo "CAPACITY_END fx=$fx mode=$mode limit=$limit trial=$case_number exit=$rc oomKilled=$state" \
+                | tee -a capacity-evidence/capacity-results.log
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bounded-illink-worker-capacity-and-oom-controls
+          path: capacity-evidence/
+          retention-days: 14
+          if-no-files-found: warn
