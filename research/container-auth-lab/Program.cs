@@ -15,9 +15,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-await Laboratory.RunAsync();
-await ExtendedImpactLab.RunAsync();
-await ChainDepthLab.RunAsync();
+if (args.Length==2 && args[0]=="--cache-probe-child")
+{
+    await CacheDepthLab.ChildAsync(args[1]);
+}
+else
+{
+    await Laboratory.RunAsync();
+    await ExtendedImpactLab.RunAsync();
+    await ChainDepthLab.RunAsync();
+    await CacheDepthLab.RunAsync();
+    await PublishDepthLab.RunAsync();
+}
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
 
