@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -128,6 +129,8 @@ static class SharedPublisherLab
             else ctx.Response.StatusCode=403;
         },tls:true);
         string challenge="Bearer realm=\"https://"+AuthHost+":"+tokens.Port+"/token\",service=\"independent-auth\"";
+        string? currentProtectedManifest=null;
+        object protectedManifestLock=new();
         await using var registry=await LocalEndpoint.Start("127.0.0.1",async ctx=>
         {
             string identity=Identity(ctx);
@@ -142,8 +145,22 @@ static class SharedPublisherLab
                 {
                     if(caller=="A")Interlocked.Increment(ref AWrites);
                     if(caller=="B")Interlocked.Increment(ref BWritesWithAToken);
+                    lock(protectedManifestLock)currentProtectedManifest=body;
+                    ctx.Response.StatusCode=201;
                 }
-                ctx.Response.StatusCode=201;
+                else if(ctx.Request.Method=="GET"&&ctx.Request.Path.Value?.Contains("/manifests/",StringComparison.Ordinal)==true)
+                {
+                    string? value;
+                    lock(protectedManifestLock)value=currentProtectedManifest;
+                    if(value is null)ctx.Response.StatusCode=404;
+                    else
+                    {
+                        ctx.Response.StatusCode=200;
+                        ctx.Response.ContentType=ManifestType;
+                        await ctx.Response.WriteAsync(value);
+                    }
+                }
+                else ctx.Response.StatusCode=200;
             }
             else if(identity=="bearer-B")ctx.Response.StatusCode=403;
             else {ctx.Response.StatusCode=401;ctx.Response.Headers.WWWAuthenticate=challenge;}
@@ -183,12 +200,31 @@ static class SharedPublisherLab
         int noUser=await Request(null);
         int bDenied=await Request("LAB_WEB_USER_B","?baseline=1");
         int aAllowed=await Request("LAB_WEB_USER_A");
+        string approvedManifest;
+        lock(protectedManifestLock)approvedManifest=currentProtectedManifest??"";
+        string approvedDigest=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(approvedManifest))).ToLowerInvariant();
         int issuedBeforeB=IssuedB;
         int bInherited=await Request("LAB_WEB_USER_B");
         int bNoCredentials=await Request("LAB_WEB_USER_B","?credentialless=1");
         var parallel=await Task.WhenAll(Enumerable.Range(0,4).Select(_=>Request("LAB_WEB_USER_B")));
         int issuedAfter=IssuedB;
         int writes=BWritesWithAToken;
+        string consumedManifest="";
+        int consumerStatus;
+        using(var independentConsumer=new HttpClient(new SocketsHttpHandler{UseProxy=false,UseCookies=false}))
+        using(var read=new HttpRequestMessage(HttpMethod.Get,"https://"+same+"/v2/"+Repository+"/manifests/latest"))
+        {
+            read.Headers.TryAddWithoutValidation("Authorization","Bearer "+AToken);
+            using var response=await independentConsumer.SendAsync(read);
+            consumerStatus=(int)response.StatusCode;
+            consumedManifest=await response.Content.ReadAsStringAsync();
+        }
+        string observedDigest=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(consumedManifest))).ToLowerInvariant();
+        bool downstreamConsumerObservedB=consumedManifest.Contains("\\"caller\\":\\"B\\"",StringComparison.Ordinal);
+        bool tagChangedAfterB=approvedDigest!=observedDigest;
+        bool supplyChainAssertion=Patched
+            ? consumerStatus==200&&!downstreamConsumerObservedB&&!tagChangedAfterB
+            : consumerStatus==200&&downstreamConsumerObservedB&&tagChangedAfterB;
         bool pass=Patched
             ? noUser==401&&bDenied==403&&aAllowed==201&&
               bInherited==403&&bNoCredentials==403&&parallel.All(x=>x==403)&&
@@ -198,6 +234,7 @@ static class SharedPublisherLab
               issuedBeforeB==1&&issuedAfter==1&&IssuedA==1&&
               AWrites==1&&writes==6;
 
+        pass&=supplyChainAssertion;
         var details=new{
             scenario=Patched?"HTTP-multiuser-publisher-patched-SDK-isolation":"HTTP-multiuser-publishing-service-actual-sdk-PutAsync",
             sdk=Sdk,passed=pass,patchedSdk=Patched,
@@ -211,6 +248,12 @@ static class SharedPublisherLab
             noAdditionalBTokenExchange=issuedBeforeB==issuedAfter,
             freshBTokenExchangesInPatchedSdk=IssuedB-issuedBeforeB,
             syntheticManifestWritesUnderAToken=AWrites+BWritesWithAToken,
+            approvedSyntheticTagSha256=approvedDigest,
+            downstreamSyntheticTagSha256=observedDigest,
+            downstreamConsumerReadHttpStatus=consumerStatus,
+            downstreamConsumerObservedBOverwrite=downstreamConsumerObservedB,
+            protectedTagContentsChanged=tagChangedAfterB,
+            tagIntegrityAssertionPassed=supplyChainAssertion,
             unauthorizedBManifestWritesUsingAToken=BWritesWithAToken,
             requiresSameProcessAndSameRegistryAuthority=true,
             unauthorizedBWritesBlockedInPatchedSdk=Patched&&writes==0,
