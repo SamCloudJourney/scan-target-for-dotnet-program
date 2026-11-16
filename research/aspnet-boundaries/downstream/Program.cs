@@ -18,6 +18,8 @@ builder.Services.AddAntiforgery();
 builder.Services.AddResponseCaching();
 builder.Services.AddOutputCache(options =>
     options.AddPolicy("public-query-all", policy => policy.SetVaryByQuery("*")
+        .Expire(TimeSpan.FromMinutes(3)))
+       .AddPolicy("named-query-a", policy => policy.SetVaryByQuery("a")
         .Expire(TimeSpan.FromMinutes(3))));
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
@@ -118,6 +120,45 @@ app.MapGet("/cache/format-output", (HttpContext ctx) =>
 app.MapGet("/cookie/reflect", (HttpContext ctx) =>
     Results.Text("cookie-header=" + ctx.Request.Headers.Cookie + ";pathbase=" + ctx.Request.PathBase));
 
+
+/* Round four: conditional validators, fixed-name query vary, and client-visible
+ * JSON parsing, using generated non-sensitive data only. */
+app.MapGet("/fourth/output/etag", (HttpContext ctx) =>
+{
+    var variant = Lab.FourthVariant(ctx.Request.Query);
+    ctx.Response.Headers.ETag = variant == "A" ? "\"public-A-validator\"" : "\"public-B-validator\"";
+    ctx.Response.Headers["X-Lab-Variant"] = variant;
+    ctx.Response.Headers["Content-Security-Policy"] = variant == "A"
+        ? "default-src 'self'" : "default-src 'none'";
+    return Results.Json(new {
+        variant,
+        generation = Interlocked.Increment(ref Lab.FourthOutputEtagCounter)
+    });
+}).CacheOutput("public-query-all");
+
+app.MapGet("/fourth/output/fixed", (HttpContext ctx) =>
+    Results.Text("fixed-output=" + Lab.FourthVariant(ctx.Request.Query)
+        + ";generation=" + Interlocked.Increment(ref Lab.FourthOutputFixedCounter)))
+    .CacheOutput("named-query-a");
+
+app.MapGet("/fourth/output/client-json", (HttpContext ctx) =>
+{
+    var a = ctx.Request.Query.ContainsKey("a");
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Lab-Representation"] = a ? "html" : "json";
+    return Results.Content(
+        a ? "<!doctype html><title>Public A</title><p>Fixture HTML</p>"
+          : "{\"variant\":\"B\",\"safe\":true}",
+        a ? "text/html" : "application/json");
+}).CacheOutput("public-query-all");
+
+app.MapGet("/fourth/auth/query", (HttpContext ctx) =>
+    Results.Text("private-identity=" + ctx.User.FindFirstValue(ClaimTypes.NameIdentifier)
+        + ";variant=" + Lab.FourthVariant(ctx.Request.Query)
+        + ";generation=" + Interlocked.Increment(ref Lab.FourthAuthCounter)))
+    .CacheOutput("public-query-all")
+    .RequireAuthorization();
+
 // Protected ONLY by upstream ACL. Content is deliberately non-sensitive synthetic data.
 // The ASP.NET endpoint is intentionally not authorized, to model upstream-only protection.
 app.MapGet("/gate/private-document", (HttpContext ctx) =>
@@ -141,6 +182,14 @@ public static class Lab
     public static int PrivateOutputCounter;
     public static int PrivateResponseCounter;
     public static int CookieCounter;
+    public static int FourthOutputEtagCounter;
+    public static int FourthOutputFixedCounter;
+    public static int FourthResponseEtagCounter;
+    public static int FourthResponseFixedCounter;
+    public static int FourthAuthCounter;
+    public static string FourthVariant(IQueryCollection query)
+        => query.ContainsKey("a") ? "A"
+        : query.ContainsKey("a=B") ? "B" : "OTHER";
     public static int FormatResponseCounter;
     public static int FormatResponseLiteCounter;
 
@@ -222,4 +271,28 @@ public sealed class FormatResponseLiteController : Controller
               : "{\"document\":\"PUBLIC-B\",\"generation\":" + generation + "}",
             a ? "text/plain" : "application/json");
     }
+}
+
+[Route("fourth/response/etag")]
+public sealed class FourthResponseEtagController : Controller
+{
+    [HttpGet]
+    [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "*" })]
+    public IActionResult Get()
+    {
+        var variant = Lab.FourthVariant(Request.Query);
+        Response.Headers.ETag = variant == "A" ? "\"response-A-validator\"" : "\"response-B-validator\"";
+        Response.Headers["X-Lab-Variant"] = variant;
+        return Content("response-etag-variant=" + variant
+            + ";generation=" + Interlocked.Increment(ref Lab.FourthResponseEtagCounter), "text/plain");
+    }
+}
+[Route("fourth/response/fixed")]
+public sealed class FourthResponseFixedController : Controller
+{
+    [HttpGet]
+    [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "a" })]
+    public IActionResult Get()
+        => Content("fixed-response=" + Lab.FourthVariant(Request.Query)
+            + ";generation=" + Interlocked.Increment(ref Lab.FourthResponseFixedCounter), "text/plain");
 }

@@ -1,0 +1,68 @@
+name: ASP.NET advanced cache validators and HAProxy normalizer (loopback)
+on:
+  push:
+    branches: [research/aspnet-boundary-five-20261116]
+    paths:
+      - '.github/workflows/aspnet-fourth-pass.yml'
+      - 'research/aspnet-boundaries/downstream/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  advanced:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/downstream
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Verify HAProxy URI normalizers and build fixture
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y haproxy
+          mkdir -p fourth-evidence
+          haproxy -vv >fourth-evidence/haproxy-version.txt
+          haproxy -c -f research/aspnet-boundaries/downstream/haproxy-fourth.cfg
+          dotnet --info >fourth-evidence/dotnet-info.txt
+          dotnet build research/aspnet-boundaries/downstream/ImpactFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/fourth-app
+      - name: Exercise ETag cross-query 304 and canonicalized proxy policies
+        run: |
+          dotnet /tmp/fourth-app/ImpactFixture.dll >fourth-evidence/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5100/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:5100/healthz >/dev/null
+          haproxy -db -f research/aspnet-boundaries/downstream/haproxy-fourth.cfg >fourth-evidence/haproxy.log 2>&1 &
+          proxy_pid=$!
+          trap 'kill "$proxy_pid" "$server_pid" 2>/dev/null || true' EXIT
+          for port in 5112 5114 5116; do
+            for i in $(seq 1 40); do
+              if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
+              sleep 0.5
+            done
+            curl -fsS http://127.0.0.1:$port/healthz >/dev/null
+          done
+          python3 research/aspnet-boundaries/downstream/fourth_pass.py --major ${{ matrix.major }} --output fourth-evidence/fourth-pass-${{ matrix.major }}.json
+      - name: Upload full observations and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspnet-fourth-net${{ matrix.major }}
+          path: fourth-evidence/
+          retention-days: 30
