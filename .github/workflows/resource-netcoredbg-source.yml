@@ -1,0 +1,78 @@
+name: "Open-source netcoredbg debugger DAP source control"
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/Debugger/Dap/**'
+      - '.github/workflows/resource-netcoredbg-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-debugger:
+    runs-on: windows-2022
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Compile controlled Debuggee and two Portable PDB variants
+        shell: pwsh
+        run: |
+          $ErrorActionPreference="Stop"
+          New-Item -ItemType Directory -Force debugger-open-evidence | Out-Null
+          dotnet build research/bounded-resource-probes/Debugger/Dap/Debuggee/Debuggee.csproj -c Debug
+          if($LASTEXITCODE -ne 0){throw "Fixture failed"}
+          dotnet build research/bounded-resource-probes/Debugger/Dap/Mutator/Mutator.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "Mutator failed"}
+          $built=(Resolve-Path 'research/bounded-resource-probes/Debugger/Dap/Debuggee/bin/Debug/net10.0').Path
+          foreach($case in @('Baseline','Altered')){
+            $dest=Join-Path $env:RUNNER_TEMP "Dap$case"
+            New-Item -ItemType Directory -Force $dest | Out-Null
+            Copy-Item (Join-Path $built 'Debuggee.*') $dest
+          }
+          dotnet research/bounded-resource-probes/Debugger/Dap/Mutator/bin/Release/net10.0/Mutator.dll (Join-Path $built 'Debuggee.pdb') (Join-Path $env:RUNNER_TEMP 'DapAltered') 8388608 | Tee-Object debugger-open-evidence/mutation.jsonl
+          if($LASTEXITCODE -ne 0){throw "Mutation failed"}
+      - name: Download checksum-pinned MIT open-source Samsung netcoredbg release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference="Stop"
+          $url='https://github.com/Samsung/netcoredbg/releases/download/3.2.0-1092/netcoredbg-win64.zip'
+          $expected='3C410A45FA502415203A94FCB88654AF65BF8E3DAC158A5527A722E7A6B9274A'
+          $zip=Join-Path $env:RUNNER_TEMP 'netcoredbg-official.zip'
+          Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $zip
+          $hash=(Get-FileHash $zip -Algorithm SHA256).Hash
+          if($hash -ne $expected){throw "Open-source debugger SHA256 mismatch: $hash"}
+          $dir=Join-Path $env:RUNNER_TEMP 'netcoredbg-extracted'
+          Expand-Archive -Path $zip -DestinationPath $dir -Force
+          $bin=Get-ChildItem $dir -Filter netcoredbg.exe -Recurse | Select-Object -First 1
+          if($null -eq $bin){throw 'netcoredbg executable missing'}
+          $bin.FullName | Set-Content debugger-open-evidence/adapter-path.txt
+          "sha256=$hash" | Tee-Object debugger-open-evidence/adapter-hash.txt
+      - name: Attempt normal debug adapter source request without proprietary authentication
+        shell: pwsh
+        run: |
+          $ErrorActionPreference="Stop"
+          $adapter=(Get-Content debugger-open-evidence/adapter-path.txt -Raw).Trim()
+          $source=(Resolve-Path 'research/bounded-resource-probes/Debugger/Dap/Debuggee/Program.cs').Path
+          $hidden=$source+'.hidden'
+          Move-Item $source $hidden
+          try {
+            foreach($case in @('Baseline','Altered')) {
+              $dll=Join-Path $env:RUNNER_TEMP "Dap$case\Debuggee.dll"
+              python research/bounded-resource-probes/Debugger/Dap/dap_probe.py --adapter $adapter --program $dll --source $source --case $case --output debugger-open-evidence/dap-sessions.jsonl
+              if($LASTEXITCODE -ne 0){throw "Local DAP harness failed"}
+            }
+          } finally {Move-Item $hidden $source}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: open-source-debugger-pdb-control
+          path: debugger-open-evidence/
+          retention-days: 14
