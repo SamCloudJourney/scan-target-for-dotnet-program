@@ -16,6 +16,7 @@ static class PublishDepthLab
     private const string SyntheticIdentity="PUBLISH_LAB_IDENTITY_TOKEN_NO_SECRET";
     private static readonly string Sdk=Environment.GetEnvironmentVariable("SDK_VER")??"unknown";
     private static readonly bool Is11=Sdk.StartsWith("11.");
+    private static readonly bool Patched=Sdk.StartsWith("12.");
     private static readonly List<object> Reports=[];
     private record NetworkEvent(string Role,string Method,string Path,bool SyntheticBasic,bool SyntheticPasswordForm,bool SyntheticIdentityForm,bool SyntheticBearer);
     private static string Basic=>"Basic "+Convert.ToBase64String(Encoding.ASCII.GetBytes(SyntheticUser+":"+SyntheticPass));
@@ -41,6 +42,33 @@ static class PublishDepthLab
         if(!success)throw new Exception("Real dotnet publish authentication boundary assertion failed.");
     }
 
+    public static async Task<bool> RunPatchedSubsetAsync()
+    {
+        if(!Patched)throw new InvalidOperationException("Not an independently installed patched daily SDK");
+        var oldPolicy=Environment.GetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_POLICY");
+        var oldAllow=Environment.GetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES");
+        bool success=true;
+        try
+        {
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_POLICY","Public");
+            foreach(var mode in new[]{"dns-private","patched-allowlist-dns","redirect307","registry-302-basic","no-credentials"})
+            {
+                Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES",
+                    mode=="patched-allowlist-dns"?"127.0.0.2":
+                    mode=="redirect307"?"127.0.0.1":null);
+                success&=await RunOne(mode);
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_POLICY",oldPolicy);
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES",oldAllow);
+            Directory.CreateDirectory("REPRODUCTION-EVIDENCE");
+            File.WriteAllText("REPRODUCTION-EVIDENCE/sdk-"+Sdk+"-patched-publish.json",
+                JsonSerializer.Serialize(new{sdk=Sdk,tests=Reports},new JsonSerializerOptions{WriteIndented=true}));
+        }
+        return success;
+    }
     private static string RegistryHostName(int port)=>"registry.lab.test:"+port;
     private static string Hash(byte[] bytes)=>"sha256:"+Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     private static NetworkEvent Observe(string role,HttpContext ctx,string body)
@@ -118,7 +146,7 @@ static class PublishDepthLab
         tokenEndpoint=mode switch
         {
             "direct-ip" or "identity-direct-ip"=>"https://127.0.0.2:"+privateEndpoint.Port+"/token",
-            "dns-private" or "identity-dns" or "no-credentials"=>"https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
+            "dns-private" or "identity-dns" or "no-credentials" or "patched-allowlist-dns"=>"https://privateauth.lab.test:"+privateEndpoint.Port+"/token",
             "redirect307" or "identity-redirect307" or "registry-302-basic"=>"https://publicauth.lab.test:"+publicEndpoint.Port+"/token",
             _=>throw new InvalidOperationException()
         };
@@ -277,12 +305,16 @@ static class PublishDepthLab
         bool startedManifestPull=records.Any(x=>x.Role=="registry"&&x.Path.Contains("/baseprobe/manifests/",StringComparison.Ordinal));
         bool registryGotBasic=records.Any(x=>x.Role=="registry"&&x.SyntheticBasic);
         bool authRetry=records.Any(x=>x.Role=="registry"&&(x.SyntheticBearer||x.SyntheticBasic));
-        bool directBlocked=directMode && Is11;
+        bool directBlocked=directMode && (Is11||Patched);
         bool forwardedExpected=identityMode
             ? privateIdentity && !privateForm && !privateBasic
             : redirectMode ? privateForm && !privateBasic : privateBasic;
+        bool expectedPatchedDenied=Patched &&
+            (mode=="dns-private"||mode=="redirect307"||mode=="registry-302-basic");
         bool pass=startedManifestPull && !timedOut &&
-            (missingCredentials ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
+            (expectedPatchedDenied ?
+                exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
+              : missingCredentials ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
                 : directBlocked ? exitCode!=0 && !privateBasic && !privateForm && !privateIdentity && !authRetry
                 : registryRedirectBasic ? exitCode==0 && producedManifest==1 && privateBasic &&
                     !privateForm && !privateIdentity && authRetry && registryGotBasic &&
@@ -298,6 +330,8 @@ static class PublishDepthLab
             protectedEndpointGotSyntheticBasic=privateBasic,
             protectedEndpointGotSyntheticPasswordForm=privateForm,
             protectedEndpointGotSyntheticIdentityForm=privateIdentity,
+            patchedSdk=Patched,
+            patchedExpectedDenied=expectedPatchedDenied,
             registryRedirectBasicChallenge=registryRedirectBasic,
             registryReceivedSyntheticBasic=registryGotBasic,
             usedSyntheticIdentityToken=identityMode,
