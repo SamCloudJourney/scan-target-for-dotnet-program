@@ -1,0 +1,128 @@
+name: Six isolated .NET security-boundary reproductions
+on:
+  push:
+    branches:
+      - lab/six-security-boundaries-20261116
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nuget-policy:
+    name: NuGet signatures and cache - .NET ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.x', '11.0.x']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: security-lab
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Execute verified and disabled signature controls, warm/cold cache, source mapping
+        run: |
+          mkdir -p results
+          BOUNDARY_OUTPUT=results python3 -u security-lab/nuget_policy.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nuget-policy-${{ matrix.sdk }}
+          path: results/*.json
+          if-no-files-found: warn
+
+  nuget-http:
+    name: NuGet secure service index with delegated HTTP content - .NET ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.x', '11.0.x']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: security-lab
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Compare HTTPS-only and HTTPS-to-HTTP delegated package transports
+        run: |
+          mkdir -p results
+          BOUNDARY_OUTPUT=results python3 -u security-lab/nuget_insecure_http.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nuget-http-${{ matrix.sdk }}
+          path: results/*.json
+          if-no-files-found: warn
+
+  winzip-aes:
+    name: WinZip AE-2 HMAC and early DEFLATE EOF - .NET 11
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: security-lab
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Extract authentic and tampered synthetic WinZip AES fixtures
+        run: |
+          mkdir -p results
+          BOUNDARY_OUTPUT=results python3 -u security-lab/winzip_aes.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: winzip-aes
+          path: results/*.json
+          if-no-files-found: warn
+
+  jwt-permissions:
+    name: First-use JWT signing-key permissions - .NET 11
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: security-lab
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Compare first-create umask 022/077 and another OS identity
+        run: |
+          mkdir -p results
+          BOUNDARY_OUTPUT=results python3 -u security-lab/jwt_permissions.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jwt-permissions
+          path: results/*.json
+          if-no-files-found: warn
+
+  registry-realm:
+    name: Real SDK registry Bearer-realm destination validation - .NET 11
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: security-lab
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Probe actual SDK auth handler with synthetic canary credentials
+        run: |
+          mkdir -p results
+          BOUNDARY_OUTPUT=results python3 -u security-lab/registry_realm.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: registry-realm
+          path: results/*.json
+          if-no-files-found: warn
