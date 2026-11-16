@@ -96,10 +96,10 @@ def audit(major):
     c = samples["cookie_prefix"]["set_cookie"] or ""
     check("cookie_pathbase_from_trusted_hop", "pathbase=/;Domain=example.test" in samples["cookie_prefix"]["body"])
     check("cookie_domain_attribute_not_injected",
-          not bool(re.search(r";\\s*Domain=example\\.test(?:;|$)", c, re.I)))
+          not bool(re.search(r";\s*Domain=example\.test(?:;|$)", c, re.I)))
     af = samples["antiforgery_prefix"]["set_cookie"] or ""
     check("antiforgery_domain_attribute_not_injected",
-          not bool(re.search(r";\\s*Domain=example\\.test(?:;|$)", af, re.I)))
+          not bool(re.search(r";\s*Domain=example\.test(?:;|$)", af, re.I)))
     check("unknown_proxy_ignored",
           samples["cookie_unknown_proxy"]["body"] == "pathbase=")
     check("cookie_invalid_prefix_rejected",
@@ -162,6 +162,8 @@ def main():
             capture(prefix + "_c", f"/{prefix}?a=B")
         capture("output_cookie_a", "/output-cookie?a=B%3D")
         capture("output_cookie_repeat", "/output-cookie?a=B%3D")
+        capture("output_with_authorization", "/output?a=B%3D", {"Authorization": "Bearer local-control"})
+        capture("response_with_authorization", "/response?a=B%3D", {"Authorization": "Bearer local-control"})
         capture("rewrite_local", "/legacy/safe")
         capture("rewrite_attack", "/legacy//evil.example")
         capture("kestrel_origin", "/gate%2Fsecret")

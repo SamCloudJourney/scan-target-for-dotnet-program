@@ -6,9 +6,15 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Rewrite;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(server =>
+{
+    server.Listen(IPAddress.Loopback, 5089, listen => listen.Protocols = HttpProtocols.Http1);
+    server.Listen(IPAddress.Loopback, 5091, listen => listen.Protocols = HttpProtocols.Http2);
+});
 builder.Services.AddControllers();
 builder.Services.AddAntiforgery();
 builder.Services.AddResponseCaching();
@@ -31,6 +37,8 @@ builder.Services.AddAuthorization();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedPrefix;
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Add(IPAddress.Loopback);
     options.ForwardLimit = 1;
 });
@@ -86,7 +94,7 @@ app.MapFallback((HttpContext context) =>
         "text/plain", statusCode: 404));
 
 app.MapControllers();
-app.Run("http://127.0.0.1:5089");
+app.Run();
 
 public static class Lab
 {

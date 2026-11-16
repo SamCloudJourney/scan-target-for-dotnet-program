@@ -34,6 +34,7 @@ jobs:
         run: |
           dotnet --info >dotnet-info-${{ matrix.major }}.txt
           dotnet build research/aspnet-boundaries/BoundaryFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/aspnet-fixture
+          dotnet build research/aspnet-boundaries/Http2Client/Http2Client.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/aspnet-h2
       - name: Run fixture and loopback HTTP tests
         run: |
           mkdir -p REPRODUCTION-EVIDENCE
@@ -45,6 +46,7 @@ jobs:
             sleep 1
           done
           python3 research/aspnet-boundaries/test_requests.py --major ${{ matrix.major }} --output REPRODUCTION-EVIDENCE/results-${{ matrix.major }}.json
+          dotnet /tmp/aspnet-h2/Http2Client.dll REPRODUCTION-EVIDENCE/http2-results-${{ matrix.major }}.json
       - name: Upload raw evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -6,4 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Http2Client/**/*.cs" />
+  </ItemGroup>
 </Project>
