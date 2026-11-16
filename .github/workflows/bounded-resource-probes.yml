@@ -56,6 +56,7 @@ jobs:
                 -v "$probe:/app:ro" -v "$sample:/sample:ro" \
                 "$image" dotnet /app/Probe.dll "$@" | tee -a resource-results/measurements.jsonl
             }
+            run_probe inspect 1
             for n in 4096 16384 65536 131072 262144 524288; do
               for step in 1 64; do run_probe form "$n" "$step"; done
             done
