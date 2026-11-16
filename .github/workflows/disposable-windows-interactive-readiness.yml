@@ -1,0 +1,96 @@
+name: Windows SDK normal-client provenance and interactive VM test-kit compile
+on:
+  push:
+    branches: [research/windows-elevation-interactive-validation-20261116]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: interactive-readiness-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-interactive-kit:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Program.cs
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/InteractiveApprovalHarness.csproj
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Prepare-InteractiveFixture.ps1
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Run-InteractiveClient.ps1
+            research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Verify-And-Cleanup.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Compile human-approved interactive test-kit C# program; never request UAC in this job
+        shell: pwsh
+        run: dotnet build ./research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/InteractiveApprovalHarness.csproj -c Release --nologo
+      - name: Validate PowerShell lab and verification scripts without running them
+        shell: pwsh
+        run: |
+          $files = @(
+            './research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Prepare-InteractiveFixture.ps1',
+            './research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Run-InteractiveClient.ps1',
+            './research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/Verify-And-Cleanup.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errorsFound = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errorsFound)
+            if ($errorsFound.Count -gt 0) { $errorsFound | Format-List | Out-String | Write-Host; throw "PowerShell syntax errors in $file" }
+            Write-Host "PARSE_PASS=$file"
+          }
+      - name: Record build environment and readiness
+        if: always()
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'interactive-kit-readiness.json'
+          $exists = Test-Path './research/windows-elevation-boundary-20261116/InteractiveApprovalHarness/bin/Release/net11.0/InteractiveApprovalHarness.dll'
+          @{ timestampUtc=(Get-Date).ToUniversalTime().ToString('o');
+             builtDll=$exists; actualUacRun=$false; interactiveHumanApproval=$false;
+             verifiedSdkVersions=@('10.0.404','11.0.100');
+             limitation='Compiles the custom-client interactive VM test kit, not a real approval or unmodified workload exploit.' } | ConvertTo-Json | Set-Content $out
+      - name: Preserve build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interactive-kit-readiness
+          path: ${{ runner.temp }}/interactive-kit-readiness.json
+          if-no-files-found: warn
+          retention-days: 7
+  audit-normal-client:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/ordinary-client-reachability-audit.ps1
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Installer/Windows/InstallClientElevationContext.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Elevate/WorkloadElevateCommand.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Install/NetSdkMsiInstallerClient.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Installer/Windows/MsiPackageCache.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Install/NetSdkMsiInstallerServer.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Install/MsiInstallerBase.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Installer/Windows/WindowsUtils.cs
+      - name: Source-backed audit of actual workload path, root provenance and MSI product selection
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/ordinary-client-reachability-audit.ps1 -SdkSourceRoot './scan-target-v11.0.100/src/sdk/src/Cli/dotnet'
+      - name: Preserve source assertions and source hashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordinary-client-reachability
+          path: ${{ runner.temp }}/ordinary-client-reachability-audit.json
+          if-no-files-found: warn
+          retention-days: 7
