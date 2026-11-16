@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Rewrite;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
+builder.Services.AddAntiforgery();
 builder.Services.AddResponseCaching();
 builder.Services.AddOutputCache(options =>
     options.AddPolicy("all-query", policy => policy
@@ -52,6 +54,12 @@ app.MapGet("/cookie", async (HttpContext context) =>
         CookieAuthenticationDefaults.AuthenticationScheme,
         new ClaimsPrincipal(identity));
     await context.Response.WriteAsync("pathbase=" + context.Request.PathBase);
+});
+
+app.MapGet("/antiforgery", (HttpContext context, IAntiforgery antiforgery) =>
+{
+    antiforgery.GetAndStoreTokens(context);
+    return Results.Text("pathbase=" + context.Request.PathBase);
 });
 
 app.MapGet("/output", (HttpContext context) =>

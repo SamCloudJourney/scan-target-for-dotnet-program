@@ -15,8 +15,8 @@ PROXY = 5090
 samples = {}
 proxy_log = []
 
-def exchange(target, headers=None, port=BACKEND):
-    conn = http.client.HTTPConnection(HOST, port, timeout=8)
+def exchange(target, headers=None, port=BACKEND, source_ip=HOST):
+    conn = http.client.HTTPConnection(HOST, port, timeout=8, source_address=(source_ip, 0))
     conn.putrequest("GET", target, skip_host=True, skip_accept_encoding=True)
     conn.putheader("Host", f"{HOST}:{BACKEND}")
     conn.putheader("Connection", "close")
@@ -84,8 +84,10 @@ def listen_proxy(ready):
                     client.sendall(packet)
     server.close()
 
-def capture(name, target, headers=None, via_proxy=False):
-    samples[name] = exchange(target, headers, PROXY if via_proxy else BACKEND)
+def capture(name, target, headers=None, via_proxy=False, source_ip=HOST):
+    samples[name] = exchange(target, headers, PROXY if via_proxy else BACKEND, source_ip=source_ip)
+    if name.startswith("response_"):
+        time.sleep(0.35)  # Allow the server to finish cache storage before the next lookup.
 
 def audit(major):
     checks = {}
@@ -93,8 +95,13 @@ def audit(major):
         checks[name] = bool(ok)
     c = samples["cookie_prefix"]["set_cookie"] or ""
     check("cookie_pathbase_from_trusted_hop", "pathbase=/;Domain=example.test" in samples["cookie_prefix"]["body"])
-    check("cookie_domain_attribute_version_behavior",
-          bool(re.search(r";\s*Domain=example\.test(?:;|$)", c, re.I)) == (major == 10))
+    check("cookie_domain_attribute_not_injected",
+          not bool(re.search(r";\\s*Domain=example\\.test(?:;|$)", c, re.I)))
+    af = samples["antiforgery_prefix"]["set_cookie"] or ""
+    check("antiforgery_domain_attribute_not_injected",
+          not bool(re.search(r";\\s*Domain=example\\.test(?:;|$)", af, re.I)))
+    check("unknown_proxy_ignored",
+          samples["cookie_unknown_proxy"]["body"] == "pathbase=")
     check("cookie_invalid_prefix_rejected",
           samples["cookie_invalid"]["body"] == "pathbase=")
     check("output_first_response_cached",
@@ -146,6 +153,8 @@ def main():
         capture("cookie_plain", "/cookie")
         capture("cookie_prefix", "/cookie", {"X-Forwarded-Prefix": "/;Domain=example.test"})
         capture("cookie_invalid", "/cookie", {"X-Forwarded-Prefix": "not-an-absolute-path"})
+        capture("cookie_unknown_proxy", "/cookie", {"X-Forwarded-Prefix": "/;Domain=example.test"}, source_ip="127.0.0.2")
+        capture("antiforgery_prefix", "/antiforgery", {"X-Forwarded-Prefix": "/;Domain=example.test"})
         for prefix in ("output", "response"):
             capture(prefix + "_a", f"/{prefix}?a=B%3D")
             capture(prefix + "_a_repeat", f"/{prefix}?a=B%3D")
