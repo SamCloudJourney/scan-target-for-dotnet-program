@@ -29,7 +29,7 @@ sealed class LocalEndpoint : IAsyncDisposable
         b.Logging.ClearProviders();
         b.WebHost.ConfigureKestrel(x => x.Listen(IPAddress.Parse(ip), 0));
         var app=b.Build();
-        app.Run(serve);
+        app.Use(async (context, next) => { await serve(context); });
         await app.StartAsync();
         var addresses=app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses;
         return new LocalEndpoint(app, new Uri(addresses.Single()).Port);
