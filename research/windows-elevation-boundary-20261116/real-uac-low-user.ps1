@@ -107,7 +107,7 @@ try {
       }
       $summary.status="RUNAS_RETURNED_CHILD_WITHOUT_TRACKED_CONSENT"
     }
-    $child?.Dispose()
+    if($null -ne $child){$child.Dispose()}
   } catch [ComponentModel.Win32Exception] {
     $summary.actualRunasWin32Code=$_.Exception.NativeErrorCode
     $summary.actualRunasException=$_.Exception.Message
