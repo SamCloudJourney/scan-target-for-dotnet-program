@@ -284,12 +284,14 @@ internal static class Program
             }) ?? throw new InvalidDataException("Invalid fixture config");
             if(!fx.CreatedBySid.Equals(userSid,StringComparison.OrdinalIgnoreCase))
                 throw new UnauthorizedAccessException("Fixture was not prepared for current standard-user SID");
-            if(!fx.Root.StartsWith(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
-                ".."),StringComparison.OrdinalIgnoreCase))
-            {
-                // The admin setup script validates its own random sandbox and identifiers.
-                Console.WriteLine("Fixture root supplied by user: "+fx.Root);
-            }
+            // Do not accept arbitrary fixture roots: administrator preparation uses a
+            // unique disposable directory beneath the Windows Public profile.
+            string expectedPrefix=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),"..");
+            string publicRoot=Path.GetFullPath(expectedPrefix);
+            string fullFixtureRoot=Path.GetFullPath(fx.Root);
+            if(!fullFixtureRoot.StartsWith(publicRoot+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)
+                || !Path.GetFileName(fullFixtureRoot).StartsWith("msrc-windows-elevation-lab-",StringComparison.Ordinal))
+                throw new InvalidDataException("Fixture root is outside the designated disposable lab directory");
             Directory.SetCurrentDirectory(fx.PinnedCwd);
             string assemblyPath=SdkPath(version);
             if(!File.Exists(assemblyPath))throw new FileNotFoundException("Requested SDK not installed",assemblyPath);
