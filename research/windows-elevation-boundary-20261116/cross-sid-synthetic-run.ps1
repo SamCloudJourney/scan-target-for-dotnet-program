@@ -9,7 +9,7 @@ $account="zbb"+$id.Substring(0,10)
 $root=Join-Path $env:PUBLIC ("synthetic-cross-sid-"+$id)
 $client=Join-Path $root "client"
 $adminFolder=Join-Path $root "admin-only"
-$home=Join-Path $root "home"
+$sandboxHome=Join-Path $root "home"
 $cwd=Join-Path $root "sdk-pinned"
 $control=Join-Path $client "broker-pid.txt"
 $lowReport=Join-Path $client "low-cross-sid.json"
@@ -32,7 +32,7 @@ $summary=[ordered]@{
   registryProviderCreated=$false;cleanup=@();errors=@()
 }
 try {
-  New-Item -ItemType Directory -Force -Path $root,$client,$adminFolder,$home,$cwd | Out-Null
+  New-Item -ItemType Directory -Force -Path $root,$client,$adminFolder,$sandboxHome,$cwd | Out-Null
   $password=[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))+"A!9x"
   Write-Host ("::add-mask::"+$password)
   $secure=ConvertTo-SecureString $password -AsPlainText -Force
@@ -45,7 +45,7 @@ try {
   $grant=("*{0}:(OI)(CI)M" -f $sid)
   & icacls.exe $client /grant:r $grant | Out-Null
   if($LASTEXITCODE -ne 0){throw "Cannot authorize disposable client directory"}
-  & icacls.exe $home /grant:r $grant | Out-Null
+  & icacls.exe $sandboxHome /grant:r $grant | Out-Null
   if($LASTEXITCODE -ne 0){throw "Cannot authorize disposable home directory"}
   & icacls.exe $adminFolder /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null
   if($LASTEXITCODE -ne 0){throw "Cannot secure protected fixture"}
@@ -64,8 +64,6 @@ try {
     throw "Windows Update service active; refuse disruptive broker launch"
   }
   $creds=[pscredential]::new(("$env:COMPUTERNAME\"+$account),$secure)
-  $lowArgs=('"{0}" low-parent "{1}" "{2}" "{3}" "{4}" "{5}" "{6}" "{7}" "{8}"' -f
-    $harnessDll,$SdkVersion,$client,$adminFolder,$control,$cacheId,$provider,$lowReport,"ignored")
   # low-parent takes seven arguments after the selector: sdk,client,admin,control,cache,provider,report.
   $lowArgs=('"{0}" low-parent "{1}" "{2}" "{3}" "{4}" "{5}" "{6}" "{7}"' -f
     $harnessDll,$SdkVersion,$client,$adminFolder,$control,$cacheId,$provider,$lowReport)
@@ -74,9 +72,9 @@ try {
     PassThru=$true;RedirectStandardOutput=(Join-Path $client "low.stdout")
     RedirectStandardError=(Join-Path $client "low.stderr")
     Environment=@{
-      DOTNET_CLI_HOME=$home;DOTNET_NOLOGO="1";HOME=$home
-      TMP=$client;TEMP=$client;USERPROFILE=$home
-      APPDATA=$home;LOCALAPPDATA=$home
+      DOTNET_CLI_HOME=$sandboxHome;DOTNET_NOLOGO="1";HOME=$sandboxHome
+      TMP=$client;TEMP=$client;USERPROFILE=$sandboxHome
+      APPDATA=$sandboxHome;LOCALAPPDATA=$sandboxHome
     }
   }
   $lowProcess=Start-Process @lowStart
