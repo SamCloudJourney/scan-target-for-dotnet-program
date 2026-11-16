@@ -42,6 +42,12 @@ New-Item -ItemType Directory -Force -Path $root,$client,$protected,$pinned | Out
 if($LASTEXITCODE -ne 0){throw 'Failed lab root ACL'}
 & icacls.exe $protected /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Failed admin-only ACL'}
+# Permit creation of a new temporary subdirectory at the broad root WITHOUT
+# giving the standard user DELETE_CHILD on the administrator-protected sibling.
+# Newly created directories receive their creator's inherited full control.
+$rootCreateGrant=('*{0}:(WD,AD)' -f $standardSid)
+& icacls.exe $root /grant $rootCreateGrant '*S-1-3-0:(OI)(CI)(IO)F' | Out-Null
+if($LASTEXITCODE -ne 0){throw 'Failed to authorize safe low-user root subdirectory creation'}
 $grant=('*{0}:(OI)(CI)M' -f $standardSid)
 & icacls.exe $client /grant:r $grant | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Failed to grant low-user scratch access'}
