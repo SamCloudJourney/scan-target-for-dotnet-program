@@ -1,4 +1,4 @@
-name: Instrumented official ILLink publish: per-process samples
+name: "Instrumented official ILLink publish: per-process samples"
 on:
   push:
     branches: [research/bounded-resource-probes-20261116]
