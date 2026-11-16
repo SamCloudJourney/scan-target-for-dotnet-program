@@ -1,0 +1,48 @@
+name: CoreCLR WebCIL13 real browser-wasm rejection smoke
+on:
+  push:
+    branches: [research/coreclr-webcil13-20261116]
+    paths:
+      - 'tests/webcil13/browser-smoke/**'
+      - '.github/workflows/coreclr-webcil13-browser-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-browser-wasm-coreclr:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: tests/webcil13/browser-smoke
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+      - name: Toolchain and workload
+        shell: bash
+        run: |
+          set -eux
+          dotnet --info
+          dotnet workload install wasm-tools
+      - name: Publish CoreCLR browser wasm (Mono disabled)
+        shell: bash
+        run: |
+          set -eux
+          dotnet publish tests/webcil13/browser-smoke/BrowserCoreClrProbe.csproj \
+            -c Release -p:UseMonoRuntime=false -p:WasmBuildNative=false \
+            --disable-build-servers
+          find tests/webcil13/browser-smoke/bin/Release -name dotnet.js -o -name runner.mjs
+      - name: Execute safe malformed-input rejection controls in Node
+        shell: bash
+        run: |
+          set -eux
+          bundle="$(find tests/webcil13/browser-smoke/bin/Release -type d -name AppBundle | head -n 1)"
+          test -n "$bundle"
+          cd "$bundle"
+          node runner.mjs | tee /tmp/webcil13-actual-smoke.log
+          grep -q 'WEBCIL13_RUNTIME_SMOKE_PASS=true' /tmp/webcil13-actual-smoke.log
+          echo 'ACTUAL_BROWSER_WASM_REJECTION_SMOKE=PASS; RCE_PROVEN=false'
