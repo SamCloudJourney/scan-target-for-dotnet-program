@@ -42,6 +42,11 @@ public sealed class SymbolAuditStep : IStep
                 Console.Error.WriteLine(
                     "RESEARCH_LINKER_AUDIT sample=Sample" +
                     " hasSymbols=" + symbolsAlreadyRead +
+                    " expected=" + (Environment.GetEnvironmentVariable("INPUT_MODE") ?? "") +
+                    " path=" + path.Replace(" ","_") +
+                    " sha16=" + Convert.ToHexString(
+                        System.Security.Cryptography.SHA256.HashData(
+                            System.IO.File.ReadAllBytes(path)))[..16] +
                     " declared=" + declared +
                     " moduleKind=" + assembly.MainModule.Kind +
                     " runningFramework=" + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
