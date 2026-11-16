@@ -59,6 +59,13 @@ internal static class Program
         if (code != 0 || !Directory.Exists(path)) throw new Exception("mklink/J failed: " + output);
     }
 
+    private static void Hardlink(string link, string target)
+    {
+        (int code, string output) = Run("cmd.exe", "/c mklink /H \"" + link + "\" \"" + target + "\"");
+        if (code != 0 || !File.Exists(link))
+            throw new Exception("mklink/H failed for disposable fixture: " + output);
+    }
+
     private static string PipeName(Assembly sdk, int pid, string[] additionalValues)
     {
         Type utils = sdk.GetType("Microsoft.DotNet.Cli.Installer.Windows.WindowsUtils", throwOnError:true)!;
@@ -290,11 +297,68 @@ internal static class Program
                     "Live broker created log in explicitly selected client root; MSI nonexistent product rejected.",
                     "Not a protected destination or EoP.");
                 string viaJunction = Path.Combine(clientDir, "junction", "junction.log");
-                uint err2 = Uninstall(viaJunction);
                 string final = Path.Combine(outsideDir, "junction.log");
+                string junctionSentinel = "JUNCTION-ORIGINAL-DISPOSABLE-" + Guid.NewGuid().ToString("N");
+                File.WriteAllText(final, junctionSentinel);
+                uint err2 = Uninstall(viaJunction);
+                bool wasOverwritten = File.Exists(final) && File.ReadAllText(final) != junctionSentinel;
+                Check("12-broker-junction-truncates-existing", wasOverwritten && err2 == 1605,
+                    "Real SDK broker opened and altered an existing isolated file through an intermediate junction.",
+                    "The source and destination are both disposable, already-admin-owned scratch data; no UAC transition.");
                 Check("12-broker-junction-file-create", File.Exists(final) && err2 == 1605,
                     "Real SDK broker File.Create followed an NTFS junction outside trusted client root.",
                     "Both broker and client had the same already-elevated runner token; no standard-user boundary crossed.");
+                // Distinguish directory junctions from filesystem hard links: same NTFS file identity,
+                // an in-root name, and an out-of-root scratch destination.
+                string hardlinkFinal = Path.Combine(outsideDir, "hardlink-target.log");
+                string hardlinkSentinel = "HARDLINK-ORIGINAL-DISPOSABLE-" + Guid.NewGuid().ToString("N");
+                File.WriteAllText(hardlinkFinal, hardlinkSentinel);
+                string hardlinkAlias = Path.Combine(clientDir, "hardlink-alias.log");
+                Hardlink(hardlinkAlias, hardlinkFinal);
+                uint errHardlink = Uninstall(hardlinkAlias);
+                bool hardlinkOverwritten = File.Exists(hardlinkFinal) && File.ReadAllText(hardlinkFinal) != hardlinkSentinel;
+                Check("12-broker-hardlink-truncates-existing", errHardlink == 1605 && hardlinkOverwritten,
+                    "Real SDK broker followed an in-root hard link and changed the same out-of-root scratch file object.",
+                    "Hard links to protected files may be restricted by Windows ACLs; this does not prove an unprivileged attacker can create one.");
+
+                // Machine-wide installer dependency record fixture. Never name a genuine product/provider.
+                string provider = "IsolatedBrokerFixture." + Guid.NewGuid().ToString("N");
+                string dependent = "IsolatedDependent." + Guid.NewGuid().ToString("N");
+                string keyPath = @"SOFTWARE\Classes\Installer\Dependencies\" + provider;
+                if (Registry.LocalMachine.OpenSubKey(keyPath) != null)
+                    throw new InvalidOperationException("Refusing to alter pre-existing provider key.");
+                try
+                {
+                    object addReply = ReadResponse(request,
+                        JsonSerializer.Serialize(new { RequestType = 200, ProviderKeyName = provider, Dependent = dependent }));
+                    uint addError = ErrorOf(addReply);
+                    using RegistryKey? created = Registry.LocalMachine.OpenSubKey(keyPath + @"\Dependents\" + dependent);
+                    bool createdMarker = created != null;
+                    Sessions.Add(new { sdkVersion, label, brokerPID = broker.Id, brokerIdentity,
+                        requestType = "AddDependent", providerFixture = provider, dependentFixture = dependent,
+                        registryKeyCreated = createdMarker, error = addError, brokerReply = addReply });
+                    Check("13-broker-disposable-provider-add", addError == 0 && createdMarker,
+                        "Live SDK broker created an isolated HKLM installer-dependency record using client-selected identifiers.",
+                        "Unique fixture only, not a genuine third-party provider; same pre-authorized administrator token.");
+                    object removeReply = ReadResponse(request,
+                        JsonSerializer.Serialize(new { RequestType = 201, ProviderKeyName = provider, Dependent = dependent }));
+                    uint removeError = ErrorOf(removeReply);
+                    using RegistryKey? removed = Registry.LocalMachine.OpenSubKey(keyPath + @"\Dependents\" + dependent);
+                    bool removedMarker = removed == null;
+                    Sessions.Add(new { sdkVersion, label, brokerPID = broker.Id, brokerIdentity,
+                        requestType = "RemoveDependent", providerFixture = provider, dependentFixture = dependent,
+                        registryRecordRemoved = removedMarker, error = removeError, brokerReply = removeReply });
+                    Check("13-broker-disposable-provider-remove", removeError == 0 && removedMarker,
+                        "Live SDK broker removed the isolated provider's dependent record by caller request.",
+                        "No production dependency or installed software changed.");
+                }
+                finally
+                {
+                    // SDK RemoveDependent deliberately retains provider root. Remove only our generated fixture.
+                    using RegistryKey? rootKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Dependencies", writable: true);
+                    rootKey?.DeleteSubKeyTree(provider, throwOnMissingSubKey: false);
+                }
+
                 string repairLog = Path.Combine(clientDir, "repair-negative.log");
                 uint err3 = Repair(repairLog);
                 Check("13-broker-unregistered-repair", File.Exists(repairLog) && err3 == 1605,
@@ -302,6 +366,24 @@ internal static class Program
                     "No existing product modified; no transaction-specific authorization proved.");
                 if (fixture != null)
                 {
+                    // Repair an unrelated disposable installed MSI after deliberately deleting only its marker.
+                    File.Delete(fixture.InstalledMarker);
+                    string repairFixtureLog = Path.Combine(clientDir, "disposable-repair.log");
+                    object repairFixtureReply = ReadResponse(request, JsonSerializer.Serialize(new
+                    {
+                        RequestType = 302, ProductCode = fixture.ProductCode, LogFile = repairFixtureLog
+                    }));
+                    uint repairFixtureError = ErrorOf(repairFixtureReply);
+                    bool repairedMarker = File.Exists(fixture.InstalledMarker);
+                    Sessions.Add(new { sdkVersion, label, brokerPID = broker.Id, brokerIdentity,
+                        requestType = "RepairMsi", productFixture = "self-authored unrelated installed WiX MSI",
+                        error = repairFixtureError, fileRestored = repairedMarker, logFile = repairFixtureLog,
+                        brokerReply = repairFixtureReply });
+                    Check("13-broker-disposable-unrelated-repair",
+                        (repairFixtureError == 0 || repairFixtureError == 3010) && repairedMarker && File.Exists(repairFixtureLog),
+                        "Live workload broker repaired unrelated installed disposable MSI, response " +
+                        repairFixtureError + ", restoredMarker=" + repairedMarker,
+                        "Both processes run as an existing administrator; no standard-user-to-admin exploit proved.");
                     string fixtureLog = Path.Combine(clientDir, "disposable-uninstall.log");
                     string requestJson = JsonSerializer.Serialize(new
                     {
@@ -324,7 +406,13 @@ internal static class Program
             else
             {
                 string broadened = Path.Combine(outsideDir, "broad-trust-root.log");
+                string original = "BROAD-ROOT-ORIGINAL-DISPOSABLE-" + Guid.NewGuid().ToString("N");
+                File.WriteAllText(broadened, original);
                 uint err = Uninstall(broadened);
+                bool changed = File.Exists(broadened) && File.ReadAllText(broadened) != original;
+                Check("11-broker-broad-truncates-existing", changed && err == 1605,
+                    "Real broker modified a pre-existing isolated file outside the ordinary client root after selecting a broad trust root.",
+                    "The root was supplied by an already-elevated parent; no UAC crossing.");
                 Check("11-broker-broad-client-root", File.Exists(broadened) && err == 1605,
                     "Real broker created log outside narrow client directory after explicit overbroad --client-temp.",
                     "Broker was directly started by already-elevated test process. No UAC approval or EoP.");
