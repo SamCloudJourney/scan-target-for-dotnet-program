@@ -17,6 +17,11 @@ $data=[ordered]@{
   directProtectedWriteDenied=$false
   linkedProtectedWriteDenied=$false
   junctionCreated=$false
+  overbroadTempSelected=$false
+  requestedTempRoot=''
+  hardlinkCreated=$false
+  hardlinkWriteDenied=$false
+  hardlinkDetail=''
   registryWriteDenied=$false
   junctionDetail=''
   directError=''
@@ -29,6 +34,18 @@ try {
   [IO.File]::WriteAllText($owned,'LOW-OWNED-SCRATCH')
   $data.canWriteOwn=([IO.File]::ReadAllText($owned) -eq 'LOW-OWNED-SCRATCH')
   $canary=Join-Path $Protected 'canary.log'
+  # SDK's actual client uses Path.GetTempPath() as its --client-temp argument.
+  # A user may select a root that contains restricted children without owning them.
+  $oldTmp=$env:TMP
+  try {
+    $requestedRoot=[IO.Path]::GetFullPath((Split-Path $Client -Parent))
+    $env:TMP=$requestedRoot
+    $selected=[IO.Path]::GetTempPath()
+    $data.requestedTempRoot=$selected
+    $data.overbroadTempSelected=([IO.Path]::GetFullPath($selected).TrimEnd([IO.Path]::DirectorySeparatorChar) -eq $requestedRoot.TrimEnd([IO.Path]::DirectorySeparatorChar))
+  } finally {
+    $env:TMP=$oldTmp
+  }
   try { [IO.File]::AppendAllText($canary,'LOW-UNEXPECTED'); $data.directError='unexpected write succeeded' }
   catch { $data.directProtectedWriteDenied=$true; $data.directError=$_.Exception.GetType().Name }
   $link=Join-Path $Client 'junction'
@@ -39,6 +56,17 @@ try {
   if($data.junctionCreated) {
     try { [IO.File]::AppendAllText((Join-Path $link 'canary.log'),'LOW-LINK-UNEXPECTED'); $data.linkedError='unexpected write succeeded' }
     catch { $data.linkedProtectedWriteDenied=$true; $data.linkedError=$_.Exception.GetType().Name }
+  }
+  # Hard-link subvector: the unprivileged creator must pass Windows checks on
+  # the target. A protected target may prevent link creation entirely.
+  $hardlink=Join-Path $Client 'hardlink-canary.log'
+  $hardlinkCmd=('mklink /H "' + $hardlink + '" "' + $canary + '"')
+  $hardlinkText=& cmd.exe /c $hardlinkCmd 2>&1 | Out-String
+  $data.hardlinkDetail=$hardlinkText.Substring(0,[Math]::Min(900,$hardlinkText.Length))
+  $data.hardlinkCreated=(Test-Path -LiteralPath $hardlink)
+  if($data.hardlinkCreated) {
+    try { [IO.File]::AppendAllText($hardlink,'LOW-HARDLINK-UNEXPECTED') }
+    catch { $data.hardlinkWriteDenied=$true }
   }
   try {
     $reg="Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Dependencies\$Provider\Dependents\StandardClientProbe"
@@ -53,3 +81,4 @@ try {
 }
 if($data.isAdministrator -or !$data.canWriteOwn -or !$data.directProtectedWriteDenied -or !$data.registryWriteDenied){ exit 1 }
 if($data.junctionCreated -and !$data.linkedProtectedWriteDenied){exit 1}
+if($data.hardlinkCreated -and !$data.hardlinkWriteDenied){exit 1}
