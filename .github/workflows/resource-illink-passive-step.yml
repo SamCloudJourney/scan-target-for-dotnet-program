@@ -34,6 +34,9 @@ jobs:
           dotnet research/bounded-resource-probes/Linker/Mutate/bin/Release/net10.0/Mutate.dll \
             research/bounded-resource-probes/Sample/bin/Release/net10.0/Sample.dll \
             research/bounded-resource-probes/Linker
+          echo "Available ILLink compiler references:"
+          find "$HOME/.nuget/packages/microsoft.net.illink.tasks" -type f \( -name 'illink.dll' -o -name 'Mono.Linker.dll' -o -name 'Mono.Cecil.dll' \) | head -n 35
+          dotnet msbuild research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -getProperty:PkgMicrosoft_NET_ILLink_Tasks -p:TargetFramework=net10.0 || true
           dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net10.0
           dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net11.0
           dotnet restore research/bounded-resource-probes/LinkerCustom/HostAudit/HostAudit.csproj -p:PublishTrimmed=true
