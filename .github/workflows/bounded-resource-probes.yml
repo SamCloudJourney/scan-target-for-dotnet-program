@@ -68,6 +68,17 @@ jobs:
               run_probe cecil "$declared" /sample/Sample.dll
             done
           done
+
+          # Historical affected control only (CVE-2026-70196, patched in 10.0.13).
+          # This never contacts an HTTP service; the synthetic form input is <=128KiB.
+          docker pull mcr.microsoft.com/dotnet/aspnet:10.0.12
+          image=mcr.microsoft.com/dotnet/aspnet:10.0.12
+          probe="$PWD/research/bounded-resource-probes/Probe/bin/Release/net10.0"
+          sample="$PWD/research/bounded-resource-probes/Sample/bin/Release/net10.0"
+          run_probe inspect 1
+          for n in 4096 16384 65536 131072; do
+            for step in 1 64; do run_probe form "$n" "$step"; done
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
