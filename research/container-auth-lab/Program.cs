@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 await Laboratory.RunAsync();
+await ExtendedImpactLab.RunAsync();
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
 
