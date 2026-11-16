@@ -19,6 +19,13 @@ $cacheId="SandboxCrossSid."+$id
 $provider="SandboxCrossSidProvider."+$id
 $cacheFolder=Join-Path (Join-Path $env:ProgramData "dotnet\workloads") $cacheId
 $protectedPayload=Join-Path $adminFolder "protected-payload.dat"
+$fixtureProductCode=[guid]::NewGuid().ToString("B").ToUpperInvariant()
+$fixtureUpgradeCode=[guid]::NewGuid().ToString("B").ToUpperInvariant()
+$fixtureComponentCode=[guid]::NewGuid().ToString("B").ToUpperInvariant()
+$fixtureBuild=Join-Path $root "self-authored-msi-build"
+$fixtureInstall=Join-Path $adminFolder "self-authored-msi-install"
+$fixtureMarker=Join-Path $fixtureInstall "marker-input.txt"
+$fixtureInstalled=$false
 $harnessDll=Join-Path $PSScriptRoot "CrossSidHarness\bin\Release\net11.0\CrossSidHarness.dll"
 $created=$false
 $lowProcess=$null
@@ -28,7 +35,11 @@ $summary=[ordered]@{
   testDescription="Real shipped SDK broker, real distinct low user client, controlled synthetic process parent"
   lowUserSid=$null;adminRunnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
   lowReport=$null;launcherResult=$null;actualProtectedSourceRemoved=$false
-  cachedPayloadMatchesProtectedSource=$false;installedProductUntouched=$true
+  cachedPayloadMatchesProtectedSource=$false
+  unrelatedMsiProductCode=$fixtureProductCode
+  unrelatedMsiInstalledBeforeLowBroker=$false
+  unrelatedMsiRemovedByLowClientBroker=$false
+  unrelatedMsiUninstallResponse=$null
   registryProviderCreated=$false;cleanup=@();errors=@()
 }
 try {
@@ -55,6 +66,58 @@ try {
   @{sdk=@{version=$SdkVersion;rollForward="disable"}} | ConvertTo-Json -Depth 3 -Compress |
      Set-Content -LiteralPath (Join-Path $cwd "global.json") -Encoding utf8
   if(Test-Path -LiteralPath $cacheFolder){throw "Refuse preexisting workload cache ID"}
+  # Self-authored, completely unrelated MSI fixture installed only in our
+  # administrator-only scratch directory. This is not a .NET workload product.
+  New-Item -ItemType Directory -Path $fixtureBuild,$fixtureInstall -Force | Out-Null
+  $wixCandidates=@('C:\Program Files (x86)\WiX Toolset v3.14\bin',
+    'C:\Program Files (x86)\WiX Toolset v3.11\bin')
+  $wixBin=$wixCandidates | Where-Object {
+    (Test-Path (Join-Path $_ 'candle.exe')) -and (Test-Path (Join-Path $_ 'light.exe'))
+  } | Select-Object -First 1
+  if(!$wixBin){ throw 'WiX fixture toolchain missing; no unrelated MSI test performed' }
+  $source=Join-Path $fixtureBuild "marker-input.txt"
+  [IO.File]::WriteAllText($source,'DISPOSABLE-CROSS-SID-MSI-'+$id)
+  $escapedSource=[Security.SecurityElement]::Escape($source)
+  $wxs=Join-Path $fixtureBuild 'fixture.wxs'
+  $wixObj=Join-Path $fixtureBuild 'fixture.wixobj'
+  $msiFile=Join-Path $fixtureBuild 'fixture.msi'
+  $wixXml=@"
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="$fixtureProductCode" Name="Disposable Cross SID MSI Fixture" Language="1033"
+           Version="1.0.0.0" Manufacturer="AuthorizedRegressionLab" UpgradeCode="$fixtureUpgradeCode">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+    <MediaTemplate EmbedCab="yes" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="CrossSidRegressionFixture">
+          <Component Id="OwnedFileComponent" Guid="$fixtureComponentCode">
+            <File Id="OwnedMarker" Name="marker-input.txt" Source="$escapedSource" KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id="Complete" Title="Disposable fixture" Level="1">
+      <ComponentRef Id="OwnedFileComponent" />
+    </Feature>
+  </Product>
+</Wix>
+"@
+  [IO.File]::WriteAllText($wxs,$wixXml)
+  & (Join-Path $wixBin 'candle.exe') -nologo -out $wixObj $wxs | Out-Null
+  if($LASTEXITCODE -ne 0){throw 'Disposable WiX candle compile failed'}
+  & (Join-Path $wixBin 'light.exe') -nologo -out $msiFile $wixObj | Out-Null
+  if($LASTEXITCODE -ne 0){throw 'Disposable WiX light link failed'}
+  $installLog=Join-Path $fixtureBuild 'install.log'
+  $installArgs=('/i "{0}" /qn /norestart ALLUSERS=1 INSTALLDIR="{1}" /L*v "{2}"' -f
+    $msiFile,$fixtureInstall,$installLog)
+  $installedProcess=Start-Process -FilePath msiexec.exe -ArgumentList $installArgs -Wait -PassThru
+  if($installedProcess.ExitCode -ne 0 -or !(Test-Path -LiteralPath $fixtureMarker)){
+    throw ('Self-authored MSI installation failed; exit='+$installedProcess.ExitCode)
+  }
+  $fixtureInstalled=$true
+  $summary.unrelatedMsiInstalledBeforeLowBroker=$true
+
   $dotnet=(Get-Command dotnet.exe).Source
   if(-not (Test-Path -LiteralPath $harnessDll)){throw "CrossSidHarness build output missing"}
   # Avoid starting a real workload broker while Windows Update Agent is already active.
@@ -64,9 +127,9 @@ try {
     throw "Windows Update service active; refuse disruptive broker launch"
   }
   $creds=[pscredential]::new(("$env:COMPUTERNAME\"+$account),$secure)
-  # low-parent takes seven arguments after the selector: sdk,client,admin,control,cache,provider,report.
-  $lowArgs=('"{0}" low-parent "{1}" "{2}" "{3}" "{4}" "{5}" "{6}" "{7}"' -f
-    $harnessDll,$SdkVersion,$client,$adminFolder,$control,$cacheId,$provider,$lowReport)
+  # LowUser receives only the GUID and an admin-only marker path, never installer credentials.
+  $lowArgs=('"{0}" low-parent "{1}" "{2}" "{3}" "{4}" "{5}" "{6}" "{7}" "{8}" "{9}"' -f
+    $harnessDll,$SdkVersion,$client,$adminFolder,$control,$cacheId,$provider,$lowReport,$fixtureProductCode,$fixtureMarker)
   $lowStart=@{
     FilePath=$dotnet;ArgumentList=$lowArgs;Credential=$creds;WorkingDirectory=$cwd
     PassThru=$true;RedirectStandardOutput=(Join-Path $client "low.stdout")
@@ -122,9 +185,14 @@ try {
   $regPath="Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Dependencies\"+$provider
   $summary.registryProviderCreated=(Test-Path -LiteralPath $regPath)
   $summary.originalProtectedSha256=$sourceHash
+  $summary.unrelatedMsiRemovedByLowClientBroker=!(Test-Path -LiteralPath $fixtureMarker)
+  $summary.unrelatedMsiUninstallResponse=$low.environment.unrelatedInstalledMsiUninstallCode
   if($lowProcess.ExitCode -ne 0 -or $low.status -ne "COMPLETED" -or
     $low.environment.lowSid -ne $sid -or !$summary.actualProtectedSourceRemoved -or
-    !$summary.cachedPayloadMatchesProtectedSource -or !$summary.registryProviderCreated) {
+    !$summary.cachedPayloadMatchesProtectedSource -or !$summary.registryProviderCreated -or
+    !$summary.unrelatedMsiInstalledBeforeLowBroker -or
+    !$summary.unrelatedMsiRemovedByLowClientBroker -or
+    ($summary.unrelatedMsiUninstallResponse -notin @(0,3010))) {
     throw "Actual cross-SID broker fixture results failed positive assertions"
   }
   $summary.status="COMPLETED_SYNTHETIC_CROSS_SID"
@@ -134,12 +202,33 @@ try {
   $summary.errors+=$_.Exception.ToString()
   Write-Host ("CROSS_SID_RESULT="+$summary.status+" "+$_.Exception.Message)
 } finally {
+  # Ensure the generated elevated broker has exited before deleting its working directory.
+  try {
+    if($summary.launcherResult -and $summary.launcherResult.environment.brokerPid) {
+      $ownedBrokerId=[int]$summary.launcherResult.environment.brokerPid
+      $ownedBroker=Get-Process -Id $ownedBrokerId -ErrorAction SilentlyContinue
+      if($ownedBroker -and !$ownedBroker.HasExited) {
+        if(!$ownedBroker.WaitForExit(15000)) {
+          Stop-Process -Id $ownedBrokerId -Force -ErrorAction Stop
+          $summary.cleanup+="Stopped only tracked synthetic SDK broker after shutdown grace period"
+        }
+      }
+    }
+  } catch {$summary.errors+=("Tracked broker wait: "+$_.Exception.Message)}
   try{
     if($lowProcess -and !$lowProcess.HasExited){
       Stop-Process -Id $lowProcess.Id -Force -ErrorAction Stop
       $summary.cleanup+="Stopped only generated low-user dotnet test process"
     }
   }catch{$summary.errors+=("Low-parent cleanup: "+$_.Exception.Message)}
+  try {
+    # Only uninstall this unique, self-authored MSI if a failed test left it installed.
+    if($fixtureInstalled -and (Test-Path -LiteralPath $fixtureMarker)) {
+      $cleanupArgs=('/x {0} /qn /norestart' -f $fixtureProductCode)
+      $cleanupMsi=Start-Process -FilePath msiexec.exe -ArgumentList $cleanupArgs -Wait -PassThru
+      $summary.cleanup+=('Uninstalled remaining disposable MSI fixture; exit='+$cleanupMsi.ExitCode)
+    }
+  } catch {$summary.errors+=("Fixture MSI cleanup: "+$_.Exception.Message)}
   try{
     # Admin-only cleanup of this exact randomized package fixture.
     if($cacheId.StartsWith("SandboxCrossSid.") -and (Test-Path -LiteralPath $cacheFolder)){
