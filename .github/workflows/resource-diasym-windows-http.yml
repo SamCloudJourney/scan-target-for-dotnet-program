@@ -1,0 +1,68 @@
+name: Bounded real Windows COM PDB upload HTTP consumer
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/WindowsPdbHttp/**'
+      - '.github/workflows/resource-diasym-windows-http.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-only-self-owned-loopback:
+    runs-on: windows-2022
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build investigator-controlled Portable PDB and Windows HTTP consumer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force -Path windows-pdb-http-evidence | Out-Null
+          dotnet build research/bounded-resource-probes/SourceSample/SourceSample.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "PDB fixture build failed"}
+          dotnet build research/bounded-resource-probes/WindowsPdbHttp/WindowsPdbHttp.csproj -c Release -f net10.0
+          if($LASTEXITCODE -ne 0){throw "net10 HTTP parser build failed"}
+          dotnet build research/bounded-resource-probes/WindowsPdbHttp/WindowsPdbHttp.csproj -c Release -f net11.0
+          if($LASTEXITCODE -ne 0){throw "net11 HTTP parser build failed"}
+      - name: Run bounded native PDB source extraction over true loopback HTTP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root='research/bounded-resource-probes'
+          $pdb=(Resolve-Path "$root/SourceSample/bin/Release/net10.0/SourceSample.pdb").Path
+          foreach($fx in @('net10.0','net11.0')){
+            $app=(Resolve-Path "$root/WindowsPdbHttp/bin/Release/$fx/WindowsPdbHttp.dll").Path
+            $out=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.out')
+            $err=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.err')
+            $p=Start-Process dotnet -ArgumentList @($app,$pdb) -PassThru -Wait:$false -NoNewWindow -RedirectStandardOutput $out -RedirectStandardError $err
+            try {
+              if(-not $p.WaitForExit(45000)){
+                $p.Kill($true)
+                throw "Bounded Windows HTTP lab exceeded 45 seconds"
+              }
+              "=== Framework $fx ===" | Tee-Object -FilePath windows-pdb-http-evidence/service.jsonl -Append
+              Get-Content $out | Tee-Object -FilePath windows-pdb-http-evidence/service.jsonl -Append
+              if($p.ExitCode -ne 0){
+                Get-Content $err -Raw | Tee-Object -FilePath windows-pdb-http-evidence/stderr.log -Append
+                throw "Owned HTTP lab failed: $fx exit $($p.ExitCode)"
+              }
+            } finally{Remove-Item $out,$err -ErrorAction SilentlyContinue -Force}
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-DiaSymReader-3-real-PDB-HTTP-control
+          path: windows-pdb-http-evidence/
+          retention-days: 14
+          if-no-files-found: warn
