@@ -1,0 +1,69 @@
+name: Bounded Mono.Cecil decompression trust-boundary check
+on:
+  push:
+    branches:
+      - research/bounded-resource-probes-20261116
+    paths:
+      - 'research/bounded-resource-probes/CecilExpand/**'
+      - '.github/workflows/resource-cecil-expand.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cecil-output-budget:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build self-generated assembly and test only
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj -c Release
+          dotnet build research/bounded-resource-probes/CecilExpand/CecilExpand.csproj -f net10.0 -c Release
+          dotnet build research/bounded-resource-probes/CecilExpand/CecilExpand.csproj -f net11.0 -c Release
+      - name: Test actual output > declared size under explicit 2 MiB expansion budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cecil-evidence
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then tag=10.0.15; else tag=11.0.0; fi
+            image="mcr.microsoft.com/dotnet/runtime:$tag"
+            docker pull "$image"
+            app="$PWD/research/bounded-resource-probes/CecilExpand/bin/Release/$fx"
+            src="$PWD/research/bounded-resource-probes/Sample/bin/Release/net10.0"
+            run_probe() {
+              timeout --signal=TERM --kill-after=2s 12s docker run --rm \
+                --memory=384m --memory-swap=384m --cpus=1 --pids-limit=48 \
+                --network none --read-only --tmpfs /tmp:rw,nosuid,size=16m \
+                -e DOTNET_GCHeapHardLimit=0x10000000 \
+                -v "$app:/app:ro" -v "$src:/sample:ro" \
+                "$image" dotnet /app/CecilExpand.dll /sample/Sample.dll "$@" \
+                | tee -a cecil-evidence/cecil-expand.jsonl
+            }
+            run_probe 8192 0 true
+            run_probe 1 1048576 true
+            run_probe 8388608 1048576 true
+            run_probe 8388608 1048576 false
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cecil-inflated-output-evidence
+          path: cecil-evidence/
+          retention-days: 14
+          if-no-files-found: warn
