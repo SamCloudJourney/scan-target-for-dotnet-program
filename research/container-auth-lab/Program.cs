@@ -33,6 +33,7 @@ else
     await SharedPublisherLab.RunAsync();
     await IndependentImpactLab.RunAsync();
     await RedirectMatrixLab.RunAsync();
+    await SplitRegistryPublishLab.RunAsync();
 }
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
