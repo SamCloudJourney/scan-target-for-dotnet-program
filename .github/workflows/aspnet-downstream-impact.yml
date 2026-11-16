@@ -1,0 +1,70 @@
+name: ASP.NET downstream impact matrix (loopback only)
+on:
+  push:
+    branches: [research/aspnet-boundary-five-20261116]
+    paths:
+      - '.github/workflows/aspnet-downstream-impact.yml'
+      - 'research/aspnet-boundaries/downstream/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  downstream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/downstream
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Install HAProxy and validate rules
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y haproxy
+          mkdir -p downstream-evidence
+          haproxy -vv >downstream-evidence/haproxy-version.txt
+          haproxy -c -f research/aspnet-boundaries/downstream/haproxy-impact.cfg
+      - name: Build independent ASP.NET fixture
+        run: |
+          dotnet --info >downstream-evidence/dotnet-info.txt
+          dotnet build research/aspnet-boundaries/downstream/ImpactFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/impact-fixture
+      - name: Run isolated attacker/victim and negative controls
+        run: |
+          dotnet /tmp/impact-fixture/ImpactFixture.dll >downstream-evidence/aspnet.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5100/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:5100/healthz >/dev/null
+          haproxy -db -f research/aspnet-boundaries/downstream/haproxy-impact.cfg >downstream-evidence/haproxy.log 2>&1 &
+          proxy_pid=$!
+          trap 'kill "$proxy_pid" "$app_pid" 2>/dev/null || true' EXIT
+          for port in 5102 5104; do
+            for i in $(seq 1 45); do
+              if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
+              sleep 0.5
+            done
+            curl -fsS http://127.0.0.1:$port/healthz >/dev/null
+          done
+          python3 research/aspnet-boundaries/downstream/impact_test.py --major ${{ matrix.major }} --output downstream-evidence/results-${{ matrix.major }}.json
+      - name: Upload all evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspnet-downstream-net${{ matrix.major }}
+          path: downstream-evidence/
+          retention-days: 30
