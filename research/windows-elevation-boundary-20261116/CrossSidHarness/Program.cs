@@ -247,6 +247,7 @@ internal static class Program
                     @"SOFTWARE\Classes\Installer\Dependencies",writable:true);
                 reg?.CreateSubKey(provider);
             }catch(UnauthorizedAccessException){deniedRegistry=true;}
+            catch(System.Security.SecurityException){deniedRegistry=true;}
             Record("low-direct-read-denied",deniedRead);
             Record("low-direct-write-denied",deniedWrite);
             Record("low-direct-registry-denied",deniedRegistry);
