@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """First-create dotnet user-jwts key file permissions; synthetic local key only."""
-import json,os,pathlib,stat,subprocess,tempfile
+import json,os,pathlib,stat,subprocess,tempfile,re,pwd
 OUT=pathlib.Path(os.environ.get("BOUNDARY_OUTPUT","."))
 OUT.mkdir(parents=True,exist_ok=True)
 ROOT=pathlib.Path(tempfile.mkdtemp(prefix="userjwt-boundary-"))
@@ -33,14 +33,20 @@ for name,umask in [("ordinary_umask_022",0o022),("strict_umask_077",0o077)]:
     proj.write_text('<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
     init=run(["dotnet","user-secrets","init","--project",str(proj)],app,home,umask)
     created=run(["dotnet","user-jwts","create","--project",str(proj)],app,home,umask)
-    secrets=list(home.rglob("secrets.json"))
+    uid_match=re.search(r"<UserSecretsId>([^<]+)</UserSecretsId>",proj.read_text())
+    uid=uid_match.group(1) if uid_match else ""
+    fallback=pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)
+    candidates=list(home.rglob("secrets.json"))
+    for basedir in [fallback/".microsoft"/"usersecrets",fallback/".config",fallback/".local"/"share"]:
+        if basedir.exists(): candidates+=list(basedir.rglob("secrets.json"))
+    secrets=list(dict.fromkeys(p for p in candidates if not uid or uid in str(p)))
     inspected=[]
     for p in secrets:
         try:
             text=p.read_text()
             contains_signing_key= "SigningKeys" in text and "Value" in text
             mode_now=stat.S_IMODE(p.stat().st_mode)
-            inspected.append({"relative_path":str(p.relative_to(home)),"permissions":oct(mode_now),
+            inspected.append({"relative_path":str(p.relative_to(home)) if p.is_relative_to(home) else str(p),"permissions":oct(mode_now),
                               "contains_synthetic_signing_key":contains_signing_key,
                               "group_or_other_readable":bool(mode_now & 0o044),
                               "readable_as_nobody":readable_by_other_user(p)})
