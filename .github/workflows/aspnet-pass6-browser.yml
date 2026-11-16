@@ -1,0 +1,78 @@
+name: ASP.NET Pass 6 - cookie producers and Chromium redirect flow
+on:
+  push:
+    branches: [research/aspnet-impact-crossproxy-20261116]
+    paths:
+      - '.github/workflows/aspnet-pass6-browser.yml'
+      - 'research/aspnet-boundaries/pass6/Program.cs'
+      - 'research/aspnet-boundaries/pass6/cookie_test.py'
+      - 'research/aspnet-boundaries/pass6/receiver.py'
+      - 'research/aspnet-boundaries/pass6/browser_check.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/pass6
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Build and inspect available browsers
+        run: |
+          mkdir -p browser-evidence
+          (google-chrome --version || chromium --version || true) >browser-evidence/chromium-version.txt 2>&1
+          (firefox --version || true) >browser-evidence/firefox-availability.txt 2>&1
+          (microsoft-edge --version || true) >browser-evidence/edge-availability.txt 2>&1
+          node --version >browser-evidence/node-version.txt
+          dotnet build research/aspnet-boundaries/pass6/SecurityFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-browser-app
+      - name: Test four cookie producers, trust chain and real browser navigation
+        run: |
+          dotnet /tmp/pass6-browser-app/SixthFixture.dll >browser-evidence/backend.log 2>&1 &
+          backend_pid=$!
+          trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5200/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:5200/healthz >/dev/null
+          python3 research/aspnet-boundaries/pass6/cookie_test.py --output browser-evidence/cookie-producers-${{ matrix.major }}.json
+          python3 research/aspnet-boundaries/pass6/receiver.py >browser-evidence/receiver.log 2>&1 &
+          receiver_pid=$!
+          trap 'kill "$receiver_pid" "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 35); do
+            if curl --noproxy '*' -fsS http://127.0.0.2:5207/_events >/dev/null 2>&1; then break; fi
+            sleep 0.3
+          done
+          curl --noproxy '*' -fsS http://127.0.0.2:5207/_events >/dev/null
+          CHROME="$(command -v google-chrome || command -v chromium)"
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage             --no-proxy-server --no-first-run --no-default-browser-check             --remote-debugging-port=5221 --remote-allow-origins='*'             --user-data-dir=/tmp/pass6-browser-profile about:blank >browser-evidence/chrome.log 2>&1 &
+          chrome_pid=$!
+          trap 'kill "$chrome_pid" "$receiver_pid" "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5221/json/version >/dev/null 2>&1; then break; fi
+            sleep 0.3
+          done
+          curl -fsS http://127.0.0.1:5221/json/version >/dev/null
+          node --experimental-websocket research/aspnet-boundaries/pass6/browser_check.mjs browser-evidence/browser-${{ matrix.major }}.json ${{ matrix.major }}
+      - name: Upload browser + cookie evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass6-browser-net${{ matrix.major }}
+          path: browser-evidence/
+          retention-days: 30
