@@ -50,7 +50,11 @@ jobs:
             image="mcr.microsoft.com/dotnet/sdk:$sdk"
             docker pull "$image"
             for mode in InputBaseline InputAltered; do
-              host="$PWD/research/bounded-resource-probes/LinkerCustom/HostAudit"
+              hostroot="$PWD/research/bounded-resource-probes/LinkerCustom/HostAudit"
+              sandbox="$PWD/independent-linker-work/$fx-$mode"
+              rm -rf "$sandbox"
+              mkdir -p "$sandbox"
+              cp "$hostroot/HostAudit.csproj" "$hostroot/Program.cs" "$sandbox/"
               testinputs="$PWD/research/bounded-resource-probes/Linker"
               observer="$PWD/research/bounded-resource-probes/LinkerCustom/LinkerStep/bin/Release/$fx"
               timeout --signal=TERM --kill-after=3s 90s docker run --rm \
@@ -60,17 +64,23 @@ jobs:
                 -e DOTNET_CLI_HOME=/tmp/dotnet \
                 -e MSBUILDDISABLENODEREUSE=1 -e DOTNET_NOLOGO=1 \
                 -e FX="$fx" -e INPUT_MODE="$mode" \
-                -v "$host:/work:rw" -v "$testinputs:/fixtures:ro" -v "$observer:/probe:ro" \
+                -v "$sandbox:/work:rw" -v "$testinputs:/fixtures:ro" -v "$observer:/probe:ro" \
                 -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
                 "$image" bash -c '
                   cd /work
-                  rm -rf obj/Release bin
                   echo "RESEARCH_FIXTURE expected=$INPUT_MODE sha256=$(sha256sum /fixtures/$INPUT_MODE/Sample.dll | cut -d" " -f1)"
+                  dotnet restore HostAudit.csproj -p:TargetFrameworks="$FX" -p:PublishTrimmed=true --ignore-failed-sources > /tmp/restore.log 2>&1
+                  restoreEc=$?
+                  if [ "$restoreEc" != 0 ]; then
+                    echo "RESEARCH_RESTORE_ERROR code=$restoreEc"
+                    tail -n 30 /tmp/restore.log
+                    exit 0
+                  fi
                   dotnet publish HostAudit.csproj -f "$FX" -c Release --no-restore \
-                    -p:PublishTrimmed=true -p:UseSharedCompilation=false -m:1 \
+                    -p:PublishTrimmed=true -p:TargetFrameworks="$FX" -p:UseSharedCompilation=false -m:1 \
                     -p:SampleInputPath="/fixtures/$INPUT_MODE/Sample.dll" \
                     -p:TrimmerAuditAssembly="/probe/ResearchLinkerStep.dll" \
-                    -o "/work/out-$FX-$INPUT_MODE" -v:normal > /tmp/output.log 2>&1
+                    -o "/work/published" -v:normal > /tmp/output.log 2>&1
                   ec=$?
                   echo "CASE $FX $INPUT_MODE exit=$ec"
                   grep -E "RESEARCH_LINKER|error MSB|error IL|error :|warning IL" /tmp/output.log | tail -n 45 || true
