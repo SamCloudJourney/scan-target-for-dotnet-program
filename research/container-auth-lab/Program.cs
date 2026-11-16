@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
@@ -23,11 +24,18 @@ sealed class LocalEndpoint : IAsyncDisposable
     public int Port {get;}
     private readonly WebApplication _app;
     private LocalEndpoint(WebApplication app, int port){_app=app;Port=port;}
-    public static async Task<LocalEndpoint> Start(string ip, Func<HttpContext,Task> serve)
+    public static async Task<LocalEndpoint> Start(string ip, Func<HttpContext,Task> serve, bool tls=false)
     {
         var b=WebApplication.CreateSlimBuilder();
         b.Logging.ClearProviders();
-        b.WebHost.ConfigureKestrel(x => x.Listen(IPAddress.Parse(ip), 0));
+        X509Certificate2? certificate=tls
+            ? X509Certificate2.CreateFromPemFile(
+                Environment.GetEnvironmentVariable("LAB_TLS_CERT") ?? throw new InvalidOperationException("No lab TLS cert"),
+                Environment.GetEnvironmentVariable("LAB_TLS_KEY") ?? throw new InvalidOperationException("No lab TLS key"))
+            : null;
+        b.WebHost.ConfigureKestrel(x => x.Listen(IPAddress.Parse(ip), 0, endpoint => {
+            if(certificate is not null) endpoint.UseHttps(certificate);
+        }));
         var app=b.Build();
         app.MapFallback((HttpContext context) => serve(context));
         await app.StartAsync();
@@ -68,7 +76,7 @@ static class Laboratory
         bool allPassed=true;
         try
         {
-            foreach(var scenario in new[]{"normal","direct-protected","dns-protected","redirect307","redirect302"})
+            foreach(var scenario in new[]{"normal","direct-protected","dns-protected","redirect307","redirect302","https-normal","https-dns-protected","https-redirect307","https-redirect302"})
             {
                 bool passed=await RunScenario(scenario);
                 Console.WriteLine(scenario+": "+(passed?"PASS":"FAIL"));
@@ -82,13 +90,13 @@ static class Laboratory
         }
         if(!allPassed)throw new Exception("Auth boundary assertion(s) failed; consult evidence artifact");
     }
-    private static HttpClient CreateClient(string registryHost)
+    private static HttpClient CreateClient(string registryHost, bool isInsecureRegistry)
     {
         var type=LoadedAssembly!.GetType("Microsoft.NET.Build.Containers.AuthHandshakeMessageHandler",true)!;
         var modeType=LoadedAssembly.GetType("Microsoft.NET.Build.Containers.RegistryMode",true)!;
         var mode=Enum.Parse(modeType,"Push");
         var inner=new SocketsHttpHandler{UseCookies=false,UseProxy=false,ConnectTimeout=TimeSpan.FromSeconds(4)};
-        object[] args=Is11? [registryHost,true,inner,NullLogger.Instance,mode]:[registryHost,inner,NullLogger.Instance,mode];
+        object[] args=Is11? [registryHost,isInsecureRegistry,inner,NullLogger.Instance,mode]:[registryHost,inner,NullLogger.Instance,mode];
         var ctor=type.GetConstructors(BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance).Single(c=>c.GetParameters().Length==args.Length);
         return new HttpClient((HttpMessageHandler)ctor.Invoke(args)){Timeout=TimeSpan.FromSeconds(10)};
     }
@@ -109,6 +117,12 @@ static class Laboratory
     private static string JsonToken=>"{\"token\":\""+Token+"\",\"expires_in\":300}";
     private static async Task<bool> RunScenario(string scenario)
     {
+        bool tls=scenario.StartsWith("https-",StringComparison.Ordinal);
+        string variant=tls?scenario["https-".Length..]:scenario;
+        string scheme=tls?"https":"http";
+        string registryHost=tls?"registry.lab.test":IpRegistry;
+        string allowedHost=tls?"publicauth.lab.test":IpRegistry;
+        string protectedHost=tls?DnsAlias:IpProtected;
         var regObs=new ConcurrentQueue<Observation>();
         var allowedObs=new ConcurrentQueue<Observation>();
         var protectObs=new ConcurrentQueue<Observation>();
@@ -117,36 +131,36 @@ static class Laboratory
             var body=await new StreamReader(c.Request.Body).ReadToEndAsync();
             protectObs.Enqueue(Capture("protected",c,body));
             await Reply(c,200,JsonToken);
-        });
+        },tls);
         await using var allowed=await LocalEndpoint.Start(IpRegistry,async c=>{
             var body=await new StreamReader(c.Request.Body).ReadToEndAsync();
             allowedObs.Enqueue(Capture("allowed",c,body));
-            if(scenario.StartsWith("redirect"))
+            if(variant.StartsWith("redirect"))
             {
                 if(c.Request.Method=="GET")await Reply(c,405);
-                else await Reply(c,scenario=="redirect307"?307:302,location:location);
+                else await Reply(c,variant=="redirect307"?307:302,location:location);
             }
             else await Reply(c,200,JsonToken);
-        });
-        realm=scenario switch{
-            "normal" or "redirect307" or "redirect302"=>"http://"+IpRegistry+":"+allowed.Port+"/token",
-            "direct-protected"=>"http://"+IpProtected+":"+protectedEnd.Port+"/token",
-            "dns-protected"=>"http://"+DnsAlias+":"+protectedEnd.Port+"/token",
+        },tls);
+        realm=variant switch{
+            "normal" or "redirect307" or "redirect302"=>scheme+"://"+allowedHost+":"+allowed.Port+"/token",
+            "direct-protected"=>scheme+"://"+IpProtected+":"+protectedEnd.Port+"/token",
+            "dns-protected"=>scheme+"://"+DnsAlias+":"+protectedEnd.Port+"/token",
             _=>throw new ArgumentOutOfRangeException(nameof(scenario))
         };
-        location="http://"+IpProtected+":"+protectedEnd.Port+"/capture";
+        location=scheme+"://"+protectedHost+":"+protectedEnd.Port+"/capture";
         await using var registry=await LocalEndpoint.Start(IpRegistry,async c=>{
             var body=await new StreamReader(c.Request.Body).ReadToEndAsync();
             var sample=Capture("registry",c,body);
             regObs.Enqueue(sample);
             if(sample.SyntheticBearer)await Reply(c,200,"{}");
             else await Reply(c,401,challenge:"Bearer realm=\""+realm+"\",service=\"lab\",scope=\"repo:demo:push\"");
-        });
+        },tls);
         int? status=null;string? error=null;
         try
         {
-            using var client=CreateClient(IpRegistry+":"+registry.Port);
-            using var response=await client.GetAsync("http://"+IpRegistry+":"+registry.Port+"/v2/");
+            using var client=CreateClient(registryHost+":"+registry.Port, !tls);
+            using var response=await client.GetAsync(scheme+"://"+registryHost+":"+registry.Port+"/v2/");
             status=(int)response.StatusCode;
         }
         catch(Exception ex){error=ex.GetBaseException().GetType().Name+": "+ex.GetBaseException().Message;}
@@ -154,7 +168,7 @@ static class Laboratory
         bool basicProtected=pr.Any(e=>e.SyntheticBasic),passwordProtected=pr.Any(e=>e.SyntheticPasswordBody);
         bool privatePost=pr.Any(e=>e.Method=="POST"),registryToken=rg.Any(e=>e.SyntheticBearer);
         bool basicAllowed=al.Any(e=>e.SyntheticBasic),privateCalled=pr.Length>0;
-        bool passed=scenario switch{
+        bool passed=variant switch{
             "normal"=>status==200 && basicAllowed && registryToken && !privateCalled,
             "direct-protected"=>Is11?(!privateCalled && error!=null):(status==200 && basicProtected && registryToken),
             "dns-protected"=>status==200 && basicProtected && registryToken,
