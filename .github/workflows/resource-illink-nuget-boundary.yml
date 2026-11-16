@@ -1,0 +1,113 @@
+name: Official ILLink local NuGet package ingestion boundary
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/NugetBoundary/**'
+      - '.github/workflows/resource-illink-nuget-boundary.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package-reader:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build only owned PE and passive linker observer; create offline NuGet feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p nuget-boundary-evidence
+          dotnet build research/bounded-resource-probes/Sample/Sample.csproj -c Release
+          dotnet build research/bounded-resource-probes/Linker/Mutate/Mutate.csproj -c Release
+          dotnet research/bounded-resource-probes/Linker/Mutate/bin/Release/net10.0/Mutate.dll \
+            research/bounded-resource-probes/Sample/bin/Release/net10.0/Sample.dll \
+            research/bounded-resource-probes/Linker | tee nuget-boundary-evidence/mutations.jsonl
+          dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net10.0
+          dotnet build research/bounded-resource-probes/LinkerCustom/LinkerStep/LinkerStep.csproj -c Release -f net11.0
+          python3 research/bounded-resource-probes/NugetBoundary/package_fixtures.py \
+            research/bounded-resource-probes/Linker \
+            "$PWD/controlled-local-feed" | tee nuget-boundary-evidence/package-provenance.jsonl
+      - name: Restore each local-only NuGet assembly into a clean package consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fx in net10.0 net11.0; do
+            for mode in InputBaseline InputSmall InputAltered; do
+              suffix=$(echo "$mode" | sed 's/^Input//')
+              pkg="Research.SymbolFixture.$suffix"
+              work="$PWD/nuget-test-work/$fx-$mode"
+              mkdir -p "$work"
+              cp research/bounded-resource-probes/NugetBoundary/Host.csproj "$work/Host.csproj"
+              cp research/bounded-resource-probes/NugetBoundary/Program.cs "$work/Program.cs"
+              dotnet restore "$work/Host.csproj" \
+                -p:TargetFrameworks="$fx" -p:PublishTrimmed=true \
+                -p:ControlledPackageId="$pkg" \
+                --source "$PWD/controlled-local-feed" \
+                --source https://api.nuget.org/v3/index.json \
+                --verbosity quiet
+              real="$HOME/.nuget/packages/$(echo "$pkg" | tr '[:upper:]' '[:lower:]')/1.0.0/lib/net10.0/Sample.dll"
+              expected="$PWD/research/bounded-resource-probes/Linker/$mode/Sample.dll"
+              test -f "$real"
+              cmp "$real" "$expected"
+              echo "NUGET_RESTORE_IDENTICAL fx=$fx mode=$mode package=$pkg sha256=$(sha256sum "$real" | awk '{print $1}')" \
+                | tee -a nuget-boundary-evidence/restore-provenance.log
+            done
+          done
+      - name: Publish from the locally restored packages in networkless containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fx in net10.0 net11.0; do
+            if [ "$fx" = net10.0 ]; then sdk=10.0.404; else sdk=11.0.100; fi
+            image="mcr.microsoft.com/dotnet/sdk:$sdk"
+            docker pull "$image"
+            observer="$PWD/research/bounded-resource-probes/LinkerCustom/LinkerStep/bin/Release/$fx"
+            for mode in InputBaseline InputSmall InputAltered; do
+              suffix=$(echo "$mode" | sed 's/^Input//')
+              pkg="Research.SymbolFixture.$suffix"
+              work="$PWD/nuget-test-work/$fx-$mode"
+              echo "CASE_START fx=$fx mode=$mode pkg=$pkg" | tee -a nuget-boundary-evidence/actual-publishes.log
+              timeout --signal=TERM --kill-after=3s 100s docker run --rm \
+                --memory=768m --memory-swap=768m --cpus=2 --pids-limit=128 \
+                --network none --tmpfs /tmp:rw,nosuid,size=48m \
+                -e DOTNET_CLI_HOME=/tmp/dotnet -e DOTNET_NOLOGO=1 \
+                -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e MSBUILDDISABLENODEREUSE=1 \
+                -e NUGET_PACKAGES=/home/runner/.nuget/packages \
+                -e INPUT_MODE="$mode" -e PACKAGE_ID="$pkg" -e FX="$fx" \
+                -v "$work:/work:rw" -v "$observer:/probe:ro" \
+                -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
+                "$image" bash -c '
+                  cd /work
+                  dotnet publish Host.csproj -f "$FX" -c Release --no-restore \
+                    -p:TargetFrameworks="$FX" -p:PublishTrimmed=true \
+                    -p:ControlledPackageId="$PACKAGE_ID" \
+                    -p:TrimmerAuditAssembly=/probe/ResearchLinkerStep.dll \
+                    -p:UseSharedCompilation=false -m:1 -o /work/published -v:normal \
+                    > /tmp/publish.log 2>&1
+                  ec=$?
+                  echo "ACTUAL_NUGET_PUBLISH fx=$FX mode=$INPUT_MODE ec=$ec pkg=$PACKAGE_ID"
+                  grep -E "RESEARCH_LINKER|error MSB|error IL|error :|warning IL" /tmp/publish.log | tail -n 40 || true
+                  if [ "$ec" -ne 0 ]; then tail -n 25 /tmp/publish.log; fi
+                  exit "$ec"
+                ' | tee -a nuget-boundary-evidence/actual-publishes.log
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-illink-local-nuget-provenance
+          path: nuget-boundary-evidence/
+          retention-days: 14
+          if-no-files-found: warn
