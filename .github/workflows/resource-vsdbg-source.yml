@@ -1,0 +1,78 @@
+name: "Real Windows vsdbg DAP embedded-source retrieval experiment"
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/Debugger/Dap/**'
+      - '.github/workflows/resource-vsdbg-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dap-local:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Build self-generated debuggee and mutate only embedded source declared size
+        shell: pwsh
+        run: |
+          $ErrorActionPreference="Stop"
+          New-Item -ItemType Directory -Force dap-evidence | Out-Null
+          dotnet build research/bounded-resource-probes/Debugger/Dap/Debuggee/Debuggee.csproj -c Debug
+          if($LASTEXITCODE -ne 0){throw "Debuggee build failed"}
+          dotnet build research/bounded-resource-probes/Debugger/Dap/Mutator/Mutator.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "PDB mutator build failed"}
+          $built=(Resolve-Path 'research/bounded-resource-probes/Debugger/Dap/Debuggee/bin/Debug/net10.0').Path
+          foreach($case in @('Baseline','Altered')) {
+            $dest=Join-Path $env:RUNNER_TEMP "Dap$case"
+            New-Item -ItemType Directory -Force $dest | Out-Null
+            Copy-Item (Join-Path $built 'Debuggee.*') $dest
+          }
+          $pdb=(Join-Path $built 'Debuggee.pdb')
+          dotnet research/bounded-resource-probes/Debugger/Dap/Mutator/bin/Release/net10.0/Mutator.dll $pdb (Join-Path $env:RUNNER_TEMP 'DapAltered') 8388608 | Tee-Object dap-evidence/mutation.jsonl
+          if($LASTEXITCODE -ne 0){throw "PDB mutation failed"}
+      - name: Download official Microsoft vsdbg for isolated DAP test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference="Stop"
+          $dir=Join-Path $env:RUNNER_TEMP 'research-vsdbg'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $script=Join-Path $env:RUNNER_TEMP 'getvsdbg.ps1'
+          Invoke-WebRequest -Uri 'https://aka.ms/getvsdbgps1' -UseBasicParsing -OutFile $script
+          & $script -Version latest -RuntimeID win-x64 -InstallPath $dir
+          if(!(Test-Path (Join-Path $dir 'vsdbg.exe'))){ throw "Microsoft vsdbg was not installed" }
+          "vsdbgPresent=true" | Tee-Object dap-evidence/adapter-install.txt
+      - name: Request source through actual vsdbg DAP for baseline and malformed PDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference="Stop"
+          $vsdbg=Join-Path $env:RUNNER_TEMP 'research-vsdbg\vsdbg.exe'
+          $source=(Resolve-Path 'research/bounded-resource-probes/Debugger/Dap/Debuggee/Program.cs').Path
+          # Hide only the local source file on the ephemeral runner, to prevent
+          # the debugger from trivially reading it off disk.
+          $hidden=$source+'.source-hidden'
+          Move-Item $source $hidden
+          try {
+            foreach($case in @('Baseline','Altered')) {
+              $dll=Join-Path $env:RUNNER_TEMP "Dap$case\Debuggee.dll"
+              python research/bounded-resource-probes/Debugger/Dap/dap_probe.py --adapter $vsdbg --program $dll --source $source --case $case --output dap-evidence/dap-sessions.jsonl
+              if($LASTEXITCODE -ne 0){throw "DAP harness failure"}
+            }
+          } finally {
+            Move-Item $hidden $source
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: microsoft-vsdbg-dap-source-results
+          path: dap-evidence/
+          retention-days: 14
