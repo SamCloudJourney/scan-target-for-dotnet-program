@@ -1,0 +1,57 @@
+name: Real Kestrel HTTP1 chunked upload segmentation and recovery
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/FormWire/**'
+      - '.github/workflows/resource-form-wire.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  kestrel-wire:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build self-contained localhost Kestrel fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build research/bounded-resource-probes/FormWire/FormWire.csproj -c Release -f net10.0
+          dotnet build research/bounded-resource-probes/FormWire/FormWire.csproj -c Release -f net11.0
+      - name: Send bounded real HTTP chunked requests over loopback
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p form-wire-evidence
+          for spec in '10.0.12 net10.0' '10.0.15 net10.0' '11.0.0 net11.0'; do
+            read -r tag fx <<< "$spec"
+            image="mcr.microsoft.com/dotnet/aspnet:$tag"
+            docker pull "$image"
+            dir="$PWD/research/bounded-resource-probes/FormWire/bin/Release/$fx"
+            echo "{\"run\":\"$tag\"}" | tee -a form-wire-evidence/results.jsonl
+            timeout --signal=TERM --kill-after=3s 90s docker run --rm \
+              --memory=384m --memory-swap=384m --cpus=1 --pids-limit=48 \
+              --network none --read-only --tmpfs /tmp:rw,nosuid,size=8m \
+              -e DOTNET_GCHeapHardLimit=0xC000000 \
+              -e ASPNETCORE_ENVIRONMENT=Production \
+              -v "$dir:/app:ro" "$image" dotnet /app/FormWire.dll \
+              | tee -a form-wire-evidence/results.jsonl
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-kestrel-form-wire-recovery
+          path: form-wire-evidence/
+          retention-days: 14
