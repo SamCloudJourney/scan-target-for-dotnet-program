@@ -35,6 +35,9 @@ jobs:
             scan-target-v11.0.100/src/runtime/src/coreclr/scripts/superpmi.py
             scan-target-v11.0.100/src/runtime/src/coreclr/scripts/jitutil.py
             scan-target-v11.0.100/src/runtime/src/coreclr/scripts/coreclr_arguments.py
+            scan-target-v11.0.100/src/runtime/src/coreclr/scripts/superpmi_collect_setup.py
+            release-sources/dotnet-10.0.15/runtime/src/coreclr/scripts/jitutil.py
+            release-sources/dotnet-10.0.15/runtime/src/coreclr/scripts/superpmi_collect_setup.py
             .github/workflows/coreclr14-pmi-boundary.yml
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -47,3 +50,6 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: python -I research/coreclr14/pmi_full_cli_smoke.py
+      - name: Verify actual SuperPMI CI partitioning preserves the filename to the shell
+        shell: bash
+        run: python -I research/coreclr14/pmi_staging_to_shell.py
