@@ -1,0 +1,49 @@
+name: Windows SDK cross-account broker - synthetic-parent isolated validation
+on:
+  push:
+    branches: [research/windows-elevation-cross-sid-synthetic-20261116]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cross-sid-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic-cross-sid:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.404', '11.0.100']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/CrossSidHarness/Program.cs
+            research/windows-elevation-boundary-20261116/CrossSidHarness/CrossSidHarness.csproj
+            research/windows-elevation-boundary-20261116/cross-sid-synthetic-run.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Build fixture-only real SDK cross-SID transport probe
+        shell: pwsh
+        run: dotnet build ./research/windows-elevation-boundary-20261116/CrossSidHarness/CrossSidHarness.csproj -c Release --nologo
+      - name: Test real low-SID broker transport with admin-preapproved synthetic parent
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/cross-sid-synthetic-run.ps1 -SdkVersion '${{ matrix.sdk }}'
+      - name: Preserve actual cross-SID result and launcher rejection diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-cross-sid-${{ matrix.sdk }}-evidence
+          path: |
+            ${{ runner.temp }}/cross-sid-synthetic-${{ matrix.sdk }}.json
+            ${{ runner.temp }}/synthetic-launch-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
