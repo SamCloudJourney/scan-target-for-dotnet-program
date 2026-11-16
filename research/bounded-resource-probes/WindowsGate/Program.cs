@@ -6,14 +6,15 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.DiaSymReader;
 
-if ((args.Length != 1 && args.Length != 2) ||
-    (args.Length == 2 && (!int.TryParse(args[1], out var _) || long.Parse(args[1]) < 0 || long.Parse(args[1]) > 8 * 1024 * 1024)))
+if ((args.Length != 1 && args.Length != 2 && !(args.Length == 3 && args[2] == "repeat3")) ||
+    (args.Length >= 2 && (!int.TryParse(args[1], out var _) || long.Parse(args[1]) < 0 || long.Parse(args[1]) > 8 * 1024 * 1024)))
 {
     Console.Error.WriteLine("Usage: WindowsGate <self-generated.pdb> [0|1048576|8388608]");
     return 2;
 }
-int declared = args.Length == 2 ? int.Parse(args[1]) : 0;
+int declared = args.Length >= 2 ? int.Parse(args[1]) : 0;
 var pdb = File.ReadAllBytes(args[0]);
+byte[] pristine = (byte[])pdb.Clone();
 if (pdb.Length > 1_048_576 || pdb.Length < 4 || !pdb.AsSpan(0, 4).SequenceEqual("BSJB"u8))
     throw new InvalidDataException("Only the investigator-generated small Portable PDB is accepted.");
 
@@ -103,7 +104,60 @@ Console.WriteLine(JsonSerializer.Serialize(new
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                      "System32", "Microsoft.DiaSymReader.Native.amd64.dll"))
 }));
+
+if (args.Length == 3 && args[2] == "repeat3")
+{
+    // Repeat a tiny controlled file just three times. After each malformed read,
+    // perform a genuine benign read in the same process to test recovery.
+    // This is not an uncontrolled stress test or an attempt to crash the host.
+    using var sameProcess = Process.GetCurrentProcess();
+    for (int iteration = 0; iteration < 3; iteration++)
+    {
+        long allocatedAtStart = GC.GetTotalAllocatedBytes();
+        int gen2Before = GC.CollectionCount(2);
+        var lap = Stopwatch.StartNew();
+        string malformedResult = ReadEmbedded(pdb);
+        string benignResult = ReadEmbedded(pristine);
+        lap.Stop();
+        sameProcess.Refresh();
+        Console.WriteLine(JsonSerializer.Serialize(new {
+            test = "windows-reader-bounded-recovery",
+            iteration = iteration + 1, declared, malformedResult, benignResult,
+            combinedAllocatedBytes = GC.GetTotalAllocatedBytes() - allocatedAtStart,
+            gen2Collections = GC.CollectionCount(2) - gen2Before,
+            peakWorkingSetBytes = sameProcess.PeakWorkingSet64,
+            privateMemoryBytes = sameProcess.PrivateMemorySize64,
+            elapsedMs = Math.Round(lap.Elapsed.TotalMilliseconds, 3),
+            framework = RuntimeInformation.FrameworkDescription
+        }));
+        if (benignResult != "ok") throw new InvalidDataException("Recovery control failed");
+    }
+}
 return 0;
+
+static string ReadEmbedded(byte[] image)
+{
+    try
+    {
+        using var source = new MemoryStream(image, writable: false);
+        var reader = SymUnmanagedReaderFactory.CreateReader<ISymUnmanagedReader3>(source, new LocalMetadataProvider());
+        Marshal.ThrowExceptionForHR(reader.GetDocuments(0, out int count, Array.Empty<ISymUnmanagedDocument>()));
+        if (count is < 1 or > 16) return "invalid-document-count";
+        var docs = new ISymUnmanagedDocument[count];
+        Marshal.ThrowExceptionForHR(reader.GetDocuments(count, out int copied, docs));
+        for (int i = 0; i < copied; i++)
+        {
+            var doc = docs[i];
+            if (doc is null) continue;
+            Marshal.ThrowExceptionForHR(doc.HasEmbeddedSource(out bool has));
+            if (!has) continue;
+            var extracted = doc.GetEmbeddedSource();
+            return extracted.Count > 0 ? "ok" : "empty";
+        }
+        return "no-embedded-source";
+    }
+    catch (Exception e) { return e.GetType().Name; }
+}
 
 sealed class LocalMetadataProvider : ISymReaderMetadataProvider
 {

@@ -74,6 +74,8 @@ jobs:
           Run-Bounded @($gate, $pdb, "8388608")
           Run-Bounded @($gate11, $pdb, "0")
           Run-Bounded @($gate11, $pdb, "8388608")
+          Run-Bounded @($gate, $pdb, "8388608", "repeat3")
+          Run-Bounded @($gate11, $pdb, "8388608", "repeat3")
           # Managed bridge positive control, small and 8 MiB bounded forged size.
           Run-Bounded @($managed, $pdb, "0")
           Run-Bounded @($managed, $pdb, "8388608")
