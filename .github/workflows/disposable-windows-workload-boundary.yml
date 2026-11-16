@@ -1,7 +1,7 @@
 name: Disposable Windows SDK validator experiment
 on:
   push:
-    branches: [research/windows-elevation-boundary-20261116]
+    branches: [research/windows-elevation-deeper-20261116]
   workflow_dispatch:
 permissions:
   contents: read
@@ -105,5 +105,38 @@ jobs:
         with:
           name: standard-user-${{ matrix.sdk }}-negative-control
           path: ${{ runner.temp }}/standard-user-no-uac-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  downstream-cache-fixtures:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['11.0.100', '10.0.404']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/CacheHarness/CacheHarness.csproj
+            research/windows-elevation-boundary-20261116/CacheHarness/Program.cs
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Exercise shipped SDK CachePayload in disposable isolated cache
+        shell: pwsh
+        run: dotnet run --project ./research/windows-elevation-boundary-20261116/CacheHarness/CacheHarness.csproj -c Release -- ${{ matrix.sdk }}
+      - name: Preserve downstream cache experiment results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-downstream-${{ matrix.sdk }}-evidence
+          path: ${{ runner.temp }}/cache-downstream-${{ matrix.sdk }}.json
           if-no-files-found: warn
           retention-days: 7
