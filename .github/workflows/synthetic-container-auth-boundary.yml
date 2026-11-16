@@ -1,0 +1,60 @@
+name: Synthetic .NET container auth boundary validation
+on:
+  push:
+    branches:
+      - research/container-auth-boundary-20261116
+permissions:
+  contents: read
+jobs:
+  test-sdk:
+    name: Synthetic auth flow SDK ${{ matrix.sdk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.404', '11.0.100']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/container-auth-lab
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Restrict DNS alias to isolated loopback target
+        shell: bash
+        run: |
+          echo "127.0.0.2 privateauth.lab.test" | sudo tee -a /etc/hosts
+          getent ahostsv4 privateauth.lab.test
+      - name: Locate actual installed SDK container auth assembly
+        shell: bash
+        env:
+          SDK_VER: ${{ matrix.sdk }}
+        run: |
+          set -euo pipefail
+          printf '{"sdk":{"version":"%s","rollForward":"disable"}}\n' "$SDK_VER" > research/container-auth-lab/global.json
+          cd research/container-auth-lab
+          dotnet --version
+          SDK_ROOT="$(dirname "$(readlink -f "$(command -v dotnet)")")/sdk/$SDK_VER"
+          DLL="$(find "$SDK_ROOT" -type f -name Microsoft.NET.Build.Containers.dll -print -quit)"
+          if [ -z "$DLL" ]; then echo "Target assembly not found"; exit 2; fi
+          echo "DOTNET_SDK_CONTAINER_ASSEMBLY=$DLL" >> "$GITHUB_ENV"
+          echo "SDK_VER=$SDK_VER" >> "$GITHUB_ENV"
+          echo "Selected installed assembly: $DLL"
+      - name: Execute real SDK handler against loopback-only HTTP endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/container-auth-lab
+          MAJOR="$(echo "$SDK_VER" | cut -d. -f1)"
+          dotnet run --project . -p:TargetMajor="$MAJOR" --no-launch-profile
+      - name: Attach sanitized structured evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-auth-evidence-${{ matrix.sdk }}
+          path: research/container-auth-lab/REPRODUCTION-EVIDENCE/*.json
+          if-no-files-found: warn
+          retention-days: 14
