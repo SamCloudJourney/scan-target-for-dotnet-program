@@ -71,7 +71,13 @@ def main():
     for label in ("canonical","encoded_separator_upper","parent_literal","parent_encoded",
                   "parent_mixed1","parent_mixed2","nested_parent",
                   "parent_then_encoded_slash"):
-        path=CORPUS[label].replace("/gate/read","/gate/auth-read")
+        # Critical fixture guard: for encoded separators, replacing literal
+        # "/gate/read" does nothing and accidentally probes an unprotected
+        # public route. Rewrite the final endpoint segment instead.
+        assert CORPUS[label].endswith("read"), label
+        path=CORPUS[label][:-4]+"auth-read"
+        flag("auth_probe_target_transformed_"+label,
+             path.endswith("auth-read") and path!=CORPUS[label])
         auth_vectors[label]={}
         for proxy,port in PORTS.items():
             auth_vectors[label][proxy]=query(port,f"http://{HOST}:{port}{path}")
