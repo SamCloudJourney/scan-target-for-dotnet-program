@@ -93,6 +93,7 @@ static class PatchedParityLab
             Environment.SetEnvironmentVariable("DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES","127.0.0.1");
             await SharedPublisherLab.RunAsync();
             success&=await PublishDepthLab.RunPatchedSubsetAsync();
+            await SplitRegistryPublishLab.RunAsync();
         }
         finally{
             HttpClient.DefaultProxy=proxy;
