@@ -119,8 +119,78 @@ internal static class Program
         }
     }
 
+    private sealed record MsiFixture(string ProductCode, string InstalledMarker, string MsiPath);
+
+    private static MsiFixture PrepareDisposableMsi(string root)
+    {
+        string productCode = Guid.NewGuid().ToString("B").ToUpperInvariant();
+        string upgradeCode = Guid.NewGuid().ToString("B").ToUpperInvariant();
+        string componentGuid = Guid.NewGuid().ToString("B").ToUpperInvariant();
+        string buildDir = Directory.CreateDirectory(Path.Combine(root, "disposable-msi-build")).FullName;
+        string destination = Directory.CreateDirectory(Path.Combine(root, "disposable-msi-install")).FullName;
+        string source = Path.Combine(buildDir, "marker-input.txt");
+        string marker = Path.Combine(destination, "marker-input.txt");
+        string wxs = Path.Combine(buildDir, "fixture.wxs");
+        string obj = Path.Combine(buildDir, "fixture.wixobj");
+        string msi = Path.Combine(buildDir, "fixture.msi");
+        File.WriteAllText(source, "Owned disposable .NET SDK broker test " + productCode);
+
+        string escapedSource = System.Security.SecurityElement.Escape(source) ?? source;
+        string xml = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<Wix xmlns=""http://schemas.microsoft.com/wix/2006/wi"">
+  <Product Id=""{productCode}"" Name=""Isolated Windows Broker Regression Fixture"" Language=""1033""
+           Version=""1.0.0.0"" Manufacturer=""AuthorizedRegressionTests"" UpgradeCode=""{upgradeCode}"">
+    <Package InstallerVersion=""200"" Compressed=""yes"" InstallScope=""perMachine"" />
+    <MediaTemplate EmbedCab=""yes"" />
+    <Directory Id=""TARGETDIR"" Name=""SourceDir"">
+      <Directory Id=""ProgramFilesFolder"">
+        <Directory Id=""INSTALLDIR"" Name=""DisposableBrokerFixture"">
+          <Component Id=""FixtureFileComponent"" Guid=""{componentGuid}"">
+            <File Id=""FixtureMarker"" Name=""marker-input.txt"" Source=""{escapedSource}"" KeyPath=""yes"" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id=""Complete"" Title=""Disposable fixture"" Level=""1"">
+      <ComponentRef Id=""FixtureFileComponent"" />
+    </Feature>
+  </Product>
+</Wix>";
+        File.WriteAllText(wxs, xml);
+
+        var dirs = new List<string>();
+        string wixEnv = Environment.GetEnvironmentVariable("WIX") ?? "";
+        if (!string.IsNullOrWhiteSpace(wixEnv))
+        {
+            dirs.Add(wixEnv);
+            dirs.Add(Path.Combine(wixEnv, "bin"));
+        }
+        dirs.Add(@"C:\Program Files (x86)\WiX Toolset v3.14\bin");
+        dirs.Add(@"C:\Program Files (x86)\WiX Toolset v3.11\bin");
+        string? wixBin = dirs.FirstOrDefault(d => File.Exists(Path.Combine(d, "candle.exe"))
+            && File.Exists(Path.Combine(d, "light.exe")));
+        if (wixBin == null) throw new FileNotFoundException("Windows runner lacks WiX candle.exe + light.exe");
+
+        (int candleExit, string candleOutput) = Run(Path.Combine(wixBin, "candle.exe"),
+            "-nologo -out \"" + obj + "\" \"" + wxs + "\"");
+        if (candleExit != 0) throw new InvalidOperationException("WiX compile: " + candleExit + " " + candleOutput);
+        (int lightExit, string lightOutput) = Run(Path.Combine(wixBin, "light.exe"),
+            "-nologo -out \"" + msi + "\" \"" + obj + "\"");
+        if (lightExit != 0) throw new InvalidOperationException("WiX link: " + lightExit + " " + lightOutput);
+
+        // Installation target is always a new, empty scratch directory in GITHUB_WORKSPACE.
+        string installLog = Path.Combine(buildDir, "install.log");
+        (int installExit, string installOutput) = Run("msiexec.exe",
+            "/i \"" + msi + "\" /qn /norestart ALLUSERS=1 INSTALLDIR=\"" + destination
+            + "\" /L*v \"" + installLog + "\"");
+        if (installExit != 0 || !File.Exists(marker))
+            throw new InvalidOperationException("Disposable MSI installation failed, code "
+                + installExit + ", markerPresent=" + File.Exists(marker) + " " + installOutput);
+        return new MsiFixture(productCode, marker, msi);
+    }
+
     private static void Session(string sdkVersion, string dotnetExe, Assembly sdk, string cwd,
-        string trustedRoot, string label, string clientDir, string outsideDir)
+        string trustedRoot, string label, string clientDir, string outsideDir, MsiFixture? fixture)
     {
         using Process broker = new()
         {
@@ -230,6 +300,26 @@ internal static class Program
                 Check("13-broker-unregistered-repair", File.Exists(repairLog) && err3 == 1605,
                     "Broker accepted serialized RepairMsi for arbitrary GUID, created log and forwarded to Windows Installer, which rejected unknown product.",
                     "No existing product modified; no transaction-specific authorization proved.");
+                if (fixture != null)
+                {
+                    string fixtureLog = Path.Combine(clientDir, "disposable-uninstall.log");
+                    string requestJson = JsonSerializer.Serialize(new
+                    {
+                        RequestType = 301, ProductCode = fixture.ProductCode, LogFile = fixtureLog
+                    });
+                    object answer = ReadResponse(request, requestJson);
+                    uint fixtureExit = ErrorOf(answer);
+                    bool removed = !File.Exists(fixture.InstalledMarker);
+                    Sessions.Add(new { sdkVersion, label, brokerPID=broker.Id, brokerIdentity,
+                        requestType="UninstallMsi", productFixture="isolated self-authored installed WiX MSI",
+                        productCode=fixture.ProductCode, logFile=fixtureLog,
+                        error=fixtureExit, fileRemoved=removed, brokerReply=answer });
+                    Check("13-broker-disposable-unrelated-product",
+                        (fixtureExit == 0 || fixtureExit == 3010) && removed && File.Exists(fixtureLog),
+                        "Genuine elevated workload broker attempted unrelated installed disposable MSI; error "
+                            + fixtureExit + ", markerRemoved=" + removed,
+                        "Admin runner deliberately authorized its own broker. This does not prove UAC EoP.");
+                }
             }
             else
             {
@@ -281,6 +371,7 @@ internal static class Program
         string reportPath = Path.Combine(runnerTemp, "broker-process-" + sdkVersion + ".json");
         var env = new Dictionary<string, object?>();
         string status = "RUNNING";
+        MsiFixture? fixture = null;
         try
         {
             if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows VM required");
@@ -328,8 +419,25 @@ internal static class Program
             }
             else
             {
-                Session(sdkVersion, dotnetExe, sdk, cwd, client, "narrow", client, outside);
-                Session(sdkVersion, dotnetExe, sdk, cwd, root, "broad", client, outside);
+                try
+                {
+                    fixture = PrepareDisposableMsi(root);
+                    Check("13-disposable-product-setup", File.Exists(fixture.InstalledMarker),
+                        "Installed a unique, isolated WiX MSI fixture in workspace scratch storage.",
+                        "The installer runs with already-elevated runneradmin token; only generated fixture is modified.");
+                    env["disposableFixtureProductCode"] = fixture.ProductCode;
+                    env["disposableFixtureMsiSha256"] = Convert.ToHexString(
+                        SHA256.HashData(File.ReadAllBytes(fixture.MsiPath)));
+                }
+                catch (Exception e)
+                {
+                    Errors.Add("Disposable MSI setup: " + e);
+                    Check("13-disposable-product-setup", false,
+                        "Fixture setup failed; no installed-product authorization conclusion: " + e.Message,
+                        "A harness/fixture failure is not evidence of broker authorization.");
+                }
+                Session(sdkVersion, dotnetExe, sdk, cwd, client, "narrow", client, outside, fixture);
+                Session(sdkVersion, dotnetExe, sdk, cwd, root, "broad", client, outside, null);
                 status = Failures == 0 ? "COMPLETED" : "TEST_FAILURE";
                 env["wuauservAfter"] = Run("sc.exe", "query wuauserv").output;
             }
@@ -342,6 +450,16 @@ internal static class Program
         }
         finally
         {
+            try
+            {
+                if (fixture != null)
+                {
+                    // Idempotent cleanup on the isolated fixture ONLY, never other installed products.
+                    var cleanup = Run("msiexec.exe", "/x " + fixture.ProductCode + " /qn /norestart");
+                    env["disposableFixtureCleanupExitCode"] = cleanup.code;
+                }
+            }
+            catch (Exception e) { Errors.Add("Disposable MSI cleanup: " + e); }
             try
             {
                 string junction = Path.Combine(root, "client", "junction");
