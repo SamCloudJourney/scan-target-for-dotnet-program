@@ -19,6 +19,10 @@ if (args.Length==2 && args[0]=="--cache-probe-child")
 {
     await CacheDepthLab.ChildAsync(args[1]);
 }
+else if ((Environment.GetEnvironmentVariable("SDK_VER")??"").StartsWith("12.",StringComparison.Ordinal))
+{
+    await PatchedParityLab.RunAsync();
+}
 else
 {
     await Laboratory.RunAsync();
@@ -26,6 +30,9 @@ else
     await ChainDepthLab.RunAsync();
     await CacheDepthLab.RunAsync();
     await PublishDepthLab.RunAsync();
+    await SharedPublisherLab.RunAsync();
+    await IndependentImpactLab.RunAsync();
+    await RedirectMatrixLab.RunAsync();
 }
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
