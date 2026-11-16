@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Mono.Cecil;
+using Microsoft.DiaSymReader;
 
 const int MaxFormBytes = 524_288;
 const int MaxDeclBytes = 8 * 1024 * 1024;
@@ -112,6 +113,17 @@ try
                          ";equality_checked=false";
             }
             break;
+        case "diasym-package":
+            using (var sourceDoc = new MemoryStream())
+            {
+                sourceDoc.Write(BitConverter.GetBytes(declared));
+                sourceDoc.Write(Compress(new byte[256]));
+                var syntheticDocument = new SyntheticDocument(sourceDoc.ToArray());
+                var extracted = syntheticDocument.GetEmbeddedSource();
+                detail = "actual_output=" + extracted.Count +
+                         ";consumer=published_Microsoft.DiaSymReader_3.0.0_extension_with_mock_document";
+            }
+            break;
         case "diasym-model":
             byte[] sourceBytes = new byte[256];
             byte[] deflated = Compress(sourceBytes);
@@ -192,4 +204,31 @@ sealed class PrefixReader : PipeReader
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) { }
     public override void CancelPendingRead() { }
     public override void Complete(Exception? exception = null) { }
+}
+
+
+// A strictly local ISymUnmanagedDocument adapter allows direct invocation of the
+// Microsoft.DiaSymReader package's actual managed GetEmbeddedSource extension.
+// This does NOT open or validate a PDB, instantiate the native Windows reader,
+// or prove that untrusted PDB bytes pass the native reader's validation gates.
+sealed class SyntheticDocument : ISymUnmanagedDocument
+{
+    private readonly byte[] _source;
+    public SyntheticDocument(byte[] source) { _source = source; }
+    public int GetUrl(int bufferLength, out int count, char[] url) { count = 0; return 0; }
+    public int GetDocumentType(ref Guid value) => 0;
+    public int GetLanguage(ref Guid value) => 0;
+    public int GetLanguageVendor(ref Guid value) => 0;
+    public int GetChecksumAlgorithmId(ref Guid value) => 0;
+    public int GetChecksum(int bufferLength, out int count, byte[] checksum) { count = 0; return 0; }
+    public int FindClosestLine(int line, out int closestLine) { closestLine = line; return 0; }
+    public int HasEmbeddedSource(out bool value) { value = true; return 0; }
+    public int GetSourceLength(out int length) { length = _source.Length; return 0; }
+    public int GetSourceRange(int startLine, int startColumn, int endLine, int endColumn,
+                              int bufferLength, out int count, byte[] source)
+    {
+        count = Math.Min(bufferLength, _source.Length);
+        Array.Copy(_source, source, count);
+        return 0;
+    }
 }

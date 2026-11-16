@@ -63,6 +63,7 @@ jobs:
             for declared in 256 4096 1048576 8388608; do
               run_probe cecil-model "$declared"
               run_probe diasym-model "$declared"
+              run_probe diasym-package "$declared"
             done
             for declared in 1024 1048576 8388608; do
               run_probe cecil "$declared" /sample/Sample.dll
