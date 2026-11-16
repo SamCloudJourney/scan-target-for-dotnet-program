@@ -6,23 +6,28 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 
-if (args.Length != 3 || !int.TryParse(args[1], out int n) ||
+if ((args.Length != 3 && args.Length != 4) || !int.TryParse(args[1], out int n) ||
     !int.TryParse(args[2], out int step) ||
     n is < 1 or > 8192 || step is < 1 or > 256 ||
+    (args.Length == 4 && (!int.TryParse(args[3], out var _) || int.Parse(args[3]) is < 4 or > 4096)) ||
     args[0] is not ("utf8-segmented" or "utf16-segmented" or "utf16be-segmented" or "utf8-contiguous" or
-                    "readeronly-utf8-segmented" or "readeronly-utf16-segmented"))
+                    "readeronly-utf8-segmented" or "readeronly-utf16-segmented" or
+                    "advanceonly-utf8-segmented" or "advanceonly-utf16-segmented"))
 {
     Console.Error.WriteLine("Usage: FormMatrix utf8-segmented|utf16-segmented|utf16be-segmented|utf8-contiguous N[1..8192] STEP[1..256]");
     return 2;
 }
 bool readerOnly = args[0].StartsWith("readeronly-", StringComparison.Ordinal);
-var kind = readerOnly ? args[0]["readeronly-".Length..] : args[0];
+bool advanceOnly = args[0].StartsWith("advanceonly-", StringComparison.Ordinal);
+var kind = readerOnly ? args[0]["readeronly-".Length..] :
+           advanceOnly ? args[0]["advanceonly-".Length..] : args[0];
+int segmentSize = args.Length == 4 ? int.Parse(args[3]) : 13;
 Encoding encoding = kind.StartsWith("utf16be", StringComparison.Ordinal)
     ? Encoding.BigEndianUnicode
     : kind.StartsWith("utf16", StringComparison.Ordinal) ? Encoding.Unicode : Encoding.UTF8;
 string body = "x=" + new string('v', n) + "&y=ok";
 byte[] bytes = encoding.GetBytes(body);
-var reader = new FragmentsReader(bytes, kind.EndsWith("segmented", StringComparison.Ordinal) ? 13 : bytes.Length, step);
+var reader = new FragmentsReader(bytes, kind.EndsWith("segmented", StringComparison.Ordinal) ? segmentSize : bytes.Length, step);
 var parser = new FormPipeReader(reader, encoding)
 {
     KeyLengthLimit = 2048,
@@ -39,15 +44,22 @@ var timer = Stopwatch.StartNew();
 try
 {
     using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-    if (readerOnly)
+    if (readerOnly || advanceOnly)
     {
         while (true)
         {
             var chunk = await reader.ReadAsync(cancel.Token);
+            if (advanceOnly)
+            {
+                // Mirror the multi-segment parser's skip operation without searching
+                // for delimiters or materializing form values.
+                var sequenceReader = new SequenceReader<byte>(chunk.Buffer);
+                sequenceReader.Advance(chunk.Buffer.Length);
+            }
             reader.AdvanceTo(chunk.Buffer.Start, chunk.Buffer.End);
             if (chunk.IsCompleted) break;
         }
-        resultStatus = "reader-only";
+        resultStatus = advanceOnly ? "advance-only" : "reader-only";
     }
     else
     {
@@ -63,7 +75,7 @@ timer.Stop(); proc.Refresh();
 Console.WriteLine(JsonSerializer.Serialize(new
 {
     test = "bounded-form-pipe-segment-encoding-matrix",
-    kind, n, step, readerOnly, precomputedPositions = true, bytes = bytes.Length, readerCalls = reader.ReadCalls,
+    kind, n, step, readerOnly, advanceOnly, segmentSize = kind.EndsWith("segmented") ? segmentSize : bytes.Length, precomputedPositions = true, bytes = bytes.Length, readerCalls = reader.ReadCalls,
     status = resultStatus, error, xLen, yValue,
     elapsedMs = Math.Round(timer.Elapsed.TotalMilliseconds, 3),
     cpuMs = Math.Round((proc.TotalProcessorTime - cpu).TotalMilliseconds, 3),
