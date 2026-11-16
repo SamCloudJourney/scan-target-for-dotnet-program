@@ -261,6 +261,34 @@ internal static class Program
                 "Connected to real SDK workload-elevation broker process " + broker.Id,
                 "Parent and broker share runneradmin token. This is not a UAC EoP test.");
 
+            // Additional negative-control tests. Never install or execute any untrusted MSI.
+            if (label == "narrow")
+            {
+                string unsigned = Path.Combine(clientDir,"unsigned-not-msi.msi");
+                string attemptedLog = Path.Combine(clientDir,"invalid-install-negative.log");
+                File.WriteAllText(unsigned,"FIXTURE-NOT-AN-MSI");
+                object installRejected = ReadResponse(request, JsonSerializer.Serialize(new {
+                    RequestType = 300, PackagePath = unsigned, LogFile = attemptedLog
+                }));
+                uint installError = ErrorOf(installRejected);
+                Sessions.Add(new {sdkVersion,label,brokerPID=broker.Id,brokerIdentity,
+                    requestType="InstallMsi",fixture="unsigned scratch file outside protected workload package cache",
+                    error=installError,brokerReply=installRejected});
+                Check("13-broker-outside-cache-install-blocked",installError == 1620 && !File.Exists(attemptedLog) && File.Exists(unsigned),
+                    "Live SDK broker rejected a client-selected unsigned install package outside the secure workload cache before MSI logging or execution.",
+                    "Only a negative control; does not weaken the observed unrelated-product UninstallMsi and RepairMsi authorization gap.");
+
+                object malformedProvider = ReadResponse(request,JsonSerializer.Serialize(new {
+                    RequestType=200,ProviderKeyName="",Dependent="IsolatedNegative."+Guid.NewGuid().ToString("N")
+                }));
+                int hr = (int)(malformedProvider.GetType().GetProperty("hresult")?.GetValue(malformedProvider) ?? int.MinValue);
+                Sessions.Add(new {sdkVersion,label,brokerPID=broker.Id,brokerIdentity,
+                    requestType="AddDependent",fixture="empty invalid provider name",hresult=hr,brokerReply=malformedProvider});
+                Check("13-broker-empty-provider-denied",hr < 0,
+                    "Live SDK broker rejected empty provider-key identifier with negative HRESULT.",
+                    "Different from an unrelated but syntactically valid provider; no production record modified.");
+            }
+
             string randomProduct = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
             uint Uninstall(string path)
             {
