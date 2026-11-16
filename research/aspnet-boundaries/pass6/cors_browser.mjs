@@ -31,8 +31,8 @@ async function evalOnPage(code){
  if(result.exceptionDetails)throw Error("Runtime.evaluate exception");
  return result.result?.value;
 }
-async function read(url,credentials){
- const expr="(async function(){try{const rsp=await fetch("+JSON.stringify(url)+", {mode:'cors',cache:'no-store',credentials:"+JSON.stringify(credentials)+"});const body=await rsp.text();return {ok:rsp.ok,status:rsp.status,body,type:rsp.type};}catch(err){return {blocked:true,error:String(err.name)}}})()";
+async function read(url,credentials,cacheMode="default"){
+ const expr="(async function(){try{const rsp=await fetch("+JSON.stringify(url)+", {mode:'cors',cache:"+JSON.stringify(cacheMode)+",credentials:"+JSON.stringify(credentials)+"});const body=await rsp.text();return {ok:rsp.ok,status:rsp.status,body,type:rsp.type};}catch(err){return {blocked:true,error:String(err.name)}}})()";
  return await evalOnPage(expr);
 }
 try{
@@ -49,6 +49,7 @@ try{
  const responseCollision=await read(base+"/cache/response-cors?a%3DB=","omit");
  const responseNegative=await read(base+"/cache/response-cors?a%3DB=&uniquecontrol=yes","omit");
  const responsePositive=await read(base+"/cache/response-cors?a=B%3D","omit");
+ const responseNoStore=await read(base+"/cache/response-cors?a%3DB=","omit","no-store");
  const checks={
   "separate_origin":current!==base,
   "collision_public_html_readable":collision.ok===true && collision.body.includes("public A"),
@@ -60,11 +61,12 @@ try{
     ? responseCollision.ok===true && responseCollision.body.includes("variant=A")
     : responseCollision.blocked===true && responseCollision.error==="TypeError",
   "response_cache_B_control_denied":responseNegative.blocked===true && responseNegative.error==="TypeError",
-  "response_cache_A_intentionally_allowed":responsePositive.ok===true && responsePositive.body.includes("variant=A")
+  "response_cache_A_intentionally_allowed":responsePositive.ok===true && responsePositive.body.includes("variant=A"),
+  "response_cache_no_store_denies_B":responseNoStore.blocked===true && responseNoStore.error==="TypeError"
  };
  const out={browser:(await send("Browser.getVersion")).product,scope:"all-loopback PUBLIC fixtures",
    origin,checks,passed:Object.values(checks).filter(Boolean).length,
-   total:Object.keys(checks).length,observed:{collision,repeat:again,noncolliding_B:negative,original_A:positive,with_credentials:creds,response_cache_collision:responseCollision,response_cache_control:responseNegative,response_cache_A:responsePositive}};
+   total:Object.keys(checks).length,observed:{collision,repeat:again,noncolliding_B:negative,original_A:positive,with_credentials:creds,response_cache_collision:responseCollision,response_cache_control:responseNegative,response_cache_A:responsePositive,response_cache_no_store:responseNoStore}};
  await fs.writeFile(path,JSON.stringify(out,null,2));
  console.log(JSON.stringify(out,null,2));
  if(out.passed!==out.total)process.exitCode=1;
