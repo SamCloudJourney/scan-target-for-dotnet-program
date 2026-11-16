@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 const path=process.argv[2]||"cors-browser.json";
+const major=Number(process.argv[3]);
 const base="http://127.0.0.1:5200", origin="http://127.0.0.1:5207";
 const put=await fetch("http://127.0.0.1:5229/json/new?"+encodeURIComponent(origin+"/page"),{method:"PUT"});
 if(!put.ok)throw Error("CDP target failed");
@@ -45,17 +46,25 @@ try{
  const negative=await read(base+"/cache/public?a%3DB=&uniquecontrol=yes","omit");
  const positive=await read(base+"/cache/public?a=B%3D","omit");
  const creds=await read(base+"/cache/public?a%3DB=","include");
+ const responseCollision=await read(base+"/cache/response-cors?a%3DB=","omit");
+ const responseNegative=await read(base+"/cache/response-cors?a%3DB=&uniquecontrol=yes","omit");
+ const responsePositive=await read(base+"/cache/response-cors?a=B%3D","omit");
  const checks={
   "separate_origin":current!==base,
   "collision_public_html_readable":collision.ok===true && collision.body.includes("public A"),
   "repeat_collision_readable":again.ok===true && again.body===collision.body,
   "normal_B_CORS_denies_external_script":negative.blocked===true && negative.error==="TypeError",
   "A_CORS_intentionally_allows_external_script":positive.ok===true && positive.body.includes("public A"),
-  "credentialed_CORS_not_enabled":creds.blocked===true && creds.error==="TypeError"
+  "credentialed_CORS_not_enabled":creds.blocked===true && creds.error==="TypeError",
+  "response_cache_CORS_version":major===10
+    ? responseCollision.ok===true && responseCollision.body.includes("variant=A")
+    : responseCollision.blocked===true && responseCollision.error==="TypeError",
+  "response_cache_B_control_denied":responseNegative.blocked===true && responseNegative.error==="TypeError",
+  "response_cache_A_intentionally_allowed":responsePositive.ok===true && responsePositive.body.includes("variant=A")
  };
  const out={browser:(await send("Browser.getVersion")).product,scope:"all-loopback PUBLIC fixtures",
    origin,checks,passed:Object.values(checks).filter(Boolean).length,
-   total:Object.keys(checks).length,observed:{collision,repeat:again,noncolliding_B:negative,original_A:positive,with_credentials:creds}};
+   total:Object.keys(checks).length,observed:{collision,repeat:again,noncolliding_B:negative,original_A:positive,with_credentials:creds,response_cache_collision:responseCollision,response_cache_control:responseNegative,response_cache_A:responsePositive}};
  await fs.writeFile(path,JSON.stringify(out,null,2));
  console.log(JSON.stringify(out,null,2));
  if(out.passed!==out.total)process.exitCode=1;

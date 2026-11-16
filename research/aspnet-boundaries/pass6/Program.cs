@@ -205,6 +205,7 @@ public static class Lab
     public static int CacheSlow;
     public static int SetCookieCounter;
     public static int NamedCounter;
+    public static int ResponseCorsCounter;
     public static int ResponseCounter;
     public static int ResponsePrivateCounter;
     public static string Variant(IQueryCollection query)
@@ -247,5 +248,22 @@ public class CookieTempDataController : Controller
     {
         TempData["fixture"] = "safe";
         return Content("tempdata;pathbase=" + Request.PathBase);
+    }
+}
+
+// Separately cacheable MVC ResponseCaching CORS policy test. PUBLIC data only.
+[Route("cache/response-cors")]
+public class ResponseCorsFixtureController : Controller
+{
+    [HttpGet]
+    [ResponseCache(Duration = 240, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "*" })]
+    public IActionResult Get()
+    {
+        var variant = Lab.Variant(Request.Query);
+        Response.Headers["Access-Control-Allow-Origin"] =
+            variant == "A" ? "http://127.0.0.1:5207" : "null";
+        Response.Headers["X-Lab-Cors-Variant"] = variant;
+        return Content("PUBLIC-RESPONSE-CORS;variant=" + variant
+            + ";generation=" + Interlocked.Increment(ref Lab.ResponseCorsCounter), "text/plain");
     }
 }
