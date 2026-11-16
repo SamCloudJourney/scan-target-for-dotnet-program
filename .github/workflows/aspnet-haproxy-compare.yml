@@ -1,0 +1,61 @@
+name: ASP.NET HAProxy path-boundary realism (loopback)
+on:
+  push:
+    branches: [research/aspnet-boundary-five-20261116]
+    paths:
+      - .github/workflows/aspnet-haproxy-compare.yml
+      - research/aspnet-boundaries/haproxy.cfg
+      - research/aspnet-boundaries/haproxy_test.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  haproxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Install HAProxy
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y haproxy
+          mkdir -p REPRODUCTION-EVIDENCE
+          haproxy -vv >REPRODUCTION-EVIDENCE/haproxy-version-${{ matrix.major }}.txt
+          haproxy -c -f research/aspnet-boundaries/haproxy.cfg
+      - name: Build framework fixture
+        run: dotnet build research/aspnet-boundaries/BoundaryFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/aspnet-fixture
+      - name: Exercise real HAProxy request parsing and policy
+        run: |
+          mkdir -p REPRODUCTION-EVIDENCE
+          dotnet /tmp/aspnet-fixture/BoundaryFixture.dll >REPRODUCTION-EVIDENCE/server-${{ matrix.major }}.log 2>&1 &
+          backend_pid=$!
+          haproxy -db -f research/aspnet-boundaries/haproxy.cfg >REPRODUCTION-EVIDENCE/haproxy-${{ matrix.major }}.log 2>&1 &
+          proxy_pid=$!
+          trap 'kill "$proxy_pid" "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5089/healthz >/dev/null 2>&1 &&
+               curl -s -o /dev/null http://127.0.0.1:5092/healthz; then break; fi
+            sleep 0.5
+          done
+          python3 research/aspnet-boundaries/haproxy_test.py --major ${{ matrix.major }} --out REPRODUCTION-EVIDENCE/haproxy-results-${{ matrix.major }}.json
+      - name: Save proxy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: haproxy-boundary-net${{ matrix.major }}
+          path: REPRODUCTION-EVIDENCE/
