@@ -135,8 +135,8 @@ try {
     '13-admin-broker-changes-standard-denied-HKLM',
     '13-disposable-provider-cleanup',
     '11-overbroad-root-admin-only-canary-modified',
-    '12-standard-created-junction-admin-cache-moved',
-    '11-broad-root-admin-cache-moved'
+    '12-standard-created-junction-live-broker-cache-moved',
+    '11-broad-root-live-broker-admin-cache-moved'
   )
   foreach($id in $expected) {
     $case=@($broker.cases | Where-Object {$_.id -eq $id})
