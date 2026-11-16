@@ -160,6 +160,22 @@ try {
     throw 'Junction did not resolve to identical protected NTFS file object in preflight'
   }
   Write-Host ('LOW-SID='+$sid+' LOW_DIRECT_DENIED=True LOW_JUNCTION_CREATED=True LOW_LINK_DENIED=True LOW_HKLM_DENIED=True FILE_ID_MATCH='+$sameFileId)
+  # Independent check using the SHIPPED SDK's WindowsUtils.CreatePipeSecurity method.
+  # This records the DACL the SDK would construct for a separate standard-user
+  # client SID. It does not bypass UAC or start a real cross-SID workload broker.
+  $aclProject=Join-Path $PSScriptRoot 'SecurityAclHarness\SecurityAclHarness.csproj'
+  $aclReport=Join-Path $env:RUNNER_TEMP ('pipe-acl-'+$SdkVersion+'.json')
+  & dotnet build $aclProject -c Release --nologo
+  if($LASTEXITCODE -ne 0){throw 'SDK pipe ACL harness failed to build'}
+  $aclDll=Join-Path $PSScriptRoot 'SecurityAclHarness\bin\Release\net11.0\SecurityAclHarness.dll'
+  & dotnet $aclDll $SdkVersion $sid $aclReport
+  if($LASTEXITCODE -ne 0){throw 'SDK pipe ACL tests did not pass'}
+  $aclResults=Get-Content -Raw -LiteralPath $aclReport | ConvertFrom-Json
+  if($aclResults.status -ne 'COMPLETED' -or @($aclResults.checks|Where-Object {-not $_.passed}).Count -gt 0){
+    throw 'Actual SDK pipe ACL did not delegate low SID as expected'
+  }
+  $summary.sdkPipeAclChecks=$aclResults.checks
+  $summary.sdkPipeAclRules=$aclResults.rules
   $env:BROKER_CROSS_CLIENT=$client
   $env:BROKER_CROSS_PROTECTED=$protected
   $env:BROKER_CROSS_PROVIDER=$provider
