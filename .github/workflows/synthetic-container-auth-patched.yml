@@ -1,0 +1,87 @@
+name: Synthetic .NET auth patched-binary comparison
+on:
+  push:
+    branches:
+      - research/container-auth-all-four-20261116
+permissions:
+  contents: read
+jobs:
+  patched-sdk:
+    name: Official .NET daily patch comparison (binary fingerprints required)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/container-auth-lab
+          persist-credentials: false
+      - name: Install official daily SDK from the .NET 12 source stream
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install-lab.sh
+          bash /tmp/dotnet-install-lab.sh --channel 12.0.1xx --quality daily --install-dir "$RUNNER_TEMP/patched-dotnet" --no-path
+          echo "DOTNET_ROOT=$RUNNER_TEMP/patched-dotnet" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/patched-dotnet" >> "$GITHUB_PATH"
+      - name: Resolve daily SDK assembly and exact source-linked binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_VER="$(dotnet --version)"
+          echo "SDK_VER=$SDK_VER" >> "$GITHUB_ENV"
+          printf '{"sdk":{"version":"%s","rollForward":"disable"}}\n' "$SDK_VER" > research/container-auth-lab/global.json
+          ROOT="$DOTNET_ROOT/sdk/$SDK_VER"
+          DLL="$(find "$ROOT" -type f -name Microsoft.NET.Build.Containers.dll -print -quit)"
+          test -n "$DLL"
+          echo "DOTNET_SDK_CONTAINER_ASSEMBLY=$DLL" >> "$GITHUB_ENV"
+          echo "SDK_VER=$SDK_VER"
+          echo "AUTH_DLL_SHA256=$(sha256sum "$DLL" | awk '{print $1}')"
+          dotnet --list-sdks
+          dotnet --list-runtimes
+      - name: Isolate all authentication traffic to loopback DNS
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "127.0.0.2 privateauth.lab.test" | sudo tee -a /etc/hosts
+          echo "127.0.0.3 third.lab.test" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 registry.lab.test registry-alt.lab.test publicauth.lab.test" | sudo tee -a /etc/hosts
+      - name: Create ephemeral CA and trusted TLS certificate for local endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d /tmp/oci-patch-tls.XXXXXX)"
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 \
+            -subj "/CN=OCI Patched Lab CA" \
+            -addext "basicConstraints=critical,CA:TRUE" \
+            -addext "keyUsage=critical,keyCertSign,cRLSign" \
+            -keyout "$d/ca.key" -out "$d/ca.crt" >/dev/null 2>&1
+          openssl req -newkey rsa:2048 -sha256 -nodes \
+            -subj "/CN=registry.lab.test" \
+            -keyout "$d/server.key" -out "$d/server.csr" >/dev/null 2>&1
+          cat > "$d/server.ext" <<'EOF'
+          subjectAltName=DNS:registry.lab.test,DNS:registry-alt.lab.test,DNS:publicauth.lab.test,DNS:privateauth.lab.test,DNS:third.lab.test,IP:127.0.0.2
+          extendedKeyUsage=serverAuth
+          keyUsage=digitalSignature,keyEncipherment
+          basicConstraints=critical,CA:FALSE
+          EOF
+          openssl x509 -req -in "$d/server.csr" -CA "$d/ca.crt" -CAkey "$d/ca.key" \
+            -CAcreateserial -out "$d/server.crt" -days 1 -sha256 -extfile "$d/server.ext" >/dev/null 2>&1
+          sudo cp "$d/ca.crt" /usr/local/share/ca-certificates/synthetic-patch-lab.crt
+          sudo update-ca-certificates >/dev/null
+          echo "LAB_TLS_CERT=$d/server.crt" >> "$GITHUB_ENV"
+          echo "LAB_TLS_KEY=$d/server.key" >> "$GITHUB_ENV"
+      - name: Check actual patched SDK AuthRealmHandlerFactory and full publish negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/container-auth-lab
+          dotnet run --project . -p:TargetMajor=12 --no-launch-profile
+      - name: Upload patched-binary test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-sdk-binary-auth-evidence
+          path: research/container-auth-lab/REPRODUCTION-EVIDENCE/*.json
+          if-no-files-found: warn
+          retention-days: 14
