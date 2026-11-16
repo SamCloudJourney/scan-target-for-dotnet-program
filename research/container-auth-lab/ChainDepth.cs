@@ -75,6 +75,19 @@ static class ChainDepthLab
     public static async Task RunAsync()
     {
         string sdkPath=Environment.GetEnvironmentVariable("DOTNET_SDK_CONTAINER_ASSEMBLY")??throw new InvalidOperationException("SDK assembly is missing");
+        // Standalone SDK entrypoint invocation must resolve dependencies from the installed SDK root,
+        // as MSBuild normally does when publishing a container.
+        string tasksDirectory=Path.GetDirectoryName(sdkPath)!;
+        string sdkRoot=Directory.GetParent(Directory.GetParent(
+            Directory.GetParent(tasksDirectory)!.FullName)!.FullName)!.FullName;
+        AssemblyLoadContext.Default.Resolving+=(context,name)=>{
+            foreach(string baseDir in new[]{tasksDirectory,sdkRoot})
+            {
+                string candidate=Path.Combine(baseDir,name.Name+".dll");
+                if(File.Exists(candidate))return context.LoadFromAssemblyPath(candidate);
+            }
+            return null;
+        };
         _sdk=AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(sdkPath));
         // Our local web servers do not use any corporate or shared runner proxy.
         var previousProxy=HttpClient.DefaultProxy;
@@ -132,14 +145,26 @@ static class ChainDepthLab
             args:[name,new Uri(Origin+name+"/"),false,NullLogger.Instance,mode],
             culture:null)!;
         object manifests=api.GetProperty("Manifest")!.GetValue(instance)!;
-        Task<bool> existsTask=(Task<bool>)manifests.GetType().GetMethod("ExistsAsync")!.Invoke(
-            manifests,["demo","latest",CancellationToken.None])!;
-        bool exists=await existsTask;
+        string expectedMethod=Is11?"HEAD":"GET";
+        bool exists;
+        if(Is11)
+        {
+            Task<bool> headTask=(Task<bool>)manifests.GetType().GetMethod("ExistsAsync")!.Invoke(
+                manifests,["demo","latest",CancellationToken.None])!;
+            exists=await headTask;
+        }
+        else
+        {
+            Task<HttpResponseMessage> getTask=(Task<HttpResponseMessage>)manifests.GetType().GetMethod("GetAsync")!.Invoke(
+                manifests,["demo","latest",CancellationToken.None])!;
+            using HttpResponseMessage getResponse=await getTask;
+            exists=getResponse.IsSuccessStatusCode;
+        }
         var data=observed.ToArray();
         bool pass=exists && data.Any(x=>x.At=="auth"&&x.BasicA) &&
-            data.Count(x=>x.At=="registry" && x.Method=="HEAD")==2 &&
+            data.Count(x=>x.At=="registry" && x.Method==expectedMethod)==2 &&
             data.Any(x=>x.At=="registry"&&x.BearerA);
-        Save("real-sdk-manifest-head",pass,new{exists,protectedRealmGotBasicA=data.Any(x=>x.At=="auth"&&x.BasicA),
+        Save("real-sdk-manifest-entrypoint",pass,new{exists,method=expectedMethod,protectedRealmGotBasicA=data.Any(x=>x.At=="auth"&&x.BasicA),
             registryRetriedWithBearer=data.Any(x=>x.At=="registry"&&x.BearerA),
             requestSummary=data});
         return pass;
