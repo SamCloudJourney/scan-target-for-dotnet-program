@@ -1,0 +1,60 @@
+name: CoreCLR WebCIL13 isolated validation
+on:
+  push:
+    branches: [research/coreclr-webcil13-20261116]
+    paths:
+      - 'tests/webcil13/**'
+      - '.github/workflows/coreclr-webcil13-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: coreclr-webcil13-validation
+  cancel-in-progress: true
+jobs:
+  source-and-fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            tests/webcil13
+            scan-target-v11.0.100/src/runtime/src/coreclr/vm/peimagelayout.cpp
+            scan-target-v11.0.100/src/runtime/src/coreclr/vm/assemblynative.cpp
+            scan-target-v11.0.100/src/runtime/src/coreclr/utilcode/webcildecoder.cpp
+            scan-target-v11.0.100/src/runtime/src/coreclr/inc/webcildecoder.h
+          sparse-checkout-cone-mode: false
+      - name: Source trace and 20000 range-model cases
+        run: python3 -m unittest discover -v -s tests/webcil13 -p 'test_*.py'
+  asan-models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: tests/webcil13
+      - name: Compare guarded and unguarded isolated models (Clang and GCC)
+        shell: bash
+        run: |
+          set -eu
+          for cc in clang++ g++; do
+            "$cc" -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined \
+              tests/webcil13/relocation_model.cpp -o /tmp/webcil13-model
+            /tmp/webcil13-model guarded
+            set +e
+            ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 /tmp/webcil13-model unguarded > /tmp/webcil13-model.log 2>&1
+            status=$?
+            set -e
+            cat /tmp/webcil13-model.log
+            test "$status" -ne 0
+            grep -q 'AddressSanitizer: heap-buffer-overflow' /tmp/webcil13-model.log
+            echo "$cc model-only sanitizer violation reproduced"
+          done
+          echo "PRODUCTION_CORECLR_REPRODUCED=false"
