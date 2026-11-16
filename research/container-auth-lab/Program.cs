@@ -34,6 +34,7 @@ else
     await IndependentImpactLab.RunAsync();
     await RedirectMatrixLab.RunAsync();
     await SplitRegistryPublishLab.RunAsync();
+    await ResponseReflectionLab.RunAsync();
 }
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
