@@ -44,14 +44,20 @@ jobs:
           mkdir -p REPRODUCTION-EVIDENCE
           dotnet /tmp/aspnet-fixture/BoundaryFixture.dll >REPRODUCTION-EVIDENCE/server-${{ matrix.major }}.log 2>&1 &
           backend_pid=$!
+          trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5089/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:5089/healthz >/dev/null
           haproxy -db -f research/aspnet-boundaries/haproxy.cfg >REPRODUCTION-EVIDENCE/haproxy-${{ matrix.major }}.log 2>&1 &
           proxy_pid=$!
           trap 'kill "$proxy_pid" "$backend_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:5089/healthz >/dev/null 2>&1 &&
-               curl -s -o /dev/null http://127.0.0.1:5092/healthz; then break; fi
+            if curl -fsS http://127.0.0.1:5092/healthz >/dev/null 2>&1; then break; fi
             sleep 0.5
           done
+          curl -fsS http://127.0.0.1:5092/healthz >/dev/null
           python3 research/aspnet-boundaries/haproxy_test.py --major ${{ matrix.major }} --out REPRODUCTION-EVIDENCE/haproxy-results-${{ matrix.major }}.json
       - name: Save proxy evidence
         if: always()
