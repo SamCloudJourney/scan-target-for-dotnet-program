@@ -2,7 +2,7 @@ name: Synthetic .NET container auth boundary validation
 on:
   push:
     branches:
-      - research/container-auth-next-boundary-20261116
+      - research/container-auth-sixth-wave-20261116
 permissions:
   contents: read
 jobs:
@@ -85,5 +85,110 @@ jobs:
         with:
           name: container-auth-evidence-${{ matrix.sdk }}
           path: research/container-auth-lab/REPRODUCTION-EVIDENCE/*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  validate-fixed-candidate:
+    name: Compare development SDK daily build against released security behavior
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/container-auth-lab
+          persist-credentials: false
+      - name: Restrict DNS alias to isolated loopback target
+        shell: bash
+        run: |
+          echo "127.0.0.2 privateauth.lab.test" | sudo tee -a /etc/hosts
+          echo "127.0.0.3 third.lab.test" | sudo tee -a /etc/hosts
+          getent ahostsv4 privateauth.lab.test
+          echo "127.0.0.1 registry.lab.test registry-alt.lab.test publicauth.lab.test" | sudo tee -a /etc/hosts
+      - name: Create ephemeral trusted TLS certificates for local endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d /tmp/oci-auth-tls.XXXXXX)"
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 \
+            -subj "/CN=Synthetic OCI Auth Lab CA" \
+            -addext "basicConstraints=critical,CA:TRUE" \
+            -addext "keyUsage=critical,keyCertSign,cRLSign" \
+            -keyout "$d/ca.key" -out "$d/ca.crt" >/dev/null 2>&1
+          openssl req -newkey rsa:2048 -sha256 -nodes \
+            -subj "/CN=registry.lab.test" \
+            -keyout "$d/server.key" -out "$d/server.csr" >/dev/null 2>&1
+          cat > "$d/server.ext" <<'EOF'
+          subjectAltName=DNS:registry.lab.test,DNS:registry-alt.lab.test,DNS:publicauth.lab.test,DNS:privateauth.lab.test,DNS:third.lab.test,IP:127.0.0.2
+          extendedKeyUsage=serverAuth
+          keyUsage=digitalSignature,keyEncipherment
+          basicConstraints=critical,CA:FALSE
+          EOF
+          openssl x509 -req -in "$d/server.csr" -CA "$d/ca.crt" \
+            -CAkey "$d/ca.key" -CAcreateserial -out "$d/server.crt" \
+            -days 1 -sha256 -extfile "$d/server.ext" >/dev/null 2>&1
+          sudo cp "$d/ca.crt" /usr/local/share/ca-certificates/synthetic-oci-lab-root.crt
+          sudo update-ca-certificates >/dev/null
+          echo "LAB_TLS_CERT=$d/server.crt" >> "$GITHUB_ENV"
+          echo "LAB_TLS_KEY=$d/server.key" >> "$GITHUB_ENV"
+          echo "Generated ephemeral lab-only CA, server cert and key; no production trust or secrets"
+      - name: Install official .NET 12 daily SDK in isolated directory
+        id: daily
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 -fsSL --max-time 45 https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+          bash "$RUNNER_TEMP/dotnet-install.sh" --channel 12.0 --quality daily --install-dir "$RUNNER_TEMP/dotnet-daily" --no-path
+          "$RUNNER_TEMP/dotnet-daily/dotnet" --version
+      - name: Identify exact daily assembly and confirm upstream fixes are present
+        if: steps.daily.outcome == 'success'
+        id: identify
+        shell: bash
+        run: |
+          set -euo pipefail
+          DAILY="$RUNNER_TEMP/dotnet-daily"
+          SDK_VER="$("$DAILY/dotnet" --version)"
+          case "$SDK_VER" in 12.*) ;; *) echo "Not a .NET 12 daily SDK: $SDK_VER"; exit 2;; esac
+          DLL="$(find "$DAILY/sdk/$SDK_VER" -type f -name Microsoft.NET.Build.Containers.dll -print -quit)"
+          test -n "$DLL"
+          if ! grep -aqF 'DOTNET_CONTAINER_AUTH_REALM_POLICY' "$DLL"; then
+            echo "The fetched SDK assembly does not expose the merged AntiSSRF policy option."
+            exit 3
+          fi
+          printf '{"sdk":{"version":"%s","rollForward":"disable"}}\n' "$SDK_VER" > research/container-auth-lab/global.json
+          echo "SDK_VER=$SDK_VER" >> "$GITHUB_ENV"
+          echo "DOTNET_SDK_CONTAINER_ASSEMBLY=$DLL" >> "$GITHUB_ENV"
+          echo "DOTNET_EXECUTABLE=$DAILY/dotnet" >> "$GITHUB_ENV"
+          echo "SDK_EXPECT_PATCHED=1" >> "$GITHUB_ENV"
+          echo "DOTNET_CONTAINER_AUTH_REALM_POLICY=AllowlistOnly" >> "$GITHUB_ENV"
+          echo "DOTNET_CONTAINER_AUTH_REALM_ALLOWED_ADDRESSES=127.0.0.1" >> "$GITHUB_ENV"
+          echo "$DAILY" >> "$GITHUB_PATH"
+          sha256sum "$DLL" | tee research/container-auth-lab/daily-sdk-assembly-sha256.txt
+          echo "sdk=$SDK_VER" >> "$GITHUB_OUTPUT"
+      - name: Run patched candidate real publish, gateway and scope A/B tests
+        if: steps.daily.outcome == 'success' && steps.identify.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/container-auth-lab
+          "$DOTNET_EXECUTABLE" run --project . -p:TargetMajor=12 -- --fixed-sdk-comparison
+      - name: Mark daily candidate as unavailable or not yet containing fix
+        if: steps.daily.outcome != 'success' || steps.identify.outcome != 'success'
+        shell: bash
+        run: |
+          mkdir -p research/container-auth-lab/REPRODUCTION-EVIDENCE
+          echo '{"status":"inconclusive","reason":"daily SDK missing or AntiSSRF marker absent; do not claim a fixed-binary comparison"}' > research/container-auth-lab/REPRODUCTION-EVIDENCE/daily-sdk-availability.json
+          echo "::notice::No comparable verified fixed SDK daily binary was available"
+      - name: Upload patched candidate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-auth-fixed-candidate
+          path: |
+            research/container-auth-lab/REPRODUCTION-EVIDENCE/*.json
+            research/container-auth-lab/daily-sdk-assembly-sha256.txt
           if-no-files-found: warn
           retention-days: 14
