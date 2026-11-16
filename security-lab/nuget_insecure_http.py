@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local-only HTTPS NuGet V3 feed delegating package bytes over HTTP; controls."""
-import http.server, json, os, pathlib, ssl, subprocess, tempfile, threading, zipfile
+import http.server as httpserver
+import json, os, pathlib, ssl, subprocess, tempfile, threading, zipfile
 ROOT=pathlib.Path(tempfile.mkdtemp(prefix="nuget-http-boundary-"))
 OUT=pathlib.Path(os.environ.get("BOUNDARY_OUTPUT","."))
 OUT.mkdir(parents=True,exist_ok=True)
@@ -14,7 +15,7 @@ with zipfile.ZipFile(archive,"w",zipfile.ZIP_DEFLATED) as z:
 <metadata><id>{ID}</id><version>{VERSION}</version><authors>Lab</authors>
 <description>Transport-only canary; no code execution</description></metadata></package>""")
     z.writestr("contentFiles/any/any/canary.txt","LOCAL_ONLY_NUPKG_CANARY")
-class Handler(http.server.BaseHTTPRequestHandler):
+class Handler(httpserver.BaseHTTPRequestHandler):
     def log_message(self,*args):pass
     def do_GET(self):
         self.server.visits.append(self.path)
@@ -42,8 +43,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type","application/json" if not self.path.endswith(".nupkg") else "application/octet-stream")
         self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body)
-http=http.server.ThreadingHTTPServer(("127.0.0.1",0),Handler)
-https=http.server.ThreadingHTTPServer(("127.0.0.1",0),Handler)
+http=httpserver.ThreadingHTTPServer(("127.0.0.1",0),Handler)
+https=httpserver.ThreadingHTTPServer(("127.0.0.1",0),Handler)
 for srv in (http,https):
     srv.visits=[];srv.https_port=https.server_port
     srv.service_package_base=f"http://localhost:{http.server_port}/flat/"
