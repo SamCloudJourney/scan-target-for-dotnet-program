@@ -32,3 +32,21 @@ A new public endpoint deliberately served an HTML body (`text/html`, `Content-Di
 
 **Security readiness:** existing issue #68779 and fix #68792 mean this is not a novel discovery.
 
+
+---
+
+## Fourth and fifth validation: ETag, 304, reverse seeding and CSP
+
+**Versions:** ASP.NET Core 10.0.15 (SDK 10.0.404) and 11.0.0 (SDK 11.0.100). All tests used only local synthetic representations and a fixed HTTP client.
+
+**Fourth-pass ETag collision:** Client A requested `?a=B%3D` (key `a`, value `B=`) and got `ETag: "public-A-validator"`. A second client requested `?a%3DB=` (key `a=B`, empty value) and received **the same A validator** on both releases, despite application logic requiring B's validator. Sending `If-None-Match: "public-A-validator"` with the B URL generated **HTTP 304 Not Modified** instead of an independent B response.
+
+**Downstream client effect:** A deliberately public endpoint returned HTML for A and JSON for B. After seeding A, a client expecting JSON from B instead received cached HTML; the standard JSON parser raised `JSONDecodeError`. A noncolliding B request parsed successfully. This is a real application-functionality failure, not automatically script execution or a vulnerability in the JSON parser.
+
+**Fifth-pass reverse seeding:** Seeding B first made a subsequent A request receive B's exact body and `ETag: "fifth-B"` on **both** versions. A's intended CSP was `default-src 'none'`; B's stored CSP was `default-src 'self'`. The A request received B's less restrictive **CSP header**, proving that response security headers can be confused as part of public cache reuse. A subsequent `If-None-Match: "fifth-B"` request to the *victim A URL* received 304, showing the incorrect variant persists through client-initiated revalidation. This does **not** prove XSS, arbitrary script injection or private data access.
+
+**Negative controls:** `SetVaryByQuery("a")` fixed-name policy kept both decoded query forms separate with independently generated bodies on **both** releases. Cookie-authenticated Alice/Bob requests to `.RequireAuthorization().CacheOutput("public-query-all")` remained separate; anonymous requests returned 401. These are real tested controls, not assumptions.
+
+**Evidence:** [Fourth-pass run 43825674348](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43825674348) (38/38 checks per version), [fifth-pass run 43826202135](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43826202135) (16/16 checks per version; mixed with proxy tests). Raw JSON includes every response status, header, body and control.
+
+**Novelty and severity:** #5's original delimiter collision has prior public [issue #68779](https://github.com/dotnet/aspnetcore/issues/68779) and [fix PR #68792](https://github.com/dotnet/aspnetcore/pull/68792). The stronger HTTP consequences do not by themselves create a new underlying vulnerability or demonstrate Important/Critical impact.

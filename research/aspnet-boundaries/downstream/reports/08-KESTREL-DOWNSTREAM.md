@@ -37,3 +37,22 @@ HAProxy explicitly documents that URI normalization is not automatic and provide
 
 **Evidence:** [Third-pass CI](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822012995) with direct origin/absolute comparisons, three real HAProxy listeners, positive 200 and negative 403/401/404 controls. The new strict rule is only validated for these inputs, **not** as a complete proof against all path encodings or normalization sequences.
 
+
+---
+
+## Fourth and fifth validation: proxy normalization with mixed encodings
+
+The #8 test matrix now distinguishes **three different phenomena**: the previously fixed .NET 10 HTTP/1 absolute-form encoded-slash mismatch, broader RFC dot-segment canonicalization present in **both** .NET 10 and 11, and the **reverse proxy's choice of ACL normalization**. The application route is deliberately without ASP.NET authorization; all "restricted" content is synthetic.
+
+**Fourth-pass normalizer comparison:** Three loopback HAProxy listeners were tested:
+1. Raw `path_beg /gate/` — admitted multiple dot-segment and encoded-path representations, returning the synthetic backend document.
+2. HAProxy's unconditional `normalize-uri percent-decode-unreserved strict`, `path-merge-slashes`, `path-strip-dot` and `path-strip-dotdot full`, then a raw `path_beg` check — blocked the tested dot variants but remained insufficient for some encoded slashes under .NET 10.
+3. The same ordered normalization pipeline followed by a decoded-path `path,url_dec -m beg /gate/` ACL — returned **no synthetic restricted-document success** across the fixed test set on either version.
+
+**Fifth-pass bounded extension:** 23 explicit request-target forms were exercised under two real HAProxy policies: normalized-and-decoded, and the same checks with an additional early deny rule for percent-encoded separators. **Neither policy returned the restricted document for any of the 23 forms** on .NET 10 or 11. The 200 responses in the raw status distribution belonged exclusively to `/healthz`, the deliberately unprotected control. 403 and 404 responses both count as no restricted access, but a 404 is not proof the proxy ACL denied the request.
+
+**No application authentication bypass:** `.RequireAuthorization()` continued denying unauthorized requests under direct and proxied encoded/dot-segment paths. The experiment does not claim arbitrary HAProxy deployments are vulnerable, or that this fixed corpus exhausts every normalization encoding.
+
+**Configuration caveat:** The GitHub-runner HAProxy build required `expose-experimental-directives` to use `normalize-uri`. HAProxy's documented transformation order matters, particularly percent-decoding unreserved characters before removing escaped dot segments. The stronger ingress policies are validated **only against this corpus**. See [HAProxy's URI normalizer guidance](https://www.haproxy.com/documentation/haproxy-configuration-manual/new/2-8r1/) and [Microsoft's prior Kestrel fix PR #65930](https://github.com/dotnet/aspnetcore/pull/65930).
+
+**Evidence:** [Fourth-pass run](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43825674348), [fifth-pass run](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43826202135), both versions passing all checks.

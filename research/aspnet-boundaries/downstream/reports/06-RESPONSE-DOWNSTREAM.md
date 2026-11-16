@@ -30,3 +30,17 @@ A second, demonstrably *cacheable* fixture served `text/plain` for A and `applic
 
 **Controls:** authenticated/private-response isolation and no-cache handling as previously tested. [Third-pass CI](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43822012995). No private account contents were exposed. Existing PR #68510 precedes these tests.
 
+
+---
+
+## Fourth and fifth validation: conditional HTTP cache integrity
+
+**Fourth-pass ETag:** In an explicitly cacheable wildcard-query ResponseCaching fixture, .NET **10.0.15** returned public A's `ETag: "response-A-validator"` on a distinct B query, then answered B + `If-None-Match: "response-A-validator"` with **HTTP 304**. On .NET **11.0.0**, B received `"response-B-validator"` and the mismatched If-None-Match returned **200**. These results show validator and conditional-response integrity effects beyond wrong body text.
+
+**Fifth-pass reverse seeding:** Client B seeded `?a%3DB=` and the subsequent A `?a=B%3D` received B's body and `ETag: "fifth-response-B"` on .NET 10. A request to that A URL carrying the **ETag actually issued to it** returned 304. On .NET 11, A instead received `"fifth-response-A"` with its own body; its 304 for that own validator is correct. Thus the collision is bidirectional on 10, while 11's query serialization separates the requests.
+
+**Negative controls:** A fixed named `VaryByQueryKeys = {"a"}` cache kept the two requests' representations separate on both versions. Authorization-bearing requests bypassed ordinary public cache reuse in the earlier suite; protected private controllers served their respective identities and anonymous requests remained 401. The ResponseCaching tests did not expose private account contents.
+
+**Evidence:** [Fourth-pass runner evidence](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43825674348) (38/38 each version); [fifth-pass runner evidence](https://github.com/SamCloudJourney/scan-target-for-dotnet-program/actions/runs/43826202135) (16/16 each version).
+
+**Prior work:** [Microsoft PR #68510](https://github.com/dotnet/aspnetcore/pull/68510) already addresses the encoded-equals collision class. Public cache validator misuse on an already-known collision does not prove a separate new root cause, account takeover, or RCE.

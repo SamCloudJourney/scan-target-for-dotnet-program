@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-16",
+  "scope": "loopback-only authorized defensive reproduction",
+  "branch": "research/aspnet-boundary-five-20261116",
+  "tested_commit_fourth": "0441f17a18c3d03a0692f631ead35ce608e84566",
+  "tested_commit_fifth": "acaabe901b7746c11e96831b07aaf277d4b1d3ca",
+  "frameworks": {
+    "10": "ASP.NET Core 10.0.15 / SDK 10.0.404",
+    "11": "ASP.NET Core 11.0.0 / SDK 11.0.100"
+  },
+  "checks": {
+    "fourth": {
+      "net10": "38/38",
+      "net11": "38/38"
+    },
+    "fifth": {
+      "net10": "16/16",
+      "net11": "16/16"
+    }
+  },
+  "artifacts": [
+    {
+      "run_id": 43825674348,
+      "artifact_id": 14206137434,
+      "name": "aspnet-fourth-net10",
+      "sha256": "56e0101bfa0154e8404452b9fe5cb8fb276c2768b96e32e3757bd2b8e386d926"
+    },
+    {
+      "run_id": 43825674348,
+      "artifact_id": 14206308364,
+      "name": "aspnet-fourth-net11",
+      "sha256": "1d99bcfa2b17a6aaba05eff0d182c53993c8a2bd0492a5eb0b14169ff1ed88fe"
+    },
+    {
+      "run_id": 43826202135,
+      "artifact_id": 14206013415,
+      "name": "aspnet-fifth-net10",
+      "sha256": "97f09ea62968d0beff7807053e2f100f6a430d6ab01ea0fc2e3a03e2cbe5169e"
+    },
+    {
+      "run_id": 43826202135,
+      "artifact_id": 14206518625,
+      "name": "aspnet-fifth-net11",
+      "sha256": "434d5ee6435833cb7d7a923b41bae85d42085e7d034e4fdd34d9620f722f99b9"
+    }
+  ]
+}
