@@ -2,7 +2,7 @@ name: Synthetic .NET container auth boundary validation
 on:
   push:
     branches:
-      - research/container-auth-boundary-20261116
+      - research/container-auth-downstream-20261116
 permissions:
   contents: read
 jobs:
