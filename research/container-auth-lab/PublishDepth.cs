@@ -335,7 +335,7 @@ static class PublishDepthLab
             registryReceivedSyntheticBasic=registryGotBasic,
             expectedPatchedImplementation=IsPatched,
             downgradeEndpointRequests,
-            redirectStatus=redirectMode?redirectStatus:null,
+            redirectStatus=redirectMode?(int?)redirectStatus:null,
             usedSyntheticIdentityToken=identityMode,
             missingCredentialsControl=missingCredentials,
             protectedRequestCount=records.Count(x=>x.Role=="private-token"),
