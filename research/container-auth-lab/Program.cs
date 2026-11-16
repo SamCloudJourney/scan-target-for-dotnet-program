@@ -25,6 +25,7 @@ else if(args.Length==1 && args[0]=="--fixed-sdk-comparison")
     await PublishDepthLab.RunAsync();
     await TenantGatewayLab.RunAsync();
     await CrossRegistryScopeLab.RunAsync();
+    await DualRegistryPublishLab.RunAsync();
 }
 else
 {
@@ -35,6 +36,7 @@ else
     await PublishDepthLab.RunAsync();
     await TenantGatewayLab.RunAsync();
     await CrossRegistryScopeLab.RunAsync();
+    await DualRegistryPublishLab.RunAsync();
 }
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
