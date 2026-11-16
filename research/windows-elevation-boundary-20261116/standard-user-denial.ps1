@@ -20,9 +20,11 @@ $record = [ordered]@{
 }
 try {
   New-Item -ItemType Directory -Path $work -Force | Out-Null
-  New-Item -ItemType Directory -Path (Join-Path $work 'temp') -Force | Out-Null
-  & icacls.exe $work /grant '*S-1-5-32-545:(OI)(CI)RX' /T | Out-Null
-  if($LASTEXITCODE -ne 0) { throw 'Could not grant Users read permission to scratch folder' }
+  foreach($sub in @('temp','Roaming','Local','Home')){
+    New-Item -ItemType Directory -Path (Join-Path $work $sub) -Force | Out-Null
+  }
+  & icacls.exe $work /grant '*S-1-5-32-545:(OI)(CI)M' /T | Out-Null
+  if($LASTEXITCODE -ne 0) { throw 'Could not grant Users modify permission on isolated scratch folder' }
   @{sdk=@{version=$SdkVersion;rollForward='disable'}} | ConvertTo-Json -Depth 4 |
     Set-Content (Join-Path $work 'global.json') -Encoding utf8
   $secret = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(24)) + 'Aa1!'
@@ -44,12 +46,27 @@ try {
     Wait=$true
     RedirectStandardOutput=$stdout
     RedirectStandardError=$stderr
+    Environment=@{
+      DOTNET_CLI_HOME=(Join-Path $work 'Home')
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1'
+      DOTNET_NOLOGO='1'
+      APPDATA=(Join-Path $work 'Roaming')
+      LOCALAPPDATA=(Join-Path $work 'Local')
+      HOME=(Join-Path $work 'Home')
+      USERPROFILE=(Join-Path $work 'Home')
+      TEMP=(Join-Path $work 'temp')
+      TMP=(Join-Path $work 'temp')
+    }
   }
   $p = Start-Process @params
   $record.standardUserExitCode = $p.ExitCode
   $output = [IO.File]::ReadAllText($stdout) + [IO.File]::ReadAllText($stderr)
   $record.consoleOutput = $output.Substring(0, [Math]::Min(2500,$output.Length))
-  $record.status = if($p.ExitCode -ne 0){'EXPECTED_DENIAL'}else{'UNEXPECTED_SUCCESS'}
+  if($p.ExitCode -eq 0) { $record.status = 'UNEXPECTED_SUCCESS' }
+  elseif($output -match '(?i)privileg|administrator|elevat|requires admin|access denied to start server'){
+    $record.status = 'AUTHORIZATION_GATE_DENIED'
+  }
+  else { $record.status = 'INCONCLUSIVE_OTHER_STARTUP_DENIAL' }
   Write-Host "Standard-user direct broker start exit=$($p.ExitCode), result=$($record.status)"
 } catch {
   $record.status = 'HARNESS_ERROR'
@@ -66,4 +83,4 @@ try {
   Write-Host "EVIDENCE_FILE=$reportPath"
   Write-Host "RUN_STATUS=$($record.status)"
 }
-if($record.status -ne 'EXPECTED_DENIAL'){ exit 1 }
+if($record.status -ne 'AUTHORIZATION_GATE_DENIED'){ exit 1 }
