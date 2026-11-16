@@ -1,0 +1,72 @@
+name: Windows latest DiaSymReader 3.0.0 vs 2.2.15 differential
+on:
+  push:
+    branches: [research/bounded-resource-probes-20261116]
+    paths:
+      - 'research/bounded-resource-probes/WindowsLatest/**'
+      - '.github/workflows/resource-diasym-latest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-latest:
+    runs-on: windows-2022
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Build exact same reader code with stable 2.2.15 and current 3.0.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force -Path windows-latest-evidence | Out-Null
+          dotnet build research/bounded-resource-probes/SourceSample/SourceSample.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "PDB fixture build failed"}
+          dotnet build research/bounded-resource-probes/WindowsGate/WindowsGate.csproj -c Release -f net11.0
+          if($LASTEXITCODE -ne 0){throw "Baseline 2.2.15 build failed"}
+          dotnet build research/bounded-resource-probes/WindowsLatest/WindowsLatest.csproj -c Release
+          if($LASTEXITCODE -ne 0){throw "DiaSymReader 3.0.0 build failed"}
+      - name: Compare baseline and forged bounded Portable PDB source records
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $fixture=(Resolve-Path 'research/bounded-resource-probes/SourceSample/bin/Release/net10.0/SourceSample.pdb').Path
+          $variants=@(
+            @{Version='2.2.15';Dll=(Resolve-Path 'research/bounded-resource-probes/WindowsGate/bin/Release/net11.0/WindowsGate.dll').Path},
+            @{Version='3.0.0';Dll=(Resolve-Path 'research/bounded-resource-probes/WindowsLatest/bin/Release/net11.0/WindowsLatest.dll').Path}
+          )
+          foreach($variant in $variants){
+            foreach($declared in @(0,1048576,8388608)){
+              $out=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.out')
+              $err=Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString()+'.err')
+              $cmd=@($variant.Dll,$fixture,"$declared")
+              "PACKAGE_VERSION=$($variant.Version) DECLARED=$declared" | Tee-Object windows-latest-evidence/version-comparison.log -Append
+              $proc=Start-Process -FilePath dotnet -ArgumentList $cmd -Wait:$false -PassThru -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow
+              try{
+                if(-not $proc.WaitForExit(15000)){
+                  $proc.Kill($true)
+                  throw "Controlled runner input exceeded 15 seconds"
+                }
+                if($proc.ExitCode -ne 0){throw "Reader exited $($proc.ExitCode): $(Get-Content $err -Raw)"}
+                Get-Content $out | Tee-Object windows-latest-evidence/version-comparison.log -Append
+              }finally{Remove-Item $out,$err -Force -ErrorAction SilentlyContinue}
+            }
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: latest-diasymreader-version-comparison
+          path: windows-latest-evidence/
+          retention-days: 14
+          if-no-files-found: warn
