@@ -19,6 +19,7 @@ static class CrossRegistryScopeLab
     const string Token="SYNTH_ATTESTATION_TOKEN";
     const string Canary="SYNTH_PRIVILEGED_REGISTRY_B_CANARY";
     static readonly string Sdk=Environment.GetEnvironmentVariable("SDK_VER")??"unknown";
+    static readonly bool IsPatched=Environment.GetEnvironmentVariable("SDK_EXPECT_PATCHED")=="1";
     static readonly List<object> Results=[];
     static string Basic(string pwd)=>"Basic "+Convert.ToBase64String(Encoding.UTF8.GetBytes(User+":"+pwd));
     static async Task Reply(HttpContext c,int code,string? body=null,string? challenge=null)
@@ -127,11 +128,14 @@ static class CrossRegistryScopeLab
         var sharedPut=await Replay(HttpMethod.Put);
         equivalentCredentialsAccepted=false;
         var differentPassword=await Replay(HttpMethod.Get);
-        bool pass=triggered && captured==Basic(Pass) && sharedGet==(200,true) &&
-            sharedPut.Item1==403 && differentPassword.Item1==403 &&
-            authorizedReads==1 && authorizedWrites==0;
+        bool pass=IsPatched
+            ? !triggered && captured is null && authorizedReads==0 && authorizedWrites==0 &&
+              sharedGet.Item1==0 && sharedPut.Item1==0
+            : triggered && captured==Basic(Pass) && sharedGet==(200,true) &&
+              sharedPut.Item1==403 && differentPassword.Item1==403 &&
+              authorizedReads==1 && authorizedWrites==0;
         var report=new{scenario="cross-registry-credential-replay-scope",
-            passed=pass,sdk=Sdk,registryAChallengeCompleted=triggered,
+            passed=pass,sdk=Sdk,expectedPatchedImplementation=IsPatched,registryAChallengeCompleted=triggered,
             separateRealmReceivedSyntheticBasic=captured==Basic(Pass),
             protectedRegistryBSharedPasswordReadStatus=sharedGet.Item1,
             protectedRegistryBReturnedSyntheticCanary=sharedGet.Item2,
