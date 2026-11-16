@@ -19,6 +19,13 @@ if (args.Length==2 && args[0]=="--cache-probe-child")
 {
     await CacheDepthLab.ChildAsync(args[1]);
 }
+else if(args.Length==1 && args[0]=="--fixed-sdk-comparison")
+{
+    // Real SDK build from an official daily feed, if available.
+    await PublishDepthLab.RunAsync();
+    await TenantGatewayLab.RunAsync();
+    await CrossRegistryScopeLab.RunAsync();
+}
 else
 {
     await Laboratory.RunAsync();
@@ -26,6 +33,8 @@ else
     await ChainDepthLab.RunAsync();
     await CacheDepthLab.RunAsync();
     await PublishDepthLab.RunAsync();
+    await TenantGatewayLab.RunAsync();
+    await CrossRegistryScopeLab.RunAsync();
 }
 
 record Observation(string Role, string Method, string Path, bool SyntheticBasic, bool SyntheticPasswordBody, bool SyntheticBearer);
