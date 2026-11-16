@@ -14,7 +14,7 @@ permissions:
 jobs:
   linker-reachability:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,13 +52,14 @@ jobs:
             for mode in InputBaseline InputAltered; do
               echo "START $fx $mode" | tee -a illink-evidence/publish.log
               work="$PWD/research/bounded-resource-probes/Linker"
-              # No external network; 512 MiB memory, 1 CPU; each publish <=75 seconds.
+              # No external network; 768 MiB memory, 2 CPUs, 128 PIDs; <=120s.
               # Only input difference is the 4-byte declared embedded PDB length.
-              timeout --signal=TERM --kill-after=3s 75s docker run --rm \
-                --memory=512m --memory-swap=512m --cpus=1 --pids-limit=48 \
+              timeout --signal=TERM --kill-after=3s 120s docker run --rm \
+                --memory=768m --memory-swap=768m --cpus=2 --pids-limit=128 \
                 --network none --tmpfs /tmp:rw,nosuid,size=48m \
                 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 \
                 -e DOTNET_CLI_HOME=/tmp/dotnet -e NUGET_PACKAGES=/home/runner/.nuget/packages \
+                -e MSBUILDDISABLENODEREUSE=1 -e DOTNET_GCHeapHardLimit=0x20000000 \
                 -e FX="$fx" -e INPUT_MODE="$mode" \
                 -v "$work:/work:rw" \
                 -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
@@ -69,6 +70,7 @@ jobs:
                   dotnet publish Host/Host.csproj -f "$FX" -c Release \
                     --no-restore -p:PublishTrimmed=true \
                     -p:SampleInputPath="/work/$INPUT_MODE/Sample.dll" \
+                    -p:UseSharedCompilation=false -m:1 \
                     -o "/work/out-$FX-$INPUT_MODE" -v:normal \
                     > /tmp/publish-output.log 2>&1
                   exit_code=$?
@@ -77,7 +79,12 @@ jobs:
                   if grep -q "ILLink" /tmp/publish-output.log; then linker_mentioned=true; else linker_mentioned=false; fi
                   printf "{\"framework\":\"%s\",\"input\":\"%s\",\"exit_code\":%d,\"elapsed_ms\":%d,\"container_memory_peak_bytes\":%s,\"ilink_in_log\":%s}\n" \
                     "$FX" "$INPUT_MODE" "$exit_code" "$((end-start))" "$peak" "$linker_mentioned"
-                  if [ "$exit_code" != "0" ]; then tail -n 30 /tmp/publish-output.log; fi
+                  if [ "$exit_code" != "0" ]; then
+                    tail -n 40 /tmp/publish-output.log
+                    for failure in /tmp/MSBuild_*.failure.txt; do
+                      [ -f "$failure" ] && { echo "TASKHOST FAILURE"; tail -n 30 "$failure"; }
+                    done
+                  fi
                   exit 0
                 ' | tee -a illink-evidence/publish.log
             done

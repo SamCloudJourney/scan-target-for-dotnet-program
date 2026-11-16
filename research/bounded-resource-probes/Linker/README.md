@@ -18,8 +18,8 @@ dotnet publish with PublishTrimmed enabled.
 
 Safety and controls:
 - all inputs self-created; mutation only four header bytes;
-- offline Docker tests (network none) with 512 MiB memory, one CPU,
-  <=75 seconds per test, <=10-minute workflow;
+- offline Docker tests (network none) with 768 MiB memory, two CPUs,
+  128-PID ceiling, <=120 seconds per test, <=12-minute workflow;
 - only loopback and local filesystem; no external or customer service;
 - records real container memory peak and elapsed time where supported;
 - report package/restore failures separately from a parser failure;
