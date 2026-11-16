@@ -17,7 +17,7 @@ builder.WebHost.ConfigureKestrel(o=> {
 });
 builder.Services.Configure<FormOptions>(o=>{o.ValueLengthLimit=64*1024;o.KeyLengthLimit=2048;o.ValueCountLimit=4;});
 var app=builder.Build();
-app.MapGet("/health",(HttpContext ctx)=>Results.Json(new{alive=true,protocol=ctx.Request.Protocol}));
+app.MapGet("/health",(HttpContext ctx)=>Results.Json(new{alive=true,protocol=ctx.Request.Protocol,connectionId=ctx.Connection.Id}));
 app.MapPost("/form",async (HttpContext ctx)=>{
     var watch=Stopwatch.StartNew();
     string state="ok",error="";int fields=-1,n=-1;
@@ -26,7 +26,7 @@ app.MapPost("/form",async (HttpContext ctx)=>{
     watch.Stop();
     ctx.Response.StatusCode=state=="ok"?200:400;
     await ctx.Response.WriteAsJsonAsync(new {state,error,fields,xLength=n,protocol=ctx.Request.Protocol,
-        processingMs=Math.Round(watch.Elapsed.TotalMilliseconds,3)});
+        processingMs=Math.Round(watch.Elapsed.TotalMilliseconds,3),connectionId=ctx.Connection.Id});
 });
 await app.StartAsync();
 using var http=new HttpClient(new SocketsHttpHandler{AllowAutoRedirect=false,
@@ -78,6 +78,7 @@ try {
             runtime=RuntimeInformation.FrameworkDescription
         }));
         await Health("after-"+name);
+        if(name=="h2-reset")await Task.WhenAll(Health("after-reset-concurrent-a"),Health("after-reset-concurrent-b"));
     }
 }finally{await app.StopAsync(TimeSpan.FromSeconds(2));}
 return 0;
