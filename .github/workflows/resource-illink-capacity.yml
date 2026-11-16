@@ -51,6 +51,9 @@ jobs:
               mkdir -p "$workspace"
               cp research/bounded-resource-probes/LinkerCustom/HostAudit/HostAudit.csproj "$workspace/HostAudit.csproj"
               cp research/bounded-resource-probes/LinkerCustom/HostAudit/Program.cs "$workspace/Program.cs"
+              # Prepare runtime and ILLink packages with network access on the
+              # runner; the actual publish remains a networkless worker test.
+              dotnet restore "$workspace/HostAudit.csproj" -p:TargetFrameworks="$fx" -p:PublishTrimmed=true --verbosity quiet
               dockerName="bounded-link-$(echo "$fx" | tr '.' '-')-$case_number"
               echo "CAPACITY_START fx=$fx mode=$mode limit=$limit case=$case_number" | tee -a capacity-evidence/capacity-results.log
               set +e
@@ -64,14 +67,6 @@ jobs:
                 -v "$HOME/.nuget/packages:/home/runner/.nuget/packages:ro" \
                 "mcr.microsoft.com/dotnet/sdk:$sdk" bash -c '
                   cd /work
-                  dotnet restore HostAudit.csproj -p:TargetFrameworks="$FX" -p:PublishTrimmed=true \
-                    --ignore-failed-sources > /tmp/restore.log 2>&1
-                  restore=$?
-                  if [ "$restore" -ne 0 ]; then
-                    echo "RESEARCH_CAPACITY_RESTORE_FAILED fx=$FX mode=$INPUT_MODE code=$restore"
-                    tail -n 15 /tmp/restore.log
-                    exit "$restore"
-                  fi
                   dotnet publish HostAudit.csproj -f "$FX" -c Release --no-restore \
                     -p:TargetFrameworks="$FX" -p:PublishTrimmed=true \
                     -p:SampleInputPath="/inputs/$INPUT_MODE/Sample.dll" \
