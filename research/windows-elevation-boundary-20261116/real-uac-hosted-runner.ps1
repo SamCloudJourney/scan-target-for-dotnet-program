@@ -35,7 +35,9 @@ $info=[ordered]@{
   cleanup=@()
 }
 try {
-  if(-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){
+  $runnerPrincipal=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+  $runnerIsAdmin=$runnerPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  if(-not $runnerIsAdmin){
     throw "Runner is not preauthorized administrator"
   }
   New-Item -ItemType Directory -Path $root,$client,$sandboxHome,$cwd -Force | Out-Null
