@@ -29,7 +29,11 @@ jobs:
           New-Item -ItemType Directory -Path xml-evidence -Force | Out-Null
           dotnet build research/bounded-resource-probes/SourceSample/SourceSample.csproj -c Release
           if($LASTEXITCODE -ne 0){throw "Fixture failed"}
-          dotnet build research/bounded-resource-probes/XmlConsumer/XmlConsumer.csproj -c Release
+          # This historical Microsoft converter is distributed via the public
+          # dnceng tools feed, not the default nuget.org package index.
+          dotnet restore research/bounded-resource-probes/XmlConsumer/XmlConsumer.csproj --source https://api.nuget.org/v3/index.json --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
+          if($LASTEXITCODE -ne 0){throw "Official public converter feed restore failed"}
+          dotnet build research/bounded-resource-probes/XmlConsumer/XmlConsumer.csproj -c Release --no-restore
           if($LASTEXITCODE -ne 0){throw "Official converter package consumer failed to compile"}
       - name: Compare optional source extraction and forced Windows native reader
         shell: pwsh
