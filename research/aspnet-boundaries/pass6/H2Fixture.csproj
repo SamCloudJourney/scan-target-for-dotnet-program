@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetMajor Condition="'$(TargetMajor)'==''">10</TargetMajor>
+    <TargetFramework>net$(TargetMajor).0</TargetFramework>
+    <OutputType>Exe</OutputType><Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup><ItemGroup><Compile Include="H2Program.cs"/></ItemGroup>
+</Project>
