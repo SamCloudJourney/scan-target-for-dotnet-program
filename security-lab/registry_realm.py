@@ -15,7 +15,7 @@ except Exception: hosts_ready=False
 dll_candidates=glob.glob("/opt/hostedtoolcache/dotnet/**/Microsoft.NET.Build.Containers.dll",recursive=True)
 if not dll_candidates:
     dll_candidates=glob.glob("/usr/share/dotnet/**/Microsoft.NET.Build.Containers.dll",recursive=True)
-dll_candidates.sort(key=lambda p:("/Containers/" not in p,len(p)))
+dll_candidates.sort(key=lambda p:(int(p.split("/sdk/")[1].split(".")[0]) if "/sdk/" in p else 0, "/Containers/" in p),reverse=True)
 dll=dll_candidates[0] if dll_candidates else ""
 proj=ROOT/"sdkprobe"
 proj.mkdir()
@@ -93,7 +93,7 @@ else:
                             dll,f"127.0.0.1:{reg.server_port}",f"http://127.0.0.1:{reg.server_port}/v2/"],
                            env=env,capture_output=True,text=True,timeout=35)
         report["tests"].append({"name":label,"sdk_exit":run.returncode,
-                                "sdk_last_line":run.stdout[-1000:],"realm_events":list(realm.events)})
+                                "sdk_last_line":(run.stdout+run.stderr)[-1800:],"realm_events":list(realm.events)})
     reg.shutdown();realm.shutdown()
 (OUT/"registry-realm-results.json").write_text(json.dumps(report,indent=2))
 print(json.dumps(report,indent=2)[-6500:])
