@@ -18,7 +18,7 @@ def cmd(args, *, verify="true", cwd=None):
     try:
         p=subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          cwd=cwd or ROOT, env=env, timeout=125)
-        return {"exit":p.returncode,"log":p.stdout[-3400:]}
+        return {"exit":p.returncode,"log":p.stdout[-3400:],"full_stdout_has_canary":TARGET in p.stdout}
     except Exception as e:
         return {"exit":-999, "log":repr(e)}
 
@@ -66,7 +66,7 @@ results.append(restore("require_cold_verification_disabled", strict, ROOT/"cold-
 results.append(restore("accept_seed_shared_cache", accept, cache, "true"))
 results.append(restore("require_warm_cache_verification_enabled", strict, cache,"true"))
 b=cmd(["dotnet","build",str(project),"--no-restore","--verbosity","normal"],verify="true")
-results.append({"label":"build_after_strict_warm_cache","exit":b["exit"],"canary_target_executed":TARGET in b["log"],"log":b["log"]})
+results.append({"label":"build_after_strict_warm_cache","exit":b["exit"],"canary_target_executed":b.get("full_stdout_has_canary",False),"log":b["log"]})
 results.append(restore("require_cold_second_control",strict,ROOT/"cold-control-2","true"))
 results.append(restore("mapped_trusted_feed_warm_shared_cache",mapped,cache,"true"))
 results.append(restore("mapped_trusted_feed_cold_control",mapped,ROOT/"cold-mapped","true"))

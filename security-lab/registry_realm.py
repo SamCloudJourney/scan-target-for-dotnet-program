@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Actual SDK AuthHandshakeMessageHandler probe against loopback fake registry/realm only."""
-import base64, glob, http.server, json, os, pathlib, subprocess, tempfile, threading, socket
+import base64, glob, http.server, json, os, pathlib, subprocess, tempfile, threading, socket, ssl
 ROOT=pathlib.Path(tempfile.mkdtemp(prefix="registry-realm-boundary-"))
 OUT=pathlib.Path(os.environ.get("BOUNDARY_OUTPUT","."))
 OUT.mkdir(parents=True,exist_ok=True)
@@ -35,7 +35,7 @@ var modeType=asm.GetType("Microsoft.NET.Build.Containers.RegistryMode",true)!;
 var mode=Enum.Parse(modeType,"Push");
 var ctor=handlerType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Single(c=>c.GetParameters().Length==5);
 var inner=new HttpClientHandler{AllowAutoRedirect=true,UseProxy=false};
-var handler=(HttpMessageHandler)ctor.Invoke(new object?[]{args[1],true,inner,NullLogger.Instance,mode});
+var handler=(HttpMessageHandler)ctor.Invoke(new object?[]{args[1],false,inner,NullLogger.Instance,mode});
 using var client=new HttpClient(handler);
 try {
     var resp=await client.GetAsync(args[2]);
@@ -70,19 +70,34 @@ else:
             hit=(b"CANARY_REGISTRY_USER" in body and b"CANARY_REGISTRY_PASSWORD" in body)
             self.server.events.append({"method":"POST","path":self.path,"canary_in_body":hit})
             if self.path.startswith("/redirect"):
-                self.send_response(307);self.send_header("Location",f"http://127.0.0.1:{self.server.server_port}/posted")
+                self.send_response(307);self.send_header("Location",f"https://127.0.0.1:{self.server.server_port}/posted")
                 self.send_header("Content-Length","0");self.end_headers();return
             payload=b'{"token":"synthetic-token","expires_in":60}'
             self.send_response(200);self.send_header("Content-Type","application/json")
             self.send_header("Content-Length",str(len(payload)));self.end_headers();self.wfile.write(payload)
     reg=http.server.ThreadingHTTPServer(("127.0.0.1",0),LabHandler)
     realm=http.server.ThreadingHTTPServer(("127.0.0.1",0),LabHandler)
+    cert=ROOT/"test-only-registry.crt"
+    key=ROOT/"test-only-registry.key"
+    certgen=subprocess.run(["openssl","req","-x509","-nodes","-newkey","rsa:2048","-days","1",
+             "-keyout",str(key),"-out",str(cert),"-subj","/CN=boundary-token.localdomain",
+             "-addext","subjectAltName=DNS:localhost,DNS:boundary-token.localdomain,IP:127.0.0.1"],
+             capture_output=True,text=True,timeout=30)
+    trustcopy=subprocess.run(["sudo","-n","cp",str(cert),"/usr/local/share/ca-certificates/registry-boundary-lab.crt"],capture_output=True,text=True)
+    trustupdate=subprocess.run(["sudo","-n","update-ca-certificates"],capture_output=True,text=True,timeout=60)
+    if certgen.returncode or trustcopy.returncode or trustupdate.returncode:
+        raise RuntimeError("Lab TLS certificate trust setup failed")
+    tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    tls.load_cert_chain(str(cert),str(key))
+    reg.socket=tls.wrap_socket(reg.socket,server_side=True)
+    realm.socket=tls.wrap_socket(realm.socket,server_side=True)
+    report["secure_registry_default_tls"]=True
     reg.kind="registry";reg.events=[];realm.kind="realm";realm.events=[]
     threading.Thread(target=reg.serve_forever,daemon=True).start()
     threading.Thread(target=realm.serve_forever,daemon=True).start()
-    modes=[("blocked_ip_literal",f"http://127.0.0.2:{realm.server_port}/token"),
-           ("dns_name_resolves_to_loopback",f"http://{alias}:{realm.server_port}/token"),
-           ("same_scheme_redirect_post",f"http://{alias}:{realm.server_port}/redirect")]
+    modes=[("blocked_ip_literal",f"https://127.0.0.2:{realm.server_port}/token"),
+           ("dns_name_resolves_to_loopback",f"https://{alias}:{realm.server_port}/token"),
+           ("same_scheme_redirect_post",f"https://{alias}:{realm.server_port}/redirect")]
     for label,url in modes:
         reg.realm=url
         reg.events.clear();realm.events.clear()
@@ -90,7 +105,7 @@ else:
                  NO_PROXY="localhost,127.0.0.1,127.0.0.2,"+alias, no_proxy="localhost,127.0.0.1,127.0.0.2,"+alias,
                  DOTNET_CLI_TELEMETRY_OPTOUT="1")
         run=subprocess.run(["dotnet","run","--no-build","-c","Release","--project",str(proj/"sdkprobe.csproj"),"--",
-                            dll,f"127.0.0.1:{reg.server_port}",f"http://127.0.0.1:{reg.server_port}/v2/"],
+                            dll,f"127.0.0.1:{reg.server_port}",f"https://127.0.0.1:{reg.server_port}/v2/"],
                            env=env,capture_output=True,text=True,timeout=35)
         report["tests"].append({"name":label,"sdk_exit":run.returncode,
                                 "sdk_last_line":(run.stdout+run.stderr)[-1800:],"realm_events":list(realm.events)})

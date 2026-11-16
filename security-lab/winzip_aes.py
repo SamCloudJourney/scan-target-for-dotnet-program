@@ -44,6 +44,7 @@ def make_zip(name,ciphertext,tag):
     return path
 make_zip("valid.zip",cipher,base_tag)
 make_zip("tampered-no-tail.zip",bytes(altered),base_tag)
+make_zip("tampered-resealed-positive-control.zip",bytes(altered),hmac.new(auth_key,bytes(altered),hashlib.sha1).digest()[:10])
 # Padding added to the declared AES ciphertext region, not to the decompressed content.
 make_zip("tampered-with-early-deflate-eof.zip",bytes(altered)+b"\xa5"*131072,base_tag)
 
@@ -72,7 +73,7 @@ Console.WriteLine(JsonSerializer.Serialize(record));
 """)
 res=subprocess.run(["dotnet","restore",str(proj/"zipprobe.csproj"),"--ignore-failed-sources"],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=130)
 tests=[]
-for name in ["valid.zip","tampered-no-tail.zip","tampered-with-early-deflate-eof.zip"]:
+for name in ["valid.zip","tampered-resealed-positive-control.zip","tampered-no-tail.zip","tampered-with-early-deflate-eof.zip"]:
     if res.returncode!=0:
         tests.append({"source":name,"setup_error":res.stdout[-1400:]})
         continue
