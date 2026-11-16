@@ -10,6 +10,13 @@ $root=Join-Path $env:PUBLIC ('broker-cross-'+$uid)
 $client=Join-Path $root 'client'
 $protected=Join-Path $root 'admin-only'
 $provider='IsolatedCrossAccount.'+$uid
+$cacheIdJunction='SandboxJunction.'+$uid
+$cacheIdBroad='SandboxBroad.'+$uid
+$cacheRoot=Join-Path $env:ProgramData 'dotnet\workloads'
+$cachedJunction=Join-Path (Join-Path (Join-Path $cacheRoot $cacheIdJunction) '1.0.0') 'fixture-admin-only.dat'
+$cachedBroad=Join-Path (Join-Path (Join-Path $cacheRoot $cacheIdBroad) '1.0.0') 'fixture-broad-only.dat'
+$lowCacheRecord=Join-Path $client 'standard-cache-read.json'
+$cacheSourceHashes=@{}
 $localRecord=Join-Path $client 'standard-user-probe.json'
 $report=Join-Path $env:RUNNER_TEMP ('cross-account-'+$SdkVersion+'.json')
 $brokerReport=Join-Path $env:RUNNER_TEMP ('broker-process-'+$SdkVersion+'.json')
@@ -24,6 +31,10 @@ $summary=[ordered]@{
   lowAccount=$account
   lowSid=$null
   lowRecord=$null
+  lowCacheReadRecord=$null
+  cacheRootInitiallyExists=(Test-Path -LiteralPath $cacheRoot)
+  cacheMovePerformedByLiveBroker=$false
+  postCacheReadByLowUser=$null
   adminBrokerCaseIds=@()
   errors=@()
   cleanup=@()
@@ -53,6 +64,20 @@ try {
     if($LASTEXITCODE -ne 0){throw ('Failed to authorize fixture profile path '+$sub)}
   }
   [IO.File]::WriteAllText((Join-Path $protected 'canary.log'),'ADMIN-ONLY-CANARY-'+$uid)
+  # Every file below is a random, disposable sentinel owned by the test administrator.
+  # The low account cannot read this protected source folder.
+  $adminPayload=Join-Path $protected 'fixture-admin-only.dat'
+  $broadPayload=Join-Path $protected 'fixture-broad-only.dat'
+  [IO.File]::WriteAllText($adminPayload,'ISOLATED-SECRET-JUNCTION-'+$uid)
+  [IO.File]::WriteAllText($broadPayload,'ISOLATED-SECRET-BROAD-'+$uid)
+  @{Payload='fixture-admin-only.dat'} | ConvertTo-Json -Compress | Set-Content (Join-Path $protected 'fixture-junction.msi.json') -Encoding utf8
+  @{Payload='fixture-broad-only.dat'} | ConvertTo-Json -Compress | Set-Content (Join-Path $protected 'fixture-broad.msi.json') -Encoding utf8
+  $cacheSourceHashes.junction=(Get-FileHash -Algorithm SHA256 -LiteralPath $adminPayload).Hash
+  $cacheSourceHashes.broad=(Get-FileHash -Algorithm SHA256 -LiteralPath $broadPayload).Hash
+  if((Test-Path -LiteralPath (Join-Path $cacheRoot $cacheIdJunction)) -or
+     (Test-Path -LiteralPath (Join-Path $cacheRoot $cacheIdBroad))){
+    throw 'Refusing collision with pre-existing workload cache entries'
+  }
   $probe=Join-Path $PSScriptRoot 'cross-account-low-probe.ps1'
   $pwsh=Join-Path $PSHOME 'pwsh.exe'
   $creds=[pscredential]::new(("$env:COMPUTERNAME\"+$account),$secure)
@@ -83,7 +108,7 @@ try {
   $observations=Get-Content -Raw -LiteralPath $localRecord | ConvertFrom-Json
   $summary.lowRecord=$observations
   if($lowProc.ExitCode -ne 0 -or $observations.isAdministrator -or !$observations.canWriteOwn -or
-     !$observations.directProtectedWriteDenied -or !$observations.registryWriteDenied) {
+     !$observations.directProtectedWriteDenied -or !$observations.protectedPayloadReadDenied -or !$observations.registryWriteDenied) {
     throw 'Low-user ACL negative controls were not upheld'
   }
   if(!$observations.junctionCreated -or !$observations.linkedProtectedWriteDenied) {
@@ -94,6 +119,8 @@ try {
   $env:BROKER_CROSS_CLIENT=$client
   $env:BROKER_CROSS_PROTECTED=$protected
   $env:BROKER_CROSS_PROVIDER=$provider
+  $env:BROKER_CROSS_CACHE_JUNCTION_ID=$cacheIdJunction
+  $env:BROKER_CROSS_CACHE_BROAD_ID=$cacheIdBroad
   $project=Join-Path $PSScriptRoot 'BrokerHarness\BrokerHarness.csproj'
   & dotnet build $project -c Release --nologo
   if($LASTEXITCODE -ne 0){throw 'BrokerHarness build failed'}
@@ -107,7 +134,9 @@ try {
     '12-standard-created-junction-admin-canary-modified',
     '13-admin-broker-changes-standard-denied-HKLM',
     '13-disposable-provider-cleanup',
-    '11-overbroad-root-admin-only-canary-modified'
+    '11-overbroad-root-admin-only-canary-modified',
+    '12-standard-created-junction-admin-cache-moved',
+    '11-broad-root-admin-cache-moved'
   )
   foreach($id in $expected) {
     $case=@($broker.cases | Where-Object {$_.id -eq $id})
@@ -115,6 +144,42 @@ try {
     $summary.adminBrokerCaseIds+= $id
   }
   $summary.brokerStatus=$broker.status
+  $summary.cacheMovePerformedByLiveBroker=$true
+  if(!(Test-Path -LiteralPath $cachedJunction) -or !(Test-Path -LiteralPath $cachedBroad)){
+    throw 'Broker cache destinations missing after reported successful IPC operations'
+  }
+  $postRead=Join-Path $PSScriptRoot 'cross-account-cache-postread.ps1'
+  $lowReadArgs=('-NoProfile -NonInteractive -File "{0}" -CacheJunction "{1}" -CacheBroad "{2}" -Output "{3}"' -f $postRead,$cachedJunction,$cachedBroad,$lowCacheRecord)
+  $postOut=Join-Path $client 'postread.stdout'
+  $postErr=Join-Path $client 'postread.stderr'
+  $postParams=@{
+    FilePath=$pwsh;ArgumentList=$lowReadArgs;Credential=$creds;WorkingDirectory=$root
+    Wait=$true;PassThru=$true;RedirectStandardOutput=$postOut;RedirectStandardError=$postErr
+    Environment=@{
+      DOTNET_CLI_HOME=(Join-Path $root 'home')
+      APPDATA=(Join-Path $root 'roaming')
+      LOCALAPPDATA=(Join-Path $root 'local')
+      HOME=(Join-Path $root 'home')
+      USERPROFILE=(Join-Path $root 'home')
+      TEMP=(Join-Path $root 'temp')
+      TMP=(Join-Path $root 'temp')
+    }
+  }
+  $secondLow=Start-Process @postParams
+  if($secondLow.ExitCode -ne 0 -or !(Test-Path -LiteralPath $lowCacheRecord)){
+    throw ('Low-user post-cache read probe did not complete cleanly; exit='+$secondLow.ExitCode)
+  }
+  $lowReads=Get-Content -LiteralPath $lowCacheRecord -Raw | ConvertFrom-Json
+  if($lowReads.isAdministrator -or $lowReads.sid -ne $sid){throw 'Post-read process did not use standard-user identity'}
+  $summary.lowCacheReadRecord=$lowReads
+  $junctionProbe=@($lowReads.probes | Where-Object {$_.name -eq 'junction'})
+  $broadProbe=@($lowReads.probes | Where-Object {$_.name -eq 'broad'})
+  $summary.postCacheReadByLowUser=[ordered]@{
+    junction=(($junctionProbe.Count -eq 1) -and $junctionProbe[0].readable -and ($junctionProbe[0].sha256 -eq $cacheSourceHashes.junction))
+    broad=(($broadProbe.Count -eq 1) -and $broadProbe[0].readable -and ($broadProbe[0].sha256 -eq $cacheSourceHashes.broad))
+  }
+  Write-Host ('LOW_CACHE_READ_RESULT: junction='+$summary.postCacheReadByLowUser.junction+' broad='+$summary.postCacheReadByLowUser.broad)
+
   $summary.adminBrokerIdentity=$broker.environment.runnerUser
   $summary.adminBrokerSid=$broker.environment.runnerSid
   $summary.status='COMPLETED'
@@ -124,6 +189,20 @@ try {
   $summary.errors += $_.Exception.ToString()
   Write-Host ('CROSS_ACCOUNT_RESULT='+$summary.status+' '+$_.Exception.Message)
 } finally {
+  # Remove only our unique, randomly-named .NET workload cache fixtures.
+  # Never recurse on the package cache root or unknown package identifiers.
+  foreach($id in @($cacheIdJunction,$cacheIdBroad)) {
+    try {
+      if(!$id.StartsWith('SandboxJunction.') -and !$id.StartsWith('SandboxBroad.')) {
+        throw 'Refusing to clean non-fixture package ID'
+      }
+      $exact=Join-Path $cacheRoot $id
+      if(Test-Path -LiteralPath $exact) {
+        Remove-Item -LiteralPath $exact -Recurse -Force -ErrorAction Stop
+        $summary.cleanup += ('removed only generated workload cache ID '+$id)
+      }
+    } catch {$summary.errors+=('Isolated cache cleanup error: '+$_.Exception.Message)}
+  }
   try {
     $link=Join-Path $client 'junction'
     if(Test-Path -LiteralPath $link){
