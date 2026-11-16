@@ -69,7 +69,7 @@ jobs:
           nginx -c "$PWD/research/aspnet-boundaries/pass6/nginx.conf" -g "daemon off;" >pass6-evidence/nginx-stdout.log 2>&1 &
           nx_pid=$!
           trap 'kill "$nx_pid" "$hap_pid" "$app_pid" 2>/dev/null || true' EXIT
-          for port in 5202 5203 5204 5205; do
+          for port in 5202 5203 5204 5205 5208 5209; do
             for i in $(seq 1 30); do
               if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
               sleep 0.4

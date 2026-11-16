@@ -3,7 +3,8 @@
 import argparse,http.client,json
 HOST="127.0.0.1"
 PORTS={"backend":5200,"haproxy_raw":5202,"haproxy_normalized":5203,
-       "nginx_raw":5204,"nginx_normalized":5205,"yarp":5206}
+       "nginx_raw":5204,"nginx_normalized":5205,"yarp":5206,
+       "haproxy_hardened":5208,"nginx_hardened":5209}
 CORPUS={
 "canonical":"/gate/read",
 "uppercase_route":"/GaTe/read",
@@ -98,6 +99,9 @@ def main():
                 v=data[label][proxy][form]
                 if v.get("status")==200 and "SYNTHETIC-RESTRICTED-READ" in v.get("body",""):
                     bypasses[proxy].append({"case":label,"form":form})
+    for hardened in ("haproxy_hardened","nginx_hardened"):
+        flag("case_insensitive_hardening_blocks_fixed_corpus_"+hardened,
+             len(bypasses[hardened])==0)
     results={"suite":"proxy-path-corpus","framework":f".NET {a.major}",
         "requested_cases":len(CORPUS),"proxies":list(PORTS),
         "path_matrix":data,"auth_matrix":auth_vectors,

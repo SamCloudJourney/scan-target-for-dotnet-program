@@ -8,7 +8,8 @@ from urllib.parse import urlsplit
 
 HOST="127.0.0.1"
 PORTS={"haproxy_raw":5202,"haproxy_normalized":5203,
-       "nginx_raw":5204,"nginx_normalized":5205}
+       "nginx_raw":5204,"nginx_normalized":5205,
+       "haproxy_hardened":5208,"nginx_hardened":5209}
 BACKEND=5200
 PATHS={
  "canonical":"/gate/read",
@@ -133,6 +134,10 @@ def main():
             for form in ("origin","absolute"):
                 flag("haproxy_normalized_"+p+"_"+form,
                      results["proxy_matrix"][p]["haproxy_normalized"][form]["status"]==403)
+        # Newly hardened frontends should reject the known spelling bypass.
+        for label in ("haproxy_hardened","nginx_hardened"):
+            flag("hardened_case_insensitive_"+label,
+                 results["proxy_matrix"]["canonical"][label]["origin"]["status"]==403)
         results["summary"]={
             "synthetic_restricted_reads":[
                 {"proxy":proxy,"path":p,"form":form}

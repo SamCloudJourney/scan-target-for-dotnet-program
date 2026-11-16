@@ -1,4 +1,4 @@
-name: ASP.NET Pass 6 - six-stack differential path corpus
+name: ASP.NET Pass 6 - eight-listener differential path corpus
 on:
   push:
     branches: [research/aspnet-impact-crossproxy-20261116]
@@ -46,7 +46,7 @@ jobs:
           nginx -t -c "$PWD/research/aspnet-boundaries/pass6/nginx.conf"
           dotnet build research/aspnet-boundaries/pass6/SecurityFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-corpus-app
           dotnet build research/aspnet-boundaries/pass6/YarpFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/pass6-corpus-yarp
-      - name: Run 32 normalization cases across six listener configurations
+      - name: Run 32 normalization cases across eight listener configurations
         run: |
           dotnet /tmp/pass6-corpus-app/SixthFixture.dll >corpus-evidence/backend.log 2>&1 &
           app_pid=$!
@@ -57,7 +57,7 @@ jobs:
           nginx -c "$PWD/research/aspnet-boundaries/pass6/nginx.conf" -g "daemon off;" >corpus-evidence/nginx.log 2>&1 &
           nx_pid=$!
           trap 'kill "$nx_pid" "$hap_pid" "$yarp_pid" "$app_pid" 2>/dev/null || true' EXIT
-          for port in 5200 5202 5203 5204 5205 5206; do
+          for port in 5200 5202 5203 5204 5205 5206 5208 5209; do
             for i in $(seq 1 50); do
               if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
               sleep 0.3
