@@ -41,3 +41,38 @@ jobs:
           path: ${{ runner.temp }}/windows-elevation-${{ matrix.sdk }}.json
           if-no-files-found: warn
           retention-days: 7
+  live-broker-isolated:
+    runs-on: windows-2022
+    timeout-minutes: 14
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['11.0.100', '10.0.404']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/BrokerHarness/Program.cs
+            research/windows-elevation-boundary-20261116/BrokerHarness/BrokerHarness.csproj
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Build self-authored isolated broker harness
+        shell: pwsh
+        run: dotnet build ./research/windows-elevation-boundary-20261116/BrokerHarness/BrokerHarness.csproj --configuration Release
+      - name: Test actual workload broker with disposable paths and nonexistent MSI
+        shell: pwsh
+        run: dotnet ./research/windows-elevation-boundary-20261116/BrokerHarness/bin/Release/net11.0/BrokerHarness.dll ${{ matrix.sdk }}
+      - name: Preserve actual broker session evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: broker-windows-${{ matrix.sdk }}-evidence
+          path: ${{ runner.temp }}/broker-process-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
