@@ -1,0 +1,60 @@
+name: Bounded real Portable PDB ingestion
+on:
+  push:
+    branches:
+      - research/bounded-resource-probes-20261116
+    paths:
+      - 'research/bounded-resource-probes/Portable/**'
+      - 'research/bounded-resource-probes/SourceSample/**'
+      - '.github/workflows/resource-portable-pdb.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-pdb-reader:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            research/bounded-resource-probes
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Compile controlled source and real managed reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build research/bounded-resource-probes/SourceSample/SourceSample.csproj -c Release
+          dotnet build research/bounded-resource-probes/Portable/Portable.csproj -c Release
+      - name: Run strict 8 MiB-max declared-size real PDB tests without network
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p portable-evidence
+          image=mcr.microsoft.com/dotnet/runtime:10.0.15
+          docker pull "$image"
+          app="$PWD/research/bounded-resource-probes/Portable/bin/Release/net10.0"
+          src="$PWD/research/bounded-resource-probes/SourceSample/bin/Release/net10.0"
+          for size in 0 256 1048576 8388608; do
+            timeout --signal=TERM --kill-after=2s 12s docker run --rm \
+              --memory=384m --memory-swap=384m --cpus=1 --pids-limit=48 \
+              --network none --read-only --tmpfs /tmp:rw,nosuid,size=16m \
+              -e DOTNET_GCHeapHardLimit=0x10000000 \
+              -v "$app:/app:ro" -v "$src:/sample:ro" \
+              "$image" dotnet /app/Portable.dll /sample/SourceSample.pdb "$size" \
+              | tee -a portable-evidence/portable-reader.jsonl
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portable-pdb-reader-results
+          path: portable-evidence/
+          retention-days: 14
+          if-no-files-found: warn
