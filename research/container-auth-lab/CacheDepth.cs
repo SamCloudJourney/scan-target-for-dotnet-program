@@ -134,6 +134,7 @@ static class CacheDepthLab
         Assembly asm=LoadSdk();
         var log=new ConcurrentQueue<ServerHit>();
         int issuedA=0,issuedB=0;
+        bool revocationEnabled=false;
         await using var tokens=await LocalEndpoint.Start("127.0.0.1",async c=>
         {
             string auth=AuthClass(c);
@@ -157,7 +158,8 @@ static class CacheDepthLab
         {
             string authorization=AuthClass(c);
             log.Enqueue(new("registry",c.Request.Method,c.Request.Path.ToString(),authorization));
-            if(authorization=="bearer-A") await Response(c,200);
+            if(authorization=="bearer-A" && !revocationEnabled) await Response(c,200);
+            else if(authorization=="bearer-A" && revocationEnabled) await Response(c,401,challenge);
             else if(authorization=="bearer-B")await Response(c,403);
             else await Response(c,401,challenge);
         },tls:true);
@@ -172,6 +174,42 @@ static class CacheDepthLab
         var parallelClients=Enumerable.Range(0,6).Select(_=>AllowedForAdmin(CreateApi(asm,same))).ToArray();
         bool[] parallel=await Task.WhenAll(parallelClients);
         int bCallsAfter=issuedB;
+
+        // Stronger negative/impact check: a separate client with NO registry credentials
+        // should not acquire the first client's A principal. The released static cache is
+        // keyed by registry name rather than the credential-bearing client.
+        string? savedGenericUser=Environment.GetEnvironmentVariable("DOTNET_CONTAINER_REGISTRY_UNAME");
+        string? savedGenericPass=Environment.GetEnvironmentVariable("DOTNET_CONTAINER_REGISTRY_PWORD");
+        string? savedAuthFile=Environment.GetEnvironmentVariable("REGISTRY_AUTH_FILE");
+        string blankAuthFile=Path.Combine(Path.GetTempPath(),"empty-registry-auth-"+Guid.NewGuid().ToString("N")+".json");
+        File.WriteAllText(blankAuthFile,"{\"auths\":{}}");
+        bool noCredentialsClientGotA=false;
+        string? noCredentialsError=null;
+        int lookupBeforeNoCredentials=issuedB;
+        try
+        {
+            Env("","");
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_REGISTRY_UNAME",null);
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_REGISTRY_PWORD",null);
+            Environment.SetEnvironmentVariable("REGISTRY_AUTH_FILE",blankAuthFile);
+            try{noCredentialsClientGotA=await AllowedForAdmin(CreateApi(asm,same));}
+            catch(Exception ex){noCredentialsError=ex.GetBaseException().GetType().Name;}
+        }
+        finally
+        {
+            Env(SecondUser,SecondPass);
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_REGISTRY_UNAME",savedGenericUser);
+            Environment.SetEnvironmentVariable("DOTNET_CONTAINER_REGISTRY_PWORD",savedGenericPass);
+            Environment.SetEnvironmentVariable("REGISTRY_AUTH_FILE",savedAuthFile);
+            File.Delete(blankAuthFile);
+        }
+        int lookupAfterNoCredentials=issuedB;
+
+        // After the registry itself revokes A, cached credentials must not continue to
+        // confer A authorization; a fresh B exchange may still occur but should get 403.
+        revocationEnabled=true;
+        bool revokedAStillGrantsAccess=await AllowedForAdmin(CreateApi(asm,same));
+        int bLookupsAfterRevocation=issuedB;
         bool differentOrigin=await AllowedForAdmin(CreateApi(asm,other));
 
         bool? childAdmin=null;
@@ -208,8 +246,11 @@ static class CacheDepthLab
 
         bool success=a&&b&&parallel.All(x=>x)&&
             bCallsBefore==0 && bCallsAfter==0 &&
+            noCredentialsClientGotA && noCredentialsError is null &&
+            lookupAfterNoCredentials==lookupBeforeNoCredentials &&
+            !revokedAStillGrantsAccess && bLookupsAfterRevocation==1 &&
             !differentOrigin && childAdmin==false &&
-            issuedA==1 && issuedB==2; // Different origin B and fresh child B each request a token.
+            issuedA==1 && issuedB==3; // Revocation, different authority and child B request tokens.
 
         var report=new{scenario="actual-registry-api-cross-client-cache",
             passed=success,sdk=Sdk,
@@ -221,6 +262,11 @@ static class CacheDepthLab
             tokenServiceIssuedA=issuedA,tokenServiceIssuedB=issuedB,
             secondClientTokenLookupCount=bCallsBefore,
             parallelClientAdditionalBLookups=bCallsAfter-bCallsBefore,
+            noCredentialsClientGrantedAIdentity=noCredentialsClientGotA,
+            noCredentialsClientError=noCredentialsError,
+            noCredentialsClientTriggeredTokenLookup=lookupAfterNoCredentials>lookupBeforeNoCredentials,
+            revokedATokenStillGrantedAccess=revokedAStillGrantsAccess,
+            revocationTriggeredBTokenLookup=bLookupsAfterRevocation==1,
             childError,requestTrace=log.ToArray()};
         Reports.Add(report);
         Console.WriteLine("[CACHE "+Sdk+"] "+JsonSerializer.Serialize(report));
