@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Http2Client/**/*.cs" />
+    <Compile Remove="downstream/**/*.cs" />
   </ItemGroup>
 </Project>

@@ -87,19 +87,19 @@ def main():
             c=cases["cookie_"+label]
             ck("cookie_"+label+"_safe",
                 c["status"]==200 and
-                not bool(re.search(r";\\s*Domain=example\\.test(?:;|$)",c["set_cookie"] or "",re.I))
-                and "\\r" not in (c["set_cookie"] or "") and "\\n" not in (c["set_cookie"] or ""))
+                not bool(re.search(r";\s*Domain=example\.test(?:;|$)",c["set_cookie"] or "",re.I))
+                and "\r" not in (c["set_cookie"] or "") and "\n" not in (c["set_cookie"] or ""))
         cases["cookie_untrusted"]=get("/cookie/issue?user=alice",
             {"X-Forwarded-Prefix":"/;Domain=example.test"},source_ip="127.0.0.2")
         ck("untrusted_forwarded_prefix_ignored",cases["cookie_untrusted"]["body"].endswith("pathbase="))
         cases["antiforgery"]=get("/cookie/antiforgery",{"X-Forwarded-Prefix":"/;Domain=example.test"})
         cases["tempdata"]=get("/cookie/tempdata",{"X-Forwarded-Prefix":"/;Domain=example.test"})
         for k in ("antiforgery","tempdata"):
-            ck(k+"_no_separate_domain",not bool(re.search(r";\\s*Domain=example\\.test(?:;|$)",
+            ck(k+"_no_separate_domain",not bool(re.search(r";\s*Domain=example\.test(?:;|$)",
                     cases[k]["set_cookie"] or "",re.I)))
         cases["raw_explicit_cookie"]=get("/cookie/explicit")
         ck("explicit_application_cookie_control",bool(re.search(
-            r";\\s*Domain=example\\.test(?:;|$)",
+            r";\s*Domain=example\.test(?:;|$)",
             cases["raw_explicit_cookie"]["set_cookie"] or "",re.I)))
 
         # #5/#6: request A is cached, then a second *distinct decoded query pair*
