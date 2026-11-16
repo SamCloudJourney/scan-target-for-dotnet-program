@@ -17,6 +17,7 @@ import platform
 import re
 import sys
 import tempfile
+import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -59,6 +60,7 @@ def load_source_function(path, name, async_function):
         "make_safe_filename": own_log_prefix,
         "is_zero_length_file": lambda p: os.path.getsize(p) == 0,
         "write_file_to_log": lambda *args, **kwargs: None,
+        "pmi_command_env": dict(os.environ),
     }
     executable = ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[]))
     exec(compile(executable, filename=str(path), mode="exec"), scope)
@@ -124,11 +126,22 @@ async def main():
         spaced.touch()
 
         if os.name == "nt":
-            candidate_names = ["probe&echo " + MARKER + "&rem .dll"]
+            candidate_names = [
+                prefix + MARKER + suffix + extension
+                for extension in (".dll", ".exe")
+                for prefix, suffix in (
+                    ("probe&echo ", "&rem "),
+                    ("probe&&echo ", "&&rem "),
+                )
+            ]
         else:
             candidate_names = [
-                "probe; echo " + MARKER + "; #.dll",
-                "probe$(echo " + MARKER + " 1>&2).dll",
+                prefix + MARKER + suffix + extension
+                for extension in (".dll", ".exe")
+                for prefix, suffix in (
+                    ("probe; echo ", "; #"),
+                    ("probe$(echo ", " 1>&2)"),
+                )
             ]
         candidates = []
         for name in candidate_names:
@@ -148,7 +161,18 @@ async def main():
             encoding="utf-8",
         )
 
-        for version, path in SOURCES.items():
+        # Read a pinned upstream public source commit, not a mutable "main" URL.
+        # This exercises the latest official code in addition to archived releases.
+        upstream_ref = "a5d7014cefc2a1c8492c66ba3baaf35a3f3819c0"
+        upstream_url = ("https://raw.githubusercontent.com/dotnet/runtime/"
+                        + upstream_ref + "/src/coreclr/scripts/superpmi.py")
+        upstream_file = root / "upstream_superpmi.py"
+        with urllib.request.urlopen(upstream_url, timeout=25) as response:
+            upstream_file.write_bytes(response.read())
+        all_sources = dict(SOURCES)
+        all_sources["official-main-2026-11-16"] = upstream_file
+
+        for version, path in all_sources.items():
             function, sha256 = load_source_function(path, "run_pmi", True)
             observations = []
             for index, assembly in enumerate([ordinary, spaced] + candidates):
