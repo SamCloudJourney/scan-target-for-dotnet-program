@@ -45,6 +45,7 @@ app.MapGet("/health", () => Results.Json(new { ok = true, count = Interlocked.In
 app.MapPost("/symbols", async ctx =>
 {
     bool readSymbols = ctx.Request.Query["readSymbols"].ToString() == "true";
+    bool guarded = ctx.Request.Query["guarded"].ToString() == "true";
     var start = Stopwatch.StartNew();
     long before = GC.GetTotalAllocatedBytes();
     string error = "", status = "ok";
@@ -54,6 +55,7 @@ app.MapPost("/symbols", async ctx =>
         using var incoming = new MemoryStream();
         await ctx.Request.Body.CopyToAsync(incoming, ctx.RequestAborted);
         if (incoming.Length > MaxUpload) throw new InvalidDataException("Upload cap");
+        if (guarded && readSymbols) ValidatePortablePdbBudget(incoming.ToArray());
         incoming.Position = 0;
         using var module = ModuleDefinition.ReadModule(incoming, new ReaderParameters { ReadSymbols = readSymbols });
         hasSymbols = module.HasSymbols;
@@ -63,7 +65,7 @@ app.MapPost("/symbols", async ctx =>
     ctx.Response.StatusCode = status == "ok" ? 200 : 422;
     await ctx.Response.WriteAsJsonAsync(new
     {
-        kind = "symbols", readSymbols, status, error, hasSymbols,
+        kind = "symbols", readSymbols, guarded, status, error, hasSymbols,
         processingMs = Math.Round(start.Elapsed.TotalMilliseconds, 3),
         allocatedBytes = GC.GetTotalAllocatedBytes() - before,
         workingSetBytes = Environment.WorkingSet
@@ -72,6 +74,7 @@ app.MapPost("/symbols", async ctx =>
 
 app.MapPost("/embedded-source", async ctx =>
 {
+    bool guarded = ctx.Request.Query["guarded"].ToString() == "true";
     var start = Stopwatch.StartNew();
     long before = GC.GetTotalAllocatedBytes();
     string error = "", status = "ok";
@@ -85,6 +88,7 @@ app.MapPost("/embedded-source", async ctx =>
         if (blob.Length < 4) throw new InvalidDataException("Missing embedded-source length");
         int declared = BitConverter.ToInt32(blob);
         if (declared < 0 || declared > MaxDeclared) throw new InvalidDataException("Test budget");
+        if (guarded) ValidateSourceBudget(blob);
         // Synthetic ISymUnmanagedDocument bypasses PDB/native reader, by design.
         // The actual Microsoft.DiaSymReader managed GetEmbeddedSource is exercised.
         outputLength = new SyntheticDocument(blob).GetEmbeddedSource().Count;
@@ -94,7 +98,7 @@ app.MapPost("/embedded-source", async ctx =>
     ctx.Response.StatusCode = status == "ok" ? 200 : 422;
     await ctx.Response.WriteAsJsonAsync(new
     {
-        kind = "embedded-source", status, error, outputLength,
+        kind = "embedded-source", guarded, status, error, outputLength,
         processingMs = Math.Round(start.Elapsed.TotalMilliseconds, 3),
         allocatedBytes = GC.GetTotalAllocatedBytes() - before,
         workingSetBytes = Environment.WorkingSet
@@ -140,15 +144,19 @@ try
     await Post("cecil-symbol-small-declaration", "/symbols?readSymbols=true", declaredSmall);
     await Post("cecil-symbol-mid-declaration", "/symbols?readSymbols=true", declaredMid);
     await Post("cecil-symbol-huge-declaration", "/symbols?readSymbols=true", declaredHuge);
+    await Post("cecil-guarded-valid", "/symbols?readSymbols=true&guarded=true", sample);
+    await Post("cecil-guarded-huge-declaration", "/symbols?readSymbols=true&guarded=true", declaredHuge);
 
     await Post("diasym-exact-256", "/embedded-source", DocumentBlob(256));
     await Post("diasym-mismatch-1MiB", "/embedded-source", DocumentBlob(1024 * 1024));
     await Post("diasym-mismatch-8MiB", "/embedded-source", DocumentBlob(MaxDeclared));
+    await Post("diasym-guarded-exact-256", "/embedded-source?guarded=true", DocumentBlob(256));
+    await Post("diasym-guarded-mismatch-8MiB", "/embedded-source?guarded=true", DocumentBlob(MaxDeclared));
 
     await Form("form-valid-16KiB", 16 * 1024, 128);
     await Form("form-valid-64KiB", 64 * 1024, 128);
     await Form("form-over-value-limit", 66 * 1024, 128);
-    await Health("after-boundary-errors");
+    await Health("after-boundary-errors-and-guarded-rejections");
 
     // At most 3 controlled requests, each may declare <=8MiB (<=24MiB total).
     // The health probe checks whether unrelated work remains reachable.
@@ -210,6 +218,57 @@ async Task Form(string test, int length, int chunk)
         elapsedMs = Math.Round(sw.Elapsed.TotalMilliseconds, 3),
         response = body, framework = RuntimeInformation.FrameworkDescription
     }));
+}
+// Investigator-supplied prevalidation, NOT a Microsoft-shipped protection.
+// The effective limit is small enough to keep the test independent of OOM behavior.
+static void ValidatePortablePdbBudget(byte[] assembly)
+{
+    const int Budget = 256 * 1024;
+    using var pe = new PEReader(new MemoryStream(assembly));
+    var embedded = pe.ReadDebugDirectory().FirstOrDefault(e => e.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
+    if (embedded.Type != DebugDirectoryEntryType.EmbeddedPortablePdb)
+        throw new InvalidDataException("Policy rejected: no embedded Portable PDB");
+    if (embedded.DataSize < 9 || embedded.DataPointer < 0 ||
+        embedded.DataPointer + embedded.DataSize > assembly.Length)
+        throw new InvalidDataException("Policy rejected: invalid PDB header");
+    var blob = assembly.AsSpan(embedded.DataPointer, embedded.DataSize);
+    if (!blob[..4].SequenceEqual("MPDB"u8))
+        throw new InvalidDataException("Policy rejected: invalid signature");
+    int declared = BitConverter.ToInt32(blob[4..8]);
+    if (declared < 1 || declared > Budget)
+        throw new InvalidDataException("Policy rejected: declared size over budget");
+    using var input = new MemoryStream(assembly, embedded.DataPointer + 8, embedded.DataSize - 8, false);
+    using var inflater = new DeflateStream(input, CompressionMode.Decompress);
+    byte[] part = new byte[4096];
+    int actual = 0, received;
+    while ((received = inflater.Read(part)) > 0)
+    {
+        actual = checked(actual + received);
+        if (actual > Budget) throw new InvalidDataException("Policy rejected: decompression over budget");
+    }
+    if (actual != declared) throw new InvalidDataException("Policy rejected: declared/output mismatch");
+}
+static void ValidateSourceBudget(byte[] blob)
+{
+    const int Budget = 256 * 1024;
+    int declared = BitConverter.ToInt32(blob, 0);
+    if (declared < 0 || declared > Budget)
+        throw new InvalidDataException("Policy rejected: embedded-source declared size over budget");
+    if (declared == 0)
+    {
+        if (blob.Length - 4 > Budget) throw new InvalidDataException("Policy rejected: raw embedded source too large");
+        return;
+    }
+    using var source = new MemoryStream(blob, 4, blob.Length - 4, false);
+    using var inflater = new DeflateStream(source, CompressionMode.Decompress);
+    byte[] buffer = new byte[4096];
+    int total = 0, n;
+    while ((n = inflater.Read(buffer)) > 0)
+    {
+        total = checked(total + n);
+        if (total > Budget) throw new InvalidDataException("Policy rejected: inflated embedded source too large");
+    }
+    if (total != declared) throw new InvalidDataException("Policy rejected: source size mismatch");
 }
 static byte[] Patch(byte[] assembly, int length)
 {
