@@ -98,6 +98,26 @@ app.MapGet("/cache/output-cookie", (HttpContext ctx) =>
     return Results.Text("cookie-response-gen=" + Interlocked.Increment(ref Lab.CookieCounter));
 }).CacheOutput("public-query-all");
 
+
+app.MapGet("/cache/format-output", (HttpContext ctx) =>
+{
+    // Two PUBLIC formats on the same route; query-shape collision must not
+    // cause a second visitor to receive the first visitor's content type.
+    var a = ctx.Request.Query.ContainsKey("a");
+    ctx.Response.Headers["X-Lab-Format"] = a ? "html-A" : "json-B";
+    ctx.Response.Headers["Content-Disposition"] = a
+        ? "inline"
+        : "attachment; filename=\"public-B.json\"";
+    ctx.Response.Headers["X-Frame-Options"] = a ? "DENY" : "SAMEORIGIN";
+    return Results.Content(
+        a ? "<!doctype html><title>fixture-A</title><p>PUBLIC-A</p>"
+          : "{\"document\":\"PUBLIC-B\"}",
+        a ? "text/html" : "application/json");
+}).CacheOutput("public-query-all");
+
+app.MapGet("/cookie/reflect", (HttpContext ctx) =>
+    Results.Text("cookie-header=" + ctx.Request.Headers.Cookie + ";pathbase=" + ctx.Request.PathBase));
+
 // Protected ONLY by upstream ACL. Content is deliberately non-sensitive synthetic data.
 // The ASP.NET endpoint is intentionally not authorized, to model upstream-only protection.
 app.MapGet("/gate/private-document", (HttpContext ctx) =>
@@ -160,5 +180,25 @@ public sealed class TempDataController : Controller
     {
         TempData["fixture"] = "safe";
         return Content("tempdata pathbase=" + Request.PathBase);
+    }
+}
+
+[Route("cache/format-response")]
+public sealed class FormatResponseController : Controller
+{
+    [HttpGet]
+    [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "*" })]
+    public IActionResult Get()
+    {
+        var a = Request.Query.ContainsKey("a");
+        Response.Headers["X-Lab-Format"] = a ? "html-A" : "json-B";
+        Response.Headers["Content-Disposition"] = a
+            ? "inline"
+            : "attachment; filename=\"public-B.json\"";
+        Response.Headers["X-Frame-Options"] = a ? "DENY" : "SAMEORIGIN";
+        return Content(
+            a ? "<!doctype html><title>fixture-A</title><p>PUBLIC-A</p>"
+              : "{\"document\":\"PUBLIC-B\"}",
+            a ? "text/html" : "application/json");
     }
 }
