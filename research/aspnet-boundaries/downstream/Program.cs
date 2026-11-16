@@ -161,6 +161,20 @@ app.MapGet("/fourth/auth/query", (HttpContext ctx) =>
     .CacheOutput("public-query-all")
     .RequireAuthorization();
 
+
+app.MapGet("/fifth/output/reverse", (HttpContext ctx) =>
+{
+    var variant = Lab.FourthVariant(ctx.Request.Query);
+    // The intended A response has a restrictive CSP; B is a public,
+    // weaker-policy representation. Both are entirely synthetic.
+    ctx.Response.Headers.ETag = variant == "A" ? "\"fifth-A\"" : "\"fifth-B\"";
+    ctx.Response.Headers["X-Lab-Variant"] = variant;
+    ctx.Response.Headers["Content-Security-Policy"] = variant == "A"
+        ? "default-src 'none'" : "default-src 'self'";
+    return Results.Text("fifth-output-variant=" + variant
+        + ";generation=" + Interlocked.Increment(ref Lab.FifthOutputCounter));
+}).CacheOutput("public-query-all");
+
 // Protected ONLY by upstream ACL. Content is deliberately non-sensitive synthetic data.
 // The ASP.NET endpoint is intentionally not authorized, to model upstream-only protection.
 app.MapGet("/gate/private-document", (HttpContext ctx) =>
@@ -189,6 +203,8 @@ public static class Lab
     public static int FourthResponseEtagCounter;
     public static int FourthResponseFixedCounter;
     public static int FourthAuthCounter;
+    public static int FifthOutputCounter;
+    public static int FifthResponseCounter;
     public static string FourthVariant(IQueryCollection query)
         => query.ContainsKey("a") ? "A"
         : query.ContainsKey("a=B") ? "B" : "OTHER";
@@ -297,4 +313,19 @@ public sealed class FourthResponseFixedController : Controller
     public IActionResult Get()
         => Content("fixed-response=" + Lab.FourthVariant(Request.Query)
             + ";generation=" + Interlocked.Increment(ref Lab.FourthResponseFixedCounter), "text/plain");
+}
+
+[Route("fifth/response/reverse")]
+public sealed class FifthResponseReverseController : Controller
+{
+    [HttpGet]
+    [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "*" })]
+    public IActionResult Get()
+    {
+        var variant = Lab.FourthVariant(Request.Query);
+        Response.Headers.ETag = variant == "A" ? "\"fifth-response-A\"" : "\"fifth-response-B\"";
+        Response.Headers["X-Lab-Variant"] = variant;
+        return Content("fifth-response-variant=" + variant
+            + ";generation=" + Interlocked.Increment(ref Lab.FifthResponseCounter), "text/plain");
+    }
 }

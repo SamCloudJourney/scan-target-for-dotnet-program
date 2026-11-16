@@ -1,0 +1,68 @@
+name: ASP.NET fifth-pass reverse-cache and path corpus (loopback)
+on:
+  push:
+    branches: [research/aspnet-boundary-five-20261116]
+    paths:
+      - '.github/workflows/aspnet-fifth-pass.yml'
+      - 'research/aspnet-boundaries/downstream/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fifth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '10.0.404'
+            major: 10
+          - sdk: '11.0.100'
+            major: 11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/aspnet-boundaries/downstream
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Validate new proxy ACL fixture and compile ASP.NET
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y haproxy
+          mkdir -p fifth-evidence
+          haproxy -vv >fifth-evidence/haproxy-version.txt
+          haproxy -c -f research/aspnet-boundaries/downstream/haproxy-fifth.cfg
+          dotnet --info >fifth-evidence/dotnet-info.txt
+          dotnet build research/aspnet-boundaries/downstream/ImpactFixture.csproj -p:TargetMajor=${{ matrix.major }} -o /tmp/fifth-app
+      - name: Run cache reverse seeding and 23-path mixed encoding test
+        run: |
+          dotnet /tmp/fifth-app/ImpactFixture.dll >fifth-evidence/server.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:5100/healthz >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:5100/healthz >/dev/null
+          haproxy -db -f research/aspnet-boundaries/downstream/haproxy-fifth.cfg >fifth-evidence/haproxy.log 2>&1 &
+          haproxy_pid=$!
+          trap 'kill "$haproxy_pid" "$app_pid" 2>/dev/null || true' EXIT
+          for port in 5116 5118; do
+            for i in $(seq 1 40); do
+              if curl -fsS http://127.0.0.1:$port/healthz >/dev/null 2>&1; then break; fi
+              sleep 0.5
+            done
+            curl -fsS http://127.0.0.1:$port/healthz >/dev/null
+          done
+          python3 research/aspnet-boundaries/downstream/fifth_pass.py --major ${{ matrix.major }} --output fifth-evidence/fifth-pass-${{ matrix.major }}.json
+      - name: Upload request/response evidence including unexpected successes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspnet-fifth-net${{ matrix.major }}
+          path: fifth-evidence/
+          retention-days: 30
