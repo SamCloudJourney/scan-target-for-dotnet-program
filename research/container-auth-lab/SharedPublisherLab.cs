@@ -220,7 +220,7 @@ static class SharedPublisherLab
             consumedManifest=await response.Content.ReadAsStringAsync();
         }
         string observedDigest=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(consumedManifest))).ToLowerInvariant();
-        bool downstreamConsumerObservedB=consumedManifest.Contains("\\"caller\\":\\"B\\"",StringComparison.Ordinal);
+        bool downstreamConsumerObservedB=consumerStatus==200 && JsonDocument.Parse(consumedManifest).RootElement.GetProperty("caller").GetString()=="B";
         bool tagChangedAfterB=approvedDigest!=observedDigest;
         bool supplyChainAssertion=Patched
             ? consumerStatus==200&&!downstreamConsumerObservedB&&!tagChangedAfterB
