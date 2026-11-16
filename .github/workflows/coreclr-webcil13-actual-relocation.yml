@@ -1,0 +1,68 @@
+name: CoreCLR WebCIL13 actual relocation probe
+on:
+  push:
+    branches: [research/coreclr-webcil13-20261116]
+    paths:
+      - 'tests/webcil13/browser-smoke/**'
+      - '.github/workflows/coreclr-webcil13-actual-relocation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  webcil-relocation-coreclr11:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: tests/webcil13/browser-smoke
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+      - name: Install .NET 11 WebAssembly workload
+        run: dotnet workload install wasm-tools
+      - name: Publish actual CoreCLR browser-WASM application
+        run: |
+          dotnet publish tests/webcil13/browser-smoke/BrowserCoreClrProbe.csproj \
+            -c Release -p:UseMonoRuntime=false -p:WasmBuildNative=false \
+            --disable-build-servers
+      - name: Run rejection controls, then one separate bounded OOB diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="tests/webcil13/browser-smoke/bin/Release"
+          loader="$(find "$root" -type f -path '*/publish/wwwroot/_framework/dotnet.js' | sed -n '1p')"
+          test -n "$loader"
+          bundle="$(dirname "$(dirname "$loader")")"
+          cd "$bundle"
+          echo "WEBCIL13_CONTROL_SUITE_BEGIN"
+          for mode in smoke no-reloc invalid-index short-dir inrange; do
+            echo "WEBCIL13_CONTROL_CASE=$mode"
+            WEBCIL13_MODE="$mode" node runner.mjs > "$RUNNER_TEMP/webcil13-control-$mode.log" 2>&1
+            cat "$RUNNER_TEMP/webcil13-control-$mode.log"
+            if [ "$mode" = smoke ]; then
+              grep -q 'WEBCIL13_RUNTIME_SMOKE_PASS=true' "$RUNNER_TEMP/webcil13-control-$mode.log"
+            else
+              grep -q 'WEBCIL13_OUTCOME=REJECTED_BadImageFormatException' "$RUNNER_TEMP/webcil13-control-$mode.log"
+            fi
+            echo "WEBCIL13_CONTROL_PASS=$mode"
+          done
+          echo "WEBCIL13_CONTROL_SUITE_PASS=true"
+          echo "WEBCIL13_OUT_OF_IMAGE_DIAGNOSTIC_BEGIN=true"
+          set +e
+          WEBCIL13_MODE=out-of-range node runner.mjs > "$RUNNER_TEMP/webcil13-oob.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/webcil13-oob.log" | tail -n 100
+          echo "WEBCIL13_OOB_PROCESS_EXIT=$status"
+          if [ "$status" -ne 0 ] && grep -Eqi 'memory access out of bounds|out of bounds memory access|RuntimeError:.*bounds|wasm trap' "$RUNNER_TEMP/webcil13-oob.log"; then
+            echo "WEBCIL13_ACTUAL_WASM_BOUNDS_TRAP=true"
+            echo "PROVEN_SCOPE=module-level wasm memory trap; not remote code execution"
+          else
+            echo "WEBCIL13_ACTUAL_WASM_BOUNDS_TRAP=false_or_inconclusive"
+            echo "PROVEN_SCOPE=actual runtime run; no confirmed memory trap"
+          fi
+          echo "RCE_PROVEN=false"
