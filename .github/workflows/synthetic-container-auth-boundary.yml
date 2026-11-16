@@ -2,7 +2,7 @@ name: Synthetic .NET container auth boundary validation
 on:
   push:
     branches:
-      - research/container-auth-chain-depth-20261116
+      - research/container-auth-publish-and-cache-20261116
 permissions:
   contents: read
 jobs:
@@ -44,7 +44,7 @@ jobs:
             -subj "/CN=registry.lab.test" \
             -keyout "$d/server.key" -out "$d/server.csr" >/dev/null 2>&1
           cat > "$d/server.ext" <<'EOF'
-          subjectAltName=DNS:registry.lab.test,DNS:registry-alt.lab.test,DNS:publicauth.lab.test,DNS:privateauth.lab.test,DNS:third.lab.test
+          subjectAltName=DNS:registry.lab.test,DNS:registry-alt.lab.test,DNS:publicauth.lab.test,DNS:privateauth.lab.test,DNS:third.lab.test,IP:127.0.0.2
           extendedKeyUsage=serverAuth
           keyUsage=digitalSignature,keyEncipherment
           basicConstraints=critical,CA:FALSE
@@ -72,7 +72,7 @@ jobs:
           echo "DOTNET_SDK_CONTAINER_ASSEMBLY=$DLL" >> "$GITHUB_ENV"
           echo "SDK_VER=$SDK_VER" >> "$GITHUB_ENV"
           echo "Selected installed assembly: $DLL"
-      - name: Run SDK registry, multi-hop, tenant-isolation and guard experiments
+      - name: Test actual dotnet publish, credential-cache isolation, and all previous auth flows
         shell: bash
         run: |
           set -euo pipefail
