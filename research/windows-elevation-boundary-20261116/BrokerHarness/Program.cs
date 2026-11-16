@@ -128,13 +128,13 @@ internal static class Program
 
     private sealed record MsiFixture(string ProductCode, string InstalledMarker, string MsiPath);
 
-    private static MsiFixture PrepareDisposableMsi(string root)
+    private static MsiFixture PrepareDisposableMsi(string root, string suffix)
     {
         string productCode = Guid.NewGuid().ToString("B").ToUpperInvariant();
         string upgradeCode = Guid.NewGuid().ToString("B").ToUpperInvariant();
         string componentGuid = Guid.NewGuid().ToString("B").ToUpperInvariant();
-        string buildDir = Directory.CreateDirectory(Path.Combine(root, "disposable-msi-build")).FullName;
-        string destination = Directory.CreateDirectory(Path.Combine(root, "disposable-msi-install")).FullName;
+        string buildDir = Directory.CreateDirectory(Path.Combine(root, "disposable-msi-build-"+suffix)).FullName;
+        string destination = Directory.CreateDirectory(Path.Combine(root, "disposable-msi-install-"+suffix)).FullName;
         string source = Path.Combine(buildDir, "marker-input.txt");
         string marker = Path.Combine(destination, "marker-input.txt");
         string wxs = Path.Combine(buildDir, "fixture.wxs");
@@ -197,7 +197,7 @@ internal static class Program
     }
 
     private static void Session(string sdkVersion, string dotnetExe, Assembly sdk, string cwd,
-        string trustedRoot, string label, string clientDir, string outsideDir, MsiFixture? fixture)
+        string trustedRoot, string label, string clientDir, string outsideDir, MsiFixture? fixture, MsiFixture? secondFixture)
     {
         using Process broker = new()
         {
@@ -430,6 +430,41 @@ internal static class Program
                             + fixtureExit + ", markerRemoved=" + removed,
                         "Admin runner deliberately authorized its own broker. This does not prove UAC EoP.");
                 }
+                // Two independently installed, self-authored MSI products have no workload
+                // manifest association. Both are disposable scratch fixtures. Passing their
+                // unrelated product GUIDs to the same already-admin broker tests whether the
+                // broker itself filters product identity after the CLI has been authorized.
+                if (secondFixture != null)
+                {
+                    File.Delete(secondFixture.InstalledMarker);
+                    string secondRepairLog=Path.Combine(clientDir,"second-product-repair.log");
+                    object secondRepairReply=ReadResponse(request,JsonSerializer.Serialize(new {
+                        RequestType=302,ProductCode=secondFixture.ProductCode,LogFile=secondRepairLog
+                    }));
+                    uint secondRepairError=ErrorOf(secondRepairReply);
+                    bool secondRestored=File.Exists(secondFixture.InstalledMarker);
+                    Check("13-broker-second-distinct-product-repaired",
+                        (secondRepairError==0||secondRepairError==3010)&&secondRestored&&File.Exists(secondRepairLog),
+                        "Actual SDK broker repaired an independent second installed MSI fixture without a workload product whitelist.",
+                        "Both fixture MSI products were created/installed by the existing administrator test owner; no user-to-admin elevation.");
+                    Sessions.Add(new {sdkVersion,label,requestType="RepairMsi",productFixture="second independent scratch MSI",
+                        installedProductCode=secondFixture.ProductCode,error=secondRepairError,markerRestored=secondRestored,
+                        brokerReply=secondRepairReply});
+
+                    string secondUninstallLog=Path.Combine(clientDir,"second-product-uninstall.log");
+                    object secondUninstallReply=ReadResponse(request,JsonSerializer.Serialize(new {
+                        RequestType=301,ProductCode=secondFixture.ProductCode,LogFile=secondUninstallLog
+                    }));
+                    uint secondUninstallError=ErrorOf(secondUninstallReply);
+                    bool secondRemoved=!File.Exists(secondFixture.InstalledMarker);
+                    Check("13-broker-second-distinct-product-uninstalled",
+                        (secondUninstallError==0||secondUninstallError==3010)&&secondRemoved&&File.Exists(secondUninstallLog),
+                        "Actual SDK broker uninstalled an independent second installed MSI fixture, distinct from the first product.",
+                        "Already-authorized administrator broker client supplied both product codes; not a proven authorization bypass.");
+                    Sessions.Add(new {sdkVersion,label,requestType="UninstallMsi",productFixture="second independent scratch MSI",
+                        installedProductCode=secondFixture.ProductCode,error=secondUninstallError,markerRemoved=secondRemoved,
+                        brokerReply=secondUninstallReply});
+                }
             }
             else if (label == "cross-junction" || label == "cross-broad")
             {
@@ -603,6 +638,7 @@ internal static class Program
         var env = new Dictionary<string, object?>();
         string status = "RUNNING";
         MsiFixture? fixture = null;
+        MsiFixture? secondFixture = null;
         try
         {
             if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows VM required");
@@ -652,11 +688,16 @@ internal static class Program
             {
                 try
                 {
-                    fixture = PrepareDisposableMsi(root);
+                    fixture = PrepareDisposableMsi(root,"first");
+                    secondFixture = PrepareDisposableMsi(root,"second");
                     Check("13-disposable-product-setup", File.Exists(fixture.InstalledMarker),
                         "Installed a unique, isolated WiX MSI fixture in workspace scratch storage.",
                         "The installer runs with already-elevated runneradmin token; only generated fixture is modified.");
                     env["disposableFixtureProductCode"] = fixture.ProductCode;
+                    env["secondIndependentProductCode"] = secondFixture.ProductCode;
+                    Check("13-two-disposable-products-installed", File.Exists(fixture.InstalledMarker) && File.Exists(secondFixture.InstalledMarker) && fixture.ProductCode != secondFixture.ProductCode,
+                        "Two independent installed scratch MSI products have distinct product codes and install roots.",
+                        "Both were created under this test owner and are disposable.");
                     env["disposableFixtureMsiSha256"] = Convert.ToHexString(
                         SHA256.HashData(File.ReadAllBytes(fixture.MsiPath)));
                 }
@@ -667,8 +708,8 @@ internal static class Program
                         "Fixture setup failed; no installed-product authorization conclusion: " + e.Message,
                         "A harness/fixture failure is not evidence of broker authorization.");
                 }
-                Session(sdkVersion, dotnetExe, sdk, cwd, client, "narrow", client, outside, fixture);
-                Session(sdkVersion, dotnetExe, sdk, cwd, root, "broad", client, outside, null);
+                Session(sdkVersion, dotnetExe, sdk, cwd, client, "narrow", client, outside, fixture, secondFixture);
+                Session(sdkVersion, dotnetExe, sdk, cwd, root, "broad", client, outside, null, null);
                 string? crossClient = Environment.GetEnvironmentVariable("BROKER_CROSS_CLIENT");
                 string? crossProtected = Environment.GetEnvironmentVariable("BROKER_CROSS_PROTECTED");
                 if (!string.IsNullOrWhiteSpace(crossClient) && !string.IsNullOrWhiteSpace(crossProtected))
@@ -677,8 +718,8 @@ internal static class Program
                         throw new DirectoryNotFoundException("Cross-account test fixture missing");
                     env["crossClientRoot"] = crossClient;
                     env["crossAdminOnlyDirectory"] = crossProtected;
-                    Session(sdkVersion, dotnetExe, sdk, cwd, crossClient, "cross-junction", crossClient, crossProtected, null);
-                    Session(sdkVersion, dotnetExe, sdk, cwd, Path.GetDirectoryName(crossClient)!, "cross-broad", crossClient, crossProtected, null);
+                    Session(sdkVersion, dotnetExe, sdk, cwd, crossClient, "cross-junction", crossClient, crossProtected, null, null);
+                    Session(sdkVersion, dotnetExe, sdk, cwd, Path.GetDirectoryName(crossClient)!, "cross-broad", crossClient, crossProtected, null, null);
                 }
                 status = Failures == 0 ? "COMPLETED" : "TEST_FAILURE";
                 env["wuauservAfter"] = Run("sc.exe", "query wuauserv").output;
@@ -694,11 +735,13 @@ internal static class Program
         {
             try
             {
-                if (fixture != null)
+                foreach (var owned in new[] { fixture, secondFixture })
                 {
-                    // Idempotent cleanup on the isolated fixture ONLY, never other installed products.
-                    var cleanup = Run("msiexec.exe", "/x " + fixture.ProductCode + " /qn /norestart");
-                    env["disposableFixtureCleanupExitCode"] = cleanup.code;
+                    if (owned == null) continue;
+                    // Never cleanup unknown installed products. The two GUIDs are self-generated,
+                    // the MSI paths remain confined to our unique randomly named workspace root.
+                    var cleanup = Run("msiexec.exe", "/x " + owned.ProductCode + " /qn /norestart");
+                    env["fixtureCleanup_" + owned.ProductCode] = cleanup.code;
                 }
             }
             catch (Exception e) { Errors.Add("Disposable MSI cleanup: " + e); }
