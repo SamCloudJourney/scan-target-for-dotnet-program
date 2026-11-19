@@ -10,7 +10,7 @@ $root=Join-Path $env:PUBLIC ('normal-client-gate-'+$uid)
 $client=Join-Path $root 'client-temp'
 $protected=Join-Path $root 'admin-only'
 $pinned=Join-Path $root 'sdk-pinned'
-$home=Join-Path $root 'home'
+$sandboxHome=Join-Path $root 'home'
 $lowReport=Join-Path $client 'standard-user.json'
 $report=Join-Path $env:RUNNER_TEMP ('normal-client-gates-'+$SdkVersion+'.json')
 $validator=Join-Path $env:RUNNER_TEMP ('normal-shaped-validator-'+$SdkVersion+'.json')
@@ -38,7 +38,7 @@ try {
   if(-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){
     throw 'Requires authorized disposable Windows runner administrator'
   }
-  New-Item -ItemType Directory -Force -Path $root,$client,$protected,$pinned,$home|Out-Null
+  New-Item -ItemType Directory -Force -Path $root,$client,$protected,$pinned,$sandboxHome|Out-Null
   $password=[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))+'Xy9!'
   Write-Host ('::add-mask::'+$password)
   $secure=ConvertTo-SecureString $password -AsPlainText -Force
@@ -54,7 +54,7 @@ try {
   & icacls.exe $protected /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F'|Out-Null
   if($LASTEXITCODE -ne 0){throw 'Failed admin-only ACL'}
   $lowGrant=('*{0}:(OI)(CI)M' -f $sid)
-  foreach($d in @($client,$home)){
+  foreach($d in @($client,$sandboxHome)){
     & icacls.exe $d /grant:r $lowGrant|Out-Null
     if($LASTEXITCODE -ne 0){throw ('Failed low-user writable path ACL '+$d)}
   }
@@ -76,15 +76,15 @@ try {
   $stderr=Join-Path $client 'low.stderr'
   $creds=[pscredential]::new(($env:COMPUTERNAME+'\'+$account),$secure)
   $lowProc=Start-Process -FilePath (Join-Path $PSHOME 'pwsh.exe') -ArgumentList $argsText -Credential $creds -WorkingDirectory $pinned -PassThru -Wait -RedirectStandardOutput $stdout -RedirectStandardError $stderr -Environment @{
-    DOTNET_CLI_HOME=$home
+    DOTNET_CLI_HOME=$sandboxHome
     DOTNET_NOLOGO='1'
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1'
     TMP=$client
     TEMP=$client
-    HOME=$home
-    USERPROFILE=$home
-    APPDATA=$home
-    LOCALAPPDATA=$home
+    HOME=$sandboxHome
+    USERPROFILE=$sandboxHome
+    APPDATA=$sandboxHome
+    LOCALAPPDATA=$sandboxHome
   }
   $summary.lowProcessExitCode=$lowProc.ExitCode
   if(!(Test-Path -LiteralPath $lowReport)){
