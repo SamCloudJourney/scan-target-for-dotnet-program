@@ -154,7 +154,10 @@ internal static class Program
                 "A real fix must operate using the checked handle to prevent a later swap.");
             Check("handle-root-rejects-direct-protected",!SameObjectRootPolicy(actualProtected,client),
                 "Handle-based containment also denies the direct protected fixture.");
-            Check("handle-root-rejects-sibling-prefix",!SameObjectRootPolicy(original,Path.Combine(broad,"client-sibling")),
+            // An actual sibling directory handle is required for a meaningful
+            // file-identity boundary test (a nonexistent root would just throw).
+            string siblingDirectory=Directory.CreateDirectory(Path.Combine(broad,"client-sibling")).FullName;
+            Check("handle-root-rejects-sibling-prefix",!SameObjectRootPolicy(original,siblingDirectory),
                 "Handle-based containment does not accept a sibling-prefix lookalike.");
             Check("handle-root-does-not-solve-overbroad-trust",SameObjectRootPolicy(actualProtected,broad),
                 "A final-object check still allows protected data when the trusted root itself is too broad.",
