@@ -7,6 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.ComponentModel;
+using System.Text;
+using Microsoft.Win32.SafeHandles;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -22,6 +26,42 @@ internal static class Program
         Console.WriteLine("CASE "+id+" "+(ok?"PASS ":"FAIL ")+finding);
     }
     static string Hash(string path)=>Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+
+    // Controlled differential against a handle-based containment policy. This is NOT
+    // Microsoft's code or a proposed complete fix. The caller must subsequently
+    // operate on this SAME checked handle, not reopen the path (TOCTOU).
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true,EntryPoint="CreateFileW")]
+    static extern SafeFileHandle CreateFile(
+        string path,uint desiredAccess,uint shareMode,IntPtr sec,
+        uint creation,uint flags,IntPtr template);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true,EntryPoint="GetFinalPathNameByHandleW")]
+    static extern uint GetFinalPathNameByHandle(
+        SafeFileHandle file,StringBuilder buffer,uint length,uint flags);
+    static string FinalPath(SafeFileHandle handle)
+    {
+        StringBuilder buffer=new(8192);
+        uint size=GetFinalPathNameByHandle(handle,buffer,(uint)buffer.Capacity,0);
+        if(size==0||size>=buffer.Capacity)
+            throw new Win32Exception(Marshal.GetLastWin32Error(),"GetFinalPathNameByHandleW failed");
+        return buffer.ToString();
+    }
+    static bool SameObjectRootPolicy(string filename,string trustedDirectory)
+    {
+        const uint ShareReadWriteDelete=0x1|0x2|0x4;
+        const uint OpenExisting=3;
+        const uint DirectoryHandle=0x02000000;
+        // Opening the real object first, resolving the path from that handle,
+        // protects only the object operated on through that SAME handle.
+        using SafeFileHandle file=CreateFile(filename,0,ShareReadWriteDelete,
+            IntPtr.Zero,OpenExisting,0,IntPtr.Zero);
+        using SafeFileHandle root=CreateFile(trustedDirectory,0,ShareReadWriteDelete,
+            IntPtr.Zero,OpenExisting,DirectoryHandle,IntPtr.Zero);
+        if(file.IsInvalid||root.IsInvalid)
+            throw new Win32Exception(Marshal.GetLastWin32Error(),"Could not open protected test object");
+        string filePath=FinalPath(file);
+        string rootPath=FinalPath(root).TrimEnd('\\');
+        return filePath.StartsWith(rootPath+"\\",StringComparison.OrdinalIgnoreCase);
+    }
     public static int Main(string[] args)
     {
         if(args.Length!=4)throw new ArgumentException("sdkVersion lowUserJson protectedDirectory outputPath");
@@ -107,6 +147,19 @@ internal static class Program
                 "No proof normal client selects this source as its actual manifest.");
             Check("narrow-root-direct-protected-still-denied",!Validate(actualProtected,client),
                 "The same protected direct path is denied again after restoring a narrow root.");
+            Check("handle-root-allows-original-ordinary-extraction",SameObjectRootPolicy(original,client),
+                "Handle-resolved object remains under the narrow root for unmodified, owned data.");
+            Check("handle-root-rejects-normal-shaped-junction",!SameObjectRootPolicy(linked,client),
+                "Handle-resolved object lies in administrator-only directory outside narrow root.",
+                "A real fix must operate using the checked handle to prevent a later swap.");
+            Check("handle-root-rejects-direct-protected",!SameObjectRootPolicy(actualProtected,client),
+                "Handle-based containment also denies the direct protected fixture.");
+            Check("handle-root-rejects-sibling-prefix",!SameObjectRootPolicy(original,Path.Combine(broad,"client-sibling")),
+                "Handle-based containment does not accept a sibling-prefix lookalike.");
+            Check("handle-root-does-not-solve-overbroad-trust",SameObjectRootPolicy(actualProtected,broad),
+                "A final-object check still allows protected data when the trusted root itself is too broad.",
+                "Shows #11 requires separate root-provenance validation; final-path checking alone is insufficient.");
+
             info["normalClientShapedManifestPath"]=linked;
             info["protectedSourceSha256"]=targetHash;
             info["linkedPathSha256"]=linkHash;
