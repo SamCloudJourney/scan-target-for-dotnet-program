@@ -1,0 +1,88 @@
+name: Real standard-user dotnet workload client gate and SDK validator fixtures
+on:
+  push:
+    branches: [research/windows-elevation-normal-client-gates-20261119]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: normal-client-gates-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  normal-client-shape:
+    runs-on: windows-2022
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['10.0.404', '11.0.100']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/NormalClientGateHarness/Program.cs
+            research/windows-elevation-boundary-20261116/NormalClientGateHarness/NormalClientGateHarness.csproj
+            research/windows-elevation-boundary-20261116/normal-client-low-probe.ps1
+            research/windows-elevation-boundary-20261116/normal-client-gates-windows.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            11.0.100
+            10.0.404
+      - name: Validate scripts before executing any fixture
+        shell: pwsh
+        run: |
+          foreach ($file in @(
+            './research/windows-elevation-boundary-20261116/normal-client-low-probe.ps1',
+            './research/windows-elevation-boundary-20261116/normal-client-gates-windows.ps1')) {
+            $tokens = $null
+            $errorsFound = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errorsFound)
+            if ($errorsFound.Count -gt 0) { $errorsFound | Format-List | Out-String | Write-Host; throw "PowerShell syntax errors in $file" }
+            Write-Host "PARSE_PASS=$file"
+          }
+      - name: Run actual low SID workload list and SDK manifest-path admission checks
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/normal-client-gates-windows.ps1 -SdkVersion '${{ matrix.sdk }}'
+      - name: Archive entire standard-user and shipped SDK evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: normal-client-gates-${{ matrix.sdk }}
+          path: |
+            ${{ runner.temp }}/normal-client-gates-${{ matrix.sdk }}.json
+            ${{ runner.temp }}/normal-shaped-validator-${{ matrix.sdk }}.json
+          if-no-files-found: warn
+          retention-days: 7
+  original-client-source-audit:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/windows-elevation-boundary-20261116/ordinary-client-reachability-audit.ps1
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Installer/Windows/InstallClientElevationContext.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Elevate/WorkloadElevateCommand.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Install/NetSdkMsiInstallerClient.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Installer/Windows/MsiPackageCache.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Install/NetSdkMsiInstallerServer.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Commands/Workload/Install/MsiInstallerBase.cs
+            scan-target-v11.0.100/src/sdk/src/Cli/dotnet/Installer/Windows/WindowsUtils.cs
+      - name: Recheck normal client package and product provenance in pinned source snapshot
+        shell: pwsh
+        run: ./research/windows-elevation-boundary-20261116/ordinary-client-reachability-audit.ps1 -SdkSourceRoot './scan-target-v11.0.100/src/sdk/src/Cli/dotnet'
+      - name: Preserve source and file hashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-audit-normal-client
+          path: ${{ runner.temp }}/ordinary-client-reachability-audit.json
+          if-no-files-found: warn
+          retention-days: 7
