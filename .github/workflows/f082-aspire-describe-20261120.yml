@@ -6,7 +6,13 @@ on:
   workflow_dispatch:
 jobs:
   describe:
+    strategy:
+      fail-fast: false
+      matrix:
+        aspire: ['13.6.5', '17.0.0']
     runs-on: windows-latest
+    env:
+      ASPIRE_VERSION: ${{ matrix.aspire }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -18,12 +24,13 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $version = $env:ASPIRE_VERSION
           $root = Join-Path $env:RUNNER_TEMP 'f082-owned'
           $tools = Join-Path $root 'tools'
           New-Item -ItemType Directory -Force -Path $root, $tools | Out-Null
           Set-Location $root
           dotnet --version
-          dotnet tool install Aspire.Cli --tool-path $tools --version 17.0.0
+          dotnet tool install Aspire.Cli --tool-path $tools --version $version
           if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI install failed' }
           Get-ChildItem -Path $tools | ForEach-Object { Write-Host ('TOOL_FILE=' + $_.Name) }
           $env:PATH = "$tools;$env:PATH"
@@ -31,8 +38,8 @@ jobs:
           Write-Host ('CLI_PATH=' + $cli)
           & $cli --version
           $project = Join-Path $root 'F082.AppHost.csproj'
-          @'
-          <Project Sdk="Aspire.AppHost.Sdk/17.0.0">
+          @"
+          <Project Sdk="Aspire.AppHost.Sdk/$version">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
               <TargetFramework>net10.0</TargetFramework>
@@ -41,7 +48,7 @@ jobs:
               <AspireUseCliBundle>true</AspireUseCliBundle>
             </PropertyGroup>
           </Project>
-          '@ | Set-Content -Path $project -Encoding utf8
+          "@ | Set-Content -Path $project -Encoding utf8
           @'
           using Aspire.Hosting;
           using Aspire.Hosting.ApplicationModel;
@@ -66,13 +73,25 @@ jobs:
             $raw = & $cli describe --apphost $project --format Json --non-interactive --nologo 2>&1
             if ($LASTEXITCODE -ne 0) { continue }
             try { $data = ($raw -join [Environment]::NewLine) | ConvertFrom-Json } catch { continue }
-            $probe = $data.resources | Where-Object { $_.name -eq 'probe' } | Select-Object -First 1
-            if ($null -eq $probe -or $probe.environment.F082_PUBLIC -ne "F082_PUBLIC_SENTINEL") { continue }
+            $probe = $data.resources | Where-Object { $_.displayName -eq 'probe' -or $_.name -like 'probe*' } | Select-Object -First 1
+            if ($null -eq $probe) {
+              if ($i -eq 0 -or $i -eq 10) { Write-Host ('RESOURCE_NAMES=' + (($data.resources | ForEach-Object { $_.name }) -join ',')) }
+              continue
+            }
+            if ($probe.environment.F082_PUBLIC -ne 'F082_PUBLIC_SENTINEL') {
+              if ($i -eq 0 -or $i -eq 10) { Write-Host ('ENV_KEYS=' + (($probe.environment.PSObject.Properties.Name) -join ',')) }
+              continue
+            }
             Write-Host ('CLI_DIRECT=' + [string]$probe.environment.F082_DIRECT)
             Write-Host ('CLI_COMPOSITE=' + [string]$probe.environment.F082_CONNECTION)
             if ($null -ne $probe.environment.F082_DIRECT) { throw 'Direct secret was not redacted' }
-            if ($null -ne $probe.environment.F082_CONNECTION) { throw 'Composite secret was not redacted' }
-            Write-Host 'F082_CURRENT_RELEASE_PASS'
+            if ($version -eq '13.6.5') {
+              if ($probe.environment.F082_CONNECTION -ne 'Host=example.invalid;Password=F082_SYNTHETIC_ONLY_4qZ9;') { throw '13.6.5 composite result unexpected' }
+              Write-Host 'F082_OLD_RELEASE_MECHANISM_PASS'
+            } else {
+              if ($null -ne $probe.environment.F082_CONNECTION) { throw '17.0.0 composite secret was not redacted' }
+              Write-Host 'F082_CURRENT_RELEASE_REDACTION_PASS'
+            }
             $found = $true
             break
           }
