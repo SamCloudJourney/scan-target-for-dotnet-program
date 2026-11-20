@@ -1,8 +1,5 @@
 name: F082 Aspire describe synthetic check
 on:
-  push:
-    branches:
-      - f082-aspire-describe-20261120
   workflow_dispatch:
 jobs:
   describe:
@@ -65,8 +62,8 @@ jobs:
           dotnet build $project --no-restore
           if ($LASTEXITCODE -ne 0) { throw 'AppHost build failed' }
           $started = & $cli run --detach --apphost $project --no-build --non-interactive --nologo --format Json 2>&1
-          $started | ForEach-Object { Write-Host $_ }
           if ($LASTEXITCODE -ne 0) { throw 'AppHost launch failed' }
+          Write-Host 'APPHOST_STARTED'
           $found = $false
           for ($i = 0; $i -lt 40; $i++) {
             Start-Sleep -Seconds 3
