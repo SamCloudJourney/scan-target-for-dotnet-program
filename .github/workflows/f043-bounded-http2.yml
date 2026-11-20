@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
+            10.0.403
             10.0.x
             11.0.x
       - name: Record runtime inventory
@@ -39,11 +40,11 @@ jobs:
       - name: Run bounded two-client matrix
         shell: pwsh
         run: |
-          python f043-lab/probe4.py | Tee-Object -FilePath f043-il-results.jsonl
+          python f043-lab/probe5.py | Tee-Object -FilePath f043-historical-results.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: f043-il-results
-          path: f043-il-results.jsonl
+          name: f043-historical-results
+          path: f043-historical-results.jsonl
           if-no-files-found: ignore
