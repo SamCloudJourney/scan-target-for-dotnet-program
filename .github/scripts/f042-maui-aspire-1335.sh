@@ -52,6 +52,8 @@ Console.WriteLine("F042_HOST_READY HASH=" + expectedHash);
 var builder = DistributedApplication.CreateBuilder(args);
 var maui = builder.AddMauiProject("f042mobile", Environment.GetEnvironmentVariable("F042_MOBILE_PROJECT")!);
 var android = maui.AddAndroidEmulator().WithEnvironment("F042_SYNTH_SECRET", secret);
+// Work around the documented Aspire MAUI duplicate run argument on Android.
+android.WithArgs(ctx => ctx.Args.Remove("run"));
 // The documented dashboard Start action removes this explicit-start condition.
 // Do it here so an unattended owned runner can exercise the same resource launch.
 foreach (var annotation in android.Resource.Annotations.OfType<ExplicitStartupAnnotation>().ToArray())
