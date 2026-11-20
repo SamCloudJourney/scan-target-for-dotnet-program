@@ -121,8 +121,11 @@ jobs:
               results.append(result)
               print("PHASE " + json.dumps(result, sort_keys=True), flush=True)
           run_phase("protected_idle", idle_seconds=1.5)
-          run_phase("valid_long", b"A"*20000, True)
-          run_phase("nul_long", b"A"*20000+b"\x00", True)
+          run_phase("warmup_valid_long", b"A"*20000, True)
+          run_phase("valid_long_a", b"A"*20000, True)
+          run_phase("nul_long_a", b"A"*20000+b"\x00", True)
+          run_phase("nul_long_b", b"A"*20000+b"\x00", True)
+          run_phase("valid_long_b", b"A"*20000, True)
           run_phase("nul_short", b"A"*20+b"\x00", False)
           run_phase("recovery_valid_long", b"A"*20000, True)
           stop.set()
@@ -131,7 +134,7 @@ jobs:
               json.dump({"tag": tag, "results": results, "protected_all_count": len(protected)}, f, indent=2)
           print("PROTECTED_ALL_COUNT", len(protected), flush=True)
           PY
-          for item in '11 net11.0' '10 net10.0'; do
+          for item in '11 net11.0'; do
             set -- $item
             major=$1
             tfm=$2
