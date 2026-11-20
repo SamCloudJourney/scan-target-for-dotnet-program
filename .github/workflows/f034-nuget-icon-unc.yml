@@ -102,6 +102,10 @@ jobs:
               list.Add(path);
             }
             public static void Install() { AppDomain.CurrentDomain.AssemblyResolve += Resolve; }
+            public static Stream Call(MethodInfo method, object target, string uri) {
+              var task = (System.Threading.Tasks.Task<Stream>)method.Invoke(target, new object[] { new Uri(uri) });
+              return task.GetAwaiter().GetResult();
+            }
             public static Assembly Resolve(object sender, ResolveEventArgs args) {
               AssemblyName requested = new AssemblyName(args.Name);
               List<string> list;
@@ -128,18 +132,15 @@ jobs:
                 $method = $type.GetMethod('GetStream', [Reflection.BindingFlags]'Instance,NonPublic')
                 if (-not $method) { throw 'GetStream absent' }
                 $localUri = New-Object System.Uri($iconPath)
-                $localTask = $method.Invoke($instance, [object[]]@($localUri))
-                $localStream = $localTask.GetAwaiter().GetResult()
+                $localStream = [F034Resolver]::Call($method, $instance, $localUri.AbsoluteUri)
                 Write-Host "LOCAL_FILE_STREAM=$([bool]$localStream)"
                 if ($localStream) { $localStream.Dispose() }
                 $before = @(Get-SmbSession)
-                $missTask = $method.Invoke($instance, [object[]]@([Uri]$missingUri))
-                $missStream = $missTask.GetAwaiter().GetResult()
+                $missStream = [F034Resolver]::Call($method, $instance, $missingUri)
                 Write-Host "MISSING_UNC_STREAM=$([bool]$missStream)"
                 if ($missStream) { $missStream.Dispose() }
                 $afterMissing = @(Get-SmbSession)
-                $uncTask = $method.Invoke($instance, [object[]]@([Uri]$uncUri))
-                $uncStream = $uncTask.GetAwaiter().GetResult()
+                $uncStream = [F034Resolver]::Call($method, $instance, $uncUri)
                 Write-Host "EXISTING_UNC_STREAM=$([bool]$uncStream)"
                 if ($uncStream) {
                   $buf = New-Object byte[] 15
