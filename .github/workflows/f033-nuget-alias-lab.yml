@@ -201,7 +201,8 @@ jobs:
           $noAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck
           $token = (Get-Content $Capture -Raw).Trim()
           $withAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck -Headers @{Authorization="Basic $token"}
-            $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes([string]$withAuth.Content)))
+            $contentBytes = if ($withAuth.Content -is [byte[]]) { $withAuth.Content } else { [Text.Encoding]::UTF8.GetBytes([string]$withAuth.Content) }
+            $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([byte[]]$contentBytes))
             Set-Content $Out "NOAUTH=$([int]$noAuth.StatusCode) AUTH=$([int]$withAuth.StatusCode) MARKERHASH=$digest DIRECT=$direct TYPE=$($withAuth.Content.GetType().Name) LENGTH=$($withAuth.Content.Length)"
           '@
             $replayPath = Join-Path $attacker 'replay.ps1'
