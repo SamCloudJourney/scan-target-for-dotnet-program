@@ -34,9 +34,9 @@ jobs:
               head = b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Check: "
               tail = b"\r\nConnection: close\r\n\r\n"
               if segmented:
-                  s.sendall(head + value[:1200])
+                  s.sendall(head + value[:10000])
                   time.sleep(0.15)
-                  s.sendall(value[1200:] + tail)
+                  s.sendall(value[10000:] + tail)
               else:
                   s.sendall(head + value + tail)
               chunks = []
@@ -53,8 +53,8 @@ jobs:
               print(label, "status", response.split(b"\r\n", 1)[0].decode("ascii", "replace"), "bytes", len(response))
           probe("short_valid", b"A" * 20, False)
           probe("short_nul", b"A" * 20 + b"\x00", False)
-          probe("long_valid_segmented", b"A" * 3000, True)
-          probe("long_nul_segmented", b"A" * 3000 + b"\x00", True)
+          probe("long_valid_segmented", b"A" * 20000, True)
+          probe("long_nul_segmented", b"A" * 20000 + b"\x00", True)
           PY
           sleep 1
           echo "SERVER_LOG_BEGIN"
