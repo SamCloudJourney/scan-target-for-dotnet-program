@@ -26,6 +26,7 @@ export ASPIRE_DASHBOARD_FRONTEND_BROWSERTOKEN="$(openssl rand -hex 32)"
 echo "::add-mask::$ASPIRE_DASHBOARD_FRONTEND_BROWSERTOKEN"
 app_pid=""
 case_dir=""
+mysql_port=""
 stop_app() {
   if [ -n "$app_pid" ]; then
     kill -TERM "$app_pid" 2>/dev/null || true
@@ -49,6 +50,7 @@ for name in ("Parameters__f076one", "Parameters__f076two", "ASPIRE_DASHBOARD_FRO
     value=os.environ.get(name)
     if value: s=s.replace(value, "[REDACTED]")
 s=re.sub(r"(/login[?]t=)[0-9a-fA-F]+", r"\1[REDACTED]", s)
+s=re.sub(r"(?<![0-9a-fA-F])[0-9a-fA-F]{48,64}(?![0-9a-fA-F])", "[REDACTED]", s)
 open(sys.argv[2], "w", encoding="utf-8").write(s)
 PY
   done
@@ -91,7 +93,9 @@ start_case() {
     sleep 2
   done
   test "$ready" = true
-  echo "containers_started=$label"
+  mysql_port="$(docker inspect f076-mysql-one --format '{{(index (index .NetworkSettings.Ports "3306/tcp") 0).HostPort}}')"
+  test -n "$mysql_port"
+  echo "containers_started=$label mysql_host_port=$mysql_port"
 }
 config_path() { find "$case_dir" -type f -name '*config.user.inc.*.php' -print -quit; }
 inspect_file() {
@@ -111,19 +115,19 @@ for iteration in 1 2; do
   test -n "$file"
   inspect_file "$file" "$label"
   for attempt in $(seq 1 90); do
-    if PYTHONPATH=/tmp/f076-pydeps python3 /tmp/f076-reader.py owner-init "$file" 13307 > "$out/$label-owner-init.json" 2>/dev/null; then break; fi
+    if PYTHONPATH=/tmp/f076-pydeps python3 /tmp/f076-reader.py owner-init "$file" "$mysql_port" > "$out/$label-owner-init.json" 2>/dev/null; then break; fi
     sleep 2
   done
   test -s "$out/$label-owner-init.json"
-  reader deny "$file" 13307 | tee "$out/$label-denied.json"
-  reader read "$file" 13307 | tee "$out/$label-cross-user.json"
-  PYTHONPATH=/tmp/f076-pydeps python3 /tmp/f076-reader.py owner-check "$file" 13307 | tee "$out/$label-owner-after.json"
+  reader deny "$file" "$mysql_port" | tee "$out/$label-denied.json"
+  reader read "$file" "$mysql_port" | tee "$out/$label-cross-user.json"
+  PYTHONPATH=/tmp/f076-pydeps python3 /tmp/f076-reader.py owner-check "$file" "$mysql_port" | tee "$out/$label-owner-after.json"
   chmod 600 "$file"
-  reader read-permission "$file" 13307 | tee "$out/$label-file-0600.json"
+  reader read-permission "$file" "$mysql_port" | tee "$out/$label-file-0600.json"
   chmod 644 "$file"
   parent="$(dirname "$file")"
   chmod 700 "$parent"
-  reader read-permission "$file" 13307 | tee "$out/$label-parent-0700.json"
+  reader read-permission "$file" "$mysql_port" | tee "$out/$label-parent-0700.json"
   chmod 755 "$parent"
   stop_app
 done
@@ -131,7 +135,7 @@ start_case secureumask 077 0
 secure_file="$(config_path)"
 test -n "$secure_file"
 inspect_file "$secure_file" secureumask
-reader read-permission "$secure_file" 13307 | tee "$out/secureumask-cross-user.json"
+reader read-permission "$secure_file" "$mysql_port" | tee "$out/secureumask-cross-user.json"
 stop_app
 start_case single 022 1
 single_file="$(config_path)"
