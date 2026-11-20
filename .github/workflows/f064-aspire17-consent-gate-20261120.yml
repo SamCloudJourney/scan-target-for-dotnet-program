@@ -1,0 +1,72 @@
+name: F064 Aspire 17 config source consent gate
+on:
+  push:
+    branches:
+      - f064-aspire17-consent-gate-20261120
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.100
+      - name: Check environment offered template source requires consent
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DOTNET_CLI_HOME="$RUNNER_TEMP/f064-consent-cli-home"
+          export DOTNET_CLI_TELEMETRY_OPTOUT=1
+          root="$RUNNER_TEMP/f064-aspire17-consent-gate-20261120"
+          config_repo="$root/config-repo"
+          template_dir="$root/author-template"
+          workspace="$root/workspace"
+          tool_dir="$root/tools"
+          mkdir -p "$config_repo" "$template_dir/.template.config" "$template_dir/content" "$workspace" "$tool_dir"
+          printf '%s\n' '{"identity":"F064.Consent.Template","name":"F064 Consent Template","shortName":"f064-consent","tags":{"type":"project"},"sources":[{"source":"./content","target":"../"}]}' > "$template_dir/.template.config/template.json"
+          printf '%s\n' '<Project><!-- F064_SOURCE_FILE --></Project>' > "$template_dir/content/Directory.Build.targets"
+          printf '{"templateSources":{"f064lower":{"path":"%s"}}}\n' "$template_dir" > "$config_repo/aspire.config.json"
+          git -C "$config_repo" init -q
+          git -C "$config_repo" config user.name F064
+          git -C "$config_repo" config user.email f064@example.invalid
+          git -C "$config_repo" add aspire.config.json
+          git -C "$config_repo" commit -qm "F064 owned config source"
+          export ASPIRE_INIT_SOURCE_URL="$config_repo"
+          printf '%s\n' '<Project><!-- F064_PROTECTED_GUARD --></Project>' > "$workspace/Directory.Build.targets"
+          guard_hash="$(sha256sum "$workspace/Directory.Build.targets" | cut -d ' ' -f 1)"
+          dotnet --version
+          dotnet tool install Aspire.Cli --version 17.0.0 --tool-path "$tool_dir"
+          "$tool_dir/aspire" --version
+          set +e
+          denied_output="$("$tool_dir/aspire" --non-interactive --nologo new aspire-empty --name F064Baseline --output "$workspace/generated" --suppress-agent-init 2>&1)"
+          denied_rc=$?
+          set -e
+          printf '%s\n' "$denied_output"
+          test "$denied_rc" -ne 0
+          test "$(sha256sum "$workspace/Directory.Build.targets" | cut -d ' ' -f 1)" = "$guard_hash"
+          test ! -e "$workspace/generated"
+          echo "RESULT|no-consent|rc=$denied_rc|protected-unchanged=True|output-absent=True"
+          set +e
+          declined_output="$("$tool_dir/aspire" --non-interactive --nologo template source list --format json --use-config-source false 2>&1)"
+          declined_rc=$?
+          set -e
+          printf '%s\n' "$declined_output"
+          test "$declined_rc" -eq 0
+          if printf '%s\n' "$declined_output" | grep -q '"f064lower"'; then
+            echo 'Declined source was included' >&2
+            exit 1
+          fi
+          echo "RESULT|declined-list|rc=$declined_rc|source-present=False"
+          set +e
+          accepted_output="$("$tool_dir/aspire" --non-interactive --nologo template source list --format json --use-config-source true 2>&1)"
+          accepted_rc=$?
+          set -e
+          printf '%s\n' "$accepted_output"
+          test "$accepted_rc" -eq 0
+          printf '%s\n' "$accepted_output" | grep -q '"f064lower"'
+          echo "RESULT|explicit-accept-list|rc=$accepted_rc|source-present=True"
