@@ -1,0 +1,48 @@
+name: F042 MAUI AppHost launch diagnostics
+
+on:
+  push:
+    branches:
+      - research/f042-maui-aspire-20261120
+    paths:
+      - .github/workflows/f042-maui-diag.yml
+
+jobs:
+  launch-diag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [current, aspire-1335]
+    steps:
+      - name: Install released .NET 11 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Install current Android workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet workload install android
+          dotnet workload list
+      - name: Build fixture and capture the authentic AppHost launch log
+        shell: bash
+        run: |
+          set -uo pipefail
+          case '${{ matrix.variant }}' in
+            current) probe=f042-maui-aspire.sh ;;
+            aspire-1335) probe=f042-maui-aspire-1335.sh ;;
+          esac
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/.github/scripts/$probe" \
+            -o /tmp/f042-diag.sh
+          sed -i 's/seq 1 240/seq 1 30/' /tmp/f042-diag.sh
+          timeout 130s bash /tmp/f042-diag.sh
+          code=$?
+          echo "F042_DIAG_EXIT=$code"
+          while IFS= read -r path; do
+            echo "F042_WATCH_LOG=$path"
+            tr -d '\000' < "$path" | tail -140
+          done < <(find /tmp -maxdepth 2 -path '/tmp/f042-maui-aspire.*/watch.log' -type f)
+          exit 0
