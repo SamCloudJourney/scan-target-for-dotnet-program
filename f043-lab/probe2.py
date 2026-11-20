@@ -71,7 +71,7 @@ def sample(count):
         except Exception as e:
             rows.append({"ms": round((time.monotonic() - start) * 1000, 1), "error": str(e)})
         time.sleep(0.03)
-    good = [x for x in rows if x.get("value", {}).get("ok")]
+    good = [x for x in rows if (x.get("value") or {}).get("ok")]
     return {"ok": len(good), "total": len(rows), "max_ms": max(x["ms"] for x in rows),
             "workingSet": good[-1]["value"]["workingSet"] if good else None,
             "managed": good[-1]["value"]["managed"] if good else None,
@@ -117,7 +117,7 @@ def run_case(assembly, version, config, mode):
             pad_each = 64 * 1024
             body_each = (400 if mode == "valid" else 560) * 1024
         pad_wire = body_wire = 0
-        if mode == "prepad":
+        if mode.startswith("prepad"):
             for sid in streams:
                 padded = frame(0, 8, sid, b"\xff" + b"\x00" * 255)
                 count = pad_each // 256
