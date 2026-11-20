@@ -32,7 +32,7 @@ DER = ROOT / "localhost-cert.cer"
 subprocess.run([openssl, "x509", "-in", str(CERT), "-outform", "der", "-out", str(DER)], check=True, capture_output=True, text=True, timeout=20)
 print("CHECKPOINT certificate converted", flush=True)
 print("CHECKPOINT machine root trust begin", flush=True)
-trust = subprocess.run(["certutil", "-f", "-silent", "-addstore", "Root", str(DER)], capture_output=True, text=True, timeout=20)
+trust = subprocess.run(["certutil", "-f", "-addstore", "Root", str(DER)], capture_output=True, text=True, timeout=20)
 print("CHECKPOINT machine root trust end", trust.returncode, flush=True)
 if trust.returncode != 0:
     print("CERT_IMPORT_STDOUT", trust.stdout, flush=True)
