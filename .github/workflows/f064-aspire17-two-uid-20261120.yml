@@ -26,7 +26,7 @@ jobs:
           export DOTNET_CLI_HOME="$RUNNER_TEMP/f064-aspire17-two-uid-home"
           export DOTNET_CLI_TELEMETRY_OPTOUT=1
           root="$RUNNER_TEMP/f064-aspire17-two-uid-20261120"
-          source_dir="$root/author-template"
+          source_dir="/tmp/f064-author-template-20261120"
           workspace="$root/workspace"
           trusted="$workspace/trusted"
           target="$workspace/Directory.Build.targets"
