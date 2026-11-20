@@ -63,25 +63,47 @@ jobs:
           if ($safeRc -ne 0 -or !(Test-Path -LiteralPath (Join-Path $safeOut 'Directory.Build.targets')) -or (Test-Path -LiteralPath $target)) { throw 'Safe source result mismatch' }
           Write-Host "RESULT|safe-template|rc=$safeRc|inside=True|parent=False"
           Invoke-TrustedBuild 'safe-control' $false
-          Set-Content -LiteralPath $target -Value '<Project><!-- F064_GUARD --></Project>' -Encoding UTF8
+          $insideOut = Join-Path $workspace 'inside-existing'
+          New-Item -ItemType Directory -Force $insideOut | Out-Null
+          $insidePath = Join-Path $insideOut 'Directory.Build.targets'
+          Set-Content -LiteralPath $insidePath -Value '<Project><!-- F064_INSIDE_GUARD --></Project>' -Encoding UTF8
+          $insideHash = (Get-FileHash -LiteralPath $insidePath -Algorithm SHA256).Hash
+          $insideRc = Invoke-Source 'safe' $insideOut
+          $insideUnchanged = ((Get-FileHash -LiteralPath $insidePath -Algorithm SHA256).Hash -eq $insideHash)
+          if ($insideRc -eq 0 -or !$insideUnchanged) { throw 'Aspire selected-output guard failed' }
+          Write-Host "RESULT|aspire-inside-existing|rc=$insideRc|unchanged=$insideUnchanged"
+          $sdkRoot = Join-Path $root 'sdk-control'
+          New-Item -ItemType Directory -Force $sdkRoot | Out-Null
+          $sdkTarget = Join-Path $sdkRoot 'Directory.Build.targets'
+          Set-Content -LiteralPath $sdkTarget -Value '<Project><!-- F064_SDK_GUARD --></Project>' -Encoding UTF8
+          $sdkHash = (Get-FileHash -LiteralPath $sdkTarget -Algorithm SHA256).Hash
+          $sourceEscape = Join-Path $env:GITHUB_WORKSPACE "$base/escape"
+          & dotnet new install $sourceEscape 2>&1 | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw 'SDK template install failed' }
+          & dotnet new f064-aspire-parent --output (Join-Path $sdkRoot 'blocked') 2>&1 | Out-Host
+          $sdkRc = $LASTEXITCODE
+          $sdkUnchanged = ((Get-FileHash -LiteralPath $sdkTarget -Algorithm SHA256).Hash -eq $sdkHash)
+          if ($sdkRc -eq 0 -or !$sdkUnchanged) { throw 'SDK existing-parent guard failed' }
+          Write-Host "RESULT|sdk-existing-parent|rc=$sdkRc|unchanged=$sdkUnchanged"
+          Set-Content -LiteralPath $target -Value '<Project><!-- F064_ASPIRE_GUARD --></Project>' -Encoding UTF8
           $guardHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
-          $blockedRc = Invoke-Source 'escape' (Join-Path $workspace 'blocked')
-          $unchanged = ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -eq $guardHash)
-          $blockedInside = Join-Path $workspace 'blocked/Directory.Build.targets'
-          $parentText = (Get-Content -Raw -LiteralPath $target).Trim()
-          Write-Host "DIAG|existing-parent|rc=$blockedRc|unchanged=$unchanged|inside=$(Test-Path -LiteralPath $blockedInside)|parent=$parentText"
-          if ($blockedRc -eq 0 -or !$unchanged) { throw 'Existing-file guard failed' }
-          Write-Host "RESULT|existing-parent-guard|rc=$blockedRc|unchanged=$unchanged"
-          Remove-Item -LiteralPath $target -Force
-          $escapeRc = Invoke-Source 'escape' (Join-Path $workspace 'escape-one')
-          if ($escapeRc -ne 0 -or !(Test-Path -LiteralPath $target)) { throw 'Parent target escape failed' }
+          $parentRc = Invoke-Source 'escape' (Join-Path $workspace 'parent-existing')
+          $afterHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
           $safeHash = (Get-FileHash -LiteralPath (Join-Path $safeOut 'Directory.Build.targets') -Algorithm SHA256).Hash
-          $escapeHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
-          if ($safeHash -ne $escapeHash) { throw 'Payload bytes differ across one-factor cases' }
-          Write-Host "RESULT|parent-new-file|rc=$escapeRc|same-payload=True|path=$([IO.Path]::GetFullPath($target))"
-          Invoke-TrustedBuild 'parent-import' $true
+          $markerBefore = Test-Path -LiteralPath $marker
+          if ($parentRc -ne 0 -or $afterHash -eq $guardHash -or $afterHash -ne $safeHash -or $markerBefore) { throw 'Aspire parent existing-file result mismatch' }
+          Write-Host "RESULT|aspire-existing-parent|rc=$parentRc|overwritten=True|same-payload=True|marker-before=$markerBefore"
+          Invoke-TrustedBuild 'existing-parent-import' $true
           Remove-Item -LiteralPath $target -Force
           Invoke-TrustedBuild 'removed-control' $false
+          $escapeRc = Invoke-Source 'escape' (Join-Path $workspace 'escape-one')
+          if ($escapeRc -ne 0 -or !(Test-Path -LiteralPath $target)) { throw 'Parent target escape failed' }
+          $escapeHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
+          if ($safeHash -ne $escapeHash -or (Test-Path -LiteralPath $marker)) { throw 'Fresh parent target result mismatch' }
+          Write-Host "RESULT|aspire-new-parent|rc=$escapeRc|same-payload=True|path=$([IO.Path]::GetFullPath($target))"
+          Invoke-TrustedBuild 'new-parent-import' $true
+          Remove-Item -LiteralPath $target -Force
+          Invoke-TrustedBuild 'second-removed-control' $false
           $repeatRc = Invoke-Source 'escape' (Join-Path $workspace 'escape-two')
           if ($repeatRc -ne 0 -or !(Test-Path -LiteralPath $target)) { throw 'Repeat parent escape failed' }
           Invoke-TrustedBuild 'repeat-parent-import' $true
