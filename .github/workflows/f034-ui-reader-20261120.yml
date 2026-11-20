@@ -122,6 +122,7 @@ jobs:
               Write-Host "DTE_SOLUTION_OPEN=$($dte.Solution.IsOpen)"
               Write-Host "DTE_SOLUTION_NAME=$solutionPath"
               if ($solutionPath) {
+                Write-Host "SMB_SESSIONS_PRE_NUGET_COMMAND=$(@(Get-SmbSession).Count)"
                 try {
                   $dte.ExecuteCommand('Tools.ManageNuGetPackagesforSolution')
                   Write-Host "DTE_NUGET_OPEN_COMMAND=success"
@@ -157,8 +158,29 @@ jobs:
                   Start-Sleep -Seconds 2
                 }
                 Write-Host "UI_MANAGER_FOUND=$([bool]$manager)"
+                Write-Host "SMB_SESSIONS_AFTER_NUGET_OPEN=$(@(Get-SmbSession).Count)"
+                function ActivateF034Element($element) {
+                  $point = $element.GetClickablePoint()
+                  [F034Mouse]::SetCursorPos([int]$point.X,[int]$point.Y) | Out-Null
+                  [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+                  Start-Sleep -Milliseconds 150
+                  [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                }
                 SaveF034Screen 'pre-browse.png'
                 if ($manager) {
+                  $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                  $nugetTab = $null
+                  foreach ($el in $all) {
+                    if ($el.Current.Name -eq 'NuGet - Solution' -and $el.Current.ControlType.ProgrammaticName -eq 'ControlType.TabItem') { $nugetTab = $el; break }
+                  }
+                  Write-Host "UI_NUGET_TAB_FOUND=$([bool]$nugetTab)"
+                  if ($nugetTab) {
+                    $nugetTab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    ActivateF034Element $nugetTab
+                    Start-Sleep -Seconds 4
+                    SaveF034Screen 'nuget-focused.png'
+                  }
+                  $root = [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
                   $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
                   $browse = $null
                   foreach ($el in $all) {
@@ -167,9 +189,16 @@ jobs:
                   Write-Host "UI_BROWSE_TAB_FOUND=$([bool]$browse)"
                   if ($browse) {
                     $browse.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    ActivateF034Element $browse
                     Start-Sleep -Seconds 15
                     SaveF034Screen 'after-browse.png'
                     Write-Host "SMB_SESSIONS_BEFORE_UI_SEARCH=$(@(Get-SmbSession).Count)"
+                    if ($nugetTab) {
+                      ActivateF034Element $nugetTab
+                      Start-Sleep -Seconds 3
+                      SaveF034Screen 'nuget-refocused.png'
+                    }
+                    $root = [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
                     $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
                     $edit = $null
                     foreach ($el in $all) {
@@ -235,7 +264,9 @@ jobs:
             ${{ runner.temp }}/f034-consumer/visual-studio.png
             ${{ runner.temp }}/f034-consumer/post-skip.png
             ${{ runner.temp }}/f034-consumer/pre-browse.png
+            ${{ runner.temp }}/f034-consumer/nuget-focused.png
             ${{ runner.temp }}/f034-consumer/after-browse.png
+            ${{ runner.temp }}/f034-consumer/nuget-refocused.png
             ${{ runner.temp }}/f034-consumer/after-search-12s.png
             ${{ runner.temp }}/f034-consumer/ActivityLog.xml
           if-no-files-found: ignore
