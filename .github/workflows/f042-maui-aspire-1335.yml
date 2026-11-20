@@ -1,0 +1,42 @@
+name: F042 Aspire MAUI 13.3.5 reachability
+
+on:
+  push:
+    branches:
+      - research/f042-maui-aspire-20261120
+    paths:
+      - .github/workflows/f042-maui-aspire-1335.yml
+      - .github/scripts/f042-maui-aspire-1335.sh
+
+jobs:
+  android-aspire:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Fetch the owned probe without cloning the large target repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/.github/scripts/f042-maui-aspire-1335.sh" \
+            -o /tmp/f042-maui-aspire-1335.sh
+          bash -n /tmp/f042-maui-aspire-1335.sh
+      - name: Install released .NET 11 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Install Android workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --version
+          dotnet workload install android --skip-manifest-update
+          dotnet workload list
+      - name: Run emulator and owned F042 test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: bash /tmp/f042-maui-aspire-1335.sh
