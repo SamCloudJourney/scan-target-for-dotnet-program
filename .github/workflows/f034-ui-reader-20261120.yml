@@ -67,7 +67,7 @@ jobs:
           $p = $null
           try {
             $activity = Join-Path $dir 'ActivityLog.xml'
-            $p = Start-Process -FilePath $devenv -ArgumentList "$sln /Log $activity" -PassThru
+            $p = Start-Process -FilePath $devenv -ArgumentList "$sln /Log $activity /Command Tools.ManageNuGetPackagesforSolution" -PassThru
             for ($i=0; $i -lt 40; $i++) {
               Start-Sleep -Seconds 3
               $p.Refresh()
@@ -95,6 +95,12 @@ jobs:
               $g.Dispose(); $bmp.Dispose()
               Write-Host "POST_SKIP_SCREENSHOT=True"
             } catch { Write-Host "POST_SKIP_SCREENSHOT_ERROR=$($_.Exception.Message)" }
+            [F034Mouse]::SetCursorPos(802,516) | Out-Null
+            [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 150
+            [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+            Write-Host "CLICKED_START_VISUAL_STUDIO=True"
+            Start-Sleep -Seconds 55
             $dte = $null
             for ($i=0; $i -lt 20; $i++) {
               try { $dte = [Runtime.InteropServices.Marshal]::GetActiveObject('VisualStudio.DTE.17.0'); break } catch { Start-Sleep -Seconds 2 }
