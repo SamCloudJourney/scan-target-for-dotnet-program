@@ -45,7 +45,7 @@ jobs:
               except OSError:
                   pass
               return None
-          def request(value=b"", segmented=False, timeout=2.0):
+          def request(value=b"", segmented=False, timeout=2.0, delay=0.08):
               s = socket.create_connection(("127.0.0.1", port), timeout=timeout)
               s.settimeout(timeout)
               head = b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Check: "
@@ -55,7 +55,7 @@ jobs:
                   if value:
                       if segmented:
                           s.sendall(head + value[:10000])
-                          time.sleep(0.08)
+                          time.sleep(delay)
                           s.sendall(value[10000:] + tail)
                       else:
                           s.sendall(head + value + tail)
@@ -84,7 +84,7 @@ jobs:
           thread = threading.Thread(target=protected_worker, daemon=True)
           thread.start()
           results = []
-          def run_phase(label, value=None, segmented=False, count=N, idle_seconds=0):
+          def run_phase(label, value=None, segmented=False, count=N, idle_seconds=0, delay=0.08):
               global phase
               phase = label
               time.sleep(0.12)
@@ -96,7 +96,7 @@ jobs:
                   time.sleep(idle_seconds)
               else:
                   for _ in range(count):
-                      attack.append(request(value, segmented))
+                      attack.append(request(value, segmented, delay=delay))
               time.sleep(0.30)
               elapsed = time.monotonic() - start
               after_cpu = cpu_ns()
@@ -122,11 +122,10 @@ jobs:
               print("PHASE " + json.dumps(result, sort_keys=True), flush=True)
           run_phase("protected_idle", idle_seconds=1.5)
           run_phase("warmup_valid_long", b"A"*20000, True)
-          run_phase("valid_long_a", b"A"*20000, True)
-          run_phase("nul_long_a", b"A"*20000+b"\x00", True)
-          run_phase("nul_long_b", b"A"*20000+b"\x00", True)
-          run_phase("valid_long_b", b"A"*20000, True)
-          run_phase("nul_short", b"A"*20+b"\x00", False)
+          run_phase("rapid_valid_a", b"A"*20000, True, count=32, delay=0.001)
+          run_phase("rapid_nul_a", b"A"*20000+b"\x00", True, count=32, delay=0.001)
+          run_phase("rapid_nul_b", b"A"*20000+b"\x00", True, count=32, delay=0.001)
+          run_phase("rapid_valid_b", b"A"*20000, True, count=32, delay=0.001)
           run_phase("recovery_valid_long", b"A"*20000, True)
           stop.set()
           thread.join(timeout=2)
