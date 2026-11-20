@@ -1,0 +1,5 @@
+<Project>
+  <Target Name="F064OwnedMarker" BeforeTargets="CoreCompile">
+    <WriteLinesToFile File="$(F064MarkerPath)" Lines="F064_TRUSTED_BUILD_CONSUMED" Overwrite="true" />
+  </Target>
+</Project>
