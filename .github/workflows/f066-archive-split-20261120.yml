@@ -1,0 +1,107 @@
+name: F066 MSBuild archive split identity lab
+on:
+  push:
+    branches:
+      - f066-archive-split-20261120
+permissions:
+  contents: read
+jobs:
+  split-identity:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run synthetic archive controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = Join-Path $env:RUNNER_TEMP 'f066-archive-lab'
+          $root = Join-Path $base 'extract'
+          $outside = Join-Path $base 'outside'
+          $trusted = Join-Path $base 'trusted'
+          New-Item -ItemType Directory -Force $root, $outside, $trusted | Out-Null
+          $canary = Join-Path $outside 'protected.txt'
+          [IO.File]::WriteAllText($canary, 'BEFORE')
+          $project = Join-Path $trusted 'trusted.proj'
+          [IO.File]::WriteAllText($project, '<Project><Target Name="Extract"><Unzip SourceFiles="$(ArchivePath)" DestinationFolder="$(Destination)" SkipUnchangedFiles="false" /></Target></Project>')
+          $lowScript = Join-Path $root 'low.ps1'
+          @'
+          param([string]$Root, [string]$Outside, [string]$Mode)
+          $ErrorActionPreference = 'Stop'
+          Write-Host "LOW_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+          if ($Mode -eq 'archives') {
+            function New-TestZip([string]$Path, [string]$Entry, [string]$Body) {
+              $zip = [IO.Compression.ZipFile]::Open($Path, [IO.Compression.ZipArchiveMode]::Create)
+              try {
+                $item = $zip.CreateEntry($Entry)
+                $writer = [IO.StreamWriter]::new($item.Open())
+                try { $writer.Write($Body) } finally { $writer.Dispose() }
+              } finally { $zip.Dispose() }
+            }
+            New-TestZip (Join-Path $Root 'inside.zip') 'inside.txt' 'INSIDE'
+            New-TestZip (Join-Path $Root 'traversal.zip') '../outside/protected.txt' 'TRAVERSAL'
+            New-TestZip (Join-Path $Root 'pivot.zip') 'pivot/protected.txt' 'F066_MARKER'
+            New-TestZip (Join-Path $Root 'wrong.zip') 'other/skip.txt' 'NEGATIVE'
+            Write-Host 'LOW_ARCHIVES_CREATED'
+          } elseif ($Mode -eq 'junction') {
+            $link = Join-Path $Root 'pivot'
+            & cmd.exe /c "mklink /J `"$link`" `"$Outside`""
+            if ($LASTEXITCODE -ne 0) { throw "mklink failed: $LASTEXITCODE" }
+            try {
+              [IO.File]::WriteAllText((Join-Path $Outside 'protected.txt'), 'LOW_DIRECT')
+              throw 'LOW_DIRECT_UNEXPECTEDLY_SUCCEEDED'
+            } catch [UnauthorizedAccessException] {
+              Write-Host 'LOW_DIRECT_DENIED'
+            }
+            Write-Host "LOW_LINK=$link"
+          } else { throw "Unknown mode $Mode" }
+          '@ | Set-Content -LiteralPath $lowScript -Encoding utf8
+          $lowName = 'f066low'
+          $password = [guid]::NewGuid().ToString('N') + 'Aa1!'
+          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          New-LocalUser -Name $lowName -Password $secure -PasswordNeverExpires | Out-Null
+          $lowAccount = "$env:COMPUTERNAME\$lowName"
+          $credential = [pscredential]::new($lowAccount, $secure)
+          try {
+            & icacls $root /grant "$($lowAccount):(OI)(CI)M"
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to grant low user extraction-root access' }
+            & icacls $outside /inheritance:r /grant:r 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX"
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to protect outside directory' }
+            Write-Host "HIGH_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+            Write-Host "DOTNET=$(dotnet --version)"
+            function Run-Low([string]$Mode) {
+              $out = Join-Path $base "low-$Mode.stdout.txt"
+              $err = Join-Path $base "low-$Mode.stderr.txt"
+              $args = "-NoProfile -NonInteractive -File `"$lowScript`" -Root `"$root`" -Outside `"$outside`" -Mode $Mode"
+              $proc = Start-Process -FilePath (Get-Command pwsh).Source -Credential $credential -ArgumentList $args -Wait -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+              Get-Content $out
+              if (Test-Path $err) { Get-Content $err }
+              if ($proc.ExitCode -ne 0) { throw "Low process $Mode failed: $($proc.ExitCode)" }
+            }
+            function Run-Unzip([string]$Archive) {
+              & dotnet msbuild $project /t:Extract "/p:ArchivePath=$Archive" "/p:Destination=$root" /nologo /v:minimal
+              return $LASTEXITCODE
+            }
+            Run-Low 'archives'
+            $exit = Run-Unzip (Join-Path $root 'inside.zip')
+            if ($exit -ne 0 -or [IO.File]::ReadAllText((Join-Path $root 'inside.txt')) -ne 'INSIDE') { throw 'Inside baseline failed' }
+            Write-Host 'INSIDE_BASELINE=PASS'
+            $exit = Run-Unzip (Join-Path $root 'traversal.zip')
+            if ([IO.File]::ReadAllText($canary) -ne 'BEFORE') { throw 'Traversal modified outside canary' }
+            Write-Host "TRAVERSAL_DENIED=PASS EXIT=$exit"
+            $exit = Run-Unzip (Join-Path $root 'pivot.zip')
+            if ($exit -ne 0 -or [IO.File]::ReadAllText((Join-Path $root 'pivot\protected.txt')) -ne 'F066_MARKER' -or [IO.File]::ReadAllText($canary) -ne 'BEFORE') { throw 'No-link control failed' }
+            Write-Host 'NO_LINK_CONTROL=PASS'
+            Remove-Item -LiteralPath (Join-Path $root 'pivot') -Recurse -Force
+            Run-Low 'junction'
+            [IO.File]::WriteAllText($canary, 'BEFORE')
+            $exit = Run-Unzip (Join-Path $root 'wrong.zip')
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($canary) -ne 'BEFORE') { throw 'Wrong-entry control failed' }
+            Write-Host 'WRONG_ENTRY_CONTROL=PASS'
+            $exit = Run-Unzip (Join-Path $root 'pivot.zip')
+            $result = [IO.File]::ReadAllText($canary)
+            Write-Host "LINK_WRITE_EXIT=$exit OUTSIDE_CANARY=$result"
+            if ($exit -ne 0 -or $result -ne 'F066_MARKER') { throw 'Link-write result failed' }
+            Write-Host 'F066_SPLIT_IDENTITY_RESULT=PASS'
+          } finally {
+            Remove-LocalUser -Name $lowName -ErrorAction SilentlyContinue
+          }
