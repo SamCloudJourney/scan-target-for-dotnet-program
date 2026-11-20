@@ -11,6 +11,9 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: labs/f076-aspire-phpmyadmin-20261120
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
