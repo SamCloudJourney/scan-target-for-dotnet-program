@@ -41,6 +41,7 @@ jobs:
           printf '%s' "$benign" > "$project"
           chmod 600 "$protected"
           chmod 666 "$project"
+          printf '%s' '{"sdk":{"version":"10.0.404","rollForward":"latestPatch"}}' > "$root/project/global.json"
           python3 -m http.server 50139 --bind 127.0.0.1 --directory "$root/source" > "$root/http.log" 2>&1 &
           http_pid=$!
           trap 'kill "$http_pid" 2>/dev/null || true' EXIT
