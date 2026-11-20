@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
+builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Warning);
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenLocalhost(50743, listen => listen.Protocols = HttpProtocols.Http2);
@@ -31,6 +33,7 @@ app.MapGet("/health", () =>
         workingSet = p.WorkingSet64,
         managed = GC.GetTotalMemory(false),
         threads = p.Threads.Count,
+        cpuMs = p.TotalProcessorTime.TotalMilliseconds,
         runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription
     });
 });
