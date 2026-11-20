@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$RUNNER_TEMP/f073-tools:$RUNNER_TEMP/f073-npm/bin:$PATH"
-          base="$RUNNER_TEMP/f073-lab"
+          base="/tmp/f073-lab-$GITHUB_RUN_ID"
           mkdir -p "$base"
           chmod 755 "$base"
           sudo useradd -m f073low
@@ -103,7 +103,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           dotnet tool install Aspire.Cli --version 13.6.5 --tool-path "$env:RUNNER_TEMP\f073-tools"
           npm install -g --prefix "$env:RUNNER_TEMP\f073-npm" @playwright/cli
-          & "$env:RUNNER_TEMP\f073-tools\aspire.exe" --version
+          Get-ChildItem "$env:RUNNER_TEMP\f073-tools" | Select-Object Name,Length
+          Get-Command aspire* -ErrorAction SilentlyContinue | Select-Object Name,Source
+          $cli = Get-ChildItem "$env:RUNNER_TEMP\f073-tools" | Where-Object Name -Like "aspire*" | Select-Object -First 1
+          & $cli.FullName --version
           & "$env:RUNNER_TEMP\f073-npm\playwright-cli.cmd" --version
       - name: Windows symlink and canary matrix
         shell: pwsh
@@ -134,12 +137,13 @@ jobs:
             if (-not (Test-Path (Join-Path $protected 'stale.md'))) { throw 'Outside deletion in negative control' }
           }
           $denied = New-Case 'denied'
-          aspire agent init --workspace-root $denied.repo --skill-locations standard --skills none
+          $cli = Get-ChildItem "$env:RUNNER_TEMP\f073-tools" | Where-Object Name -Like "aspire*" | Select-Object -First 1
+          & $cli.FullName agent init --workspace-root $denied.repo --skill-locations standard --skills none
           if ($LASTEXITCODE -ne 0) { throw "Denied CLI exited $LASTEXITCODE" }
           Assert-Unchanged $denied.protected
           Write-Output 'SKILL_NONE_CONTROL=UNCHANGED'
           $positive = New-Case 'positive'
-          aspire agent init --workspace-root $positive.repo --skill-locations standard --skills playwright-cli
+          & $cli.FullName agent init --workspace-root $positive.repo --skill-locations standard --skills playwright-cli
           Write-Output "ASPIRE_EXIT=$LASTEXITCODE"
           $skill = Join-Path $positive.protected 'SKILL.md'
           $stale = Join-Path $positive.protected 'stale.md'
