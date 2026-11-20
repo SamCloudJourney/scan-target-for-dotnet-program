@@ -201,8 +201,8 @@ jobs:
           $noAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck
           $token = (Get-Content $Capture -Raw).Trim()
           $withAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck -Headers @{Authorization="Basic $token"}
-          $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($withAuth.Content)))
-          Set-Content $Out "NOAUTH=$([int]$noAuth.StatusCode) AUTH=$([int]$withAuth.StatusCode) MARKERHASH=$digest DIRECT=$direct"
+            $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes([string]$withAuth.Content)))
+            Set-Content $Out "NOAUTH=$([int]$noAuth.StatusCode) AUTH=$([int]$withAuth.StatusCode) MARKERHASH=$digest DIRECT=$direct TYPE=$($withAuth.Content.GetType().Name) LENGTH=$($withAuth.Content.Length)"
           '@
             $replayPath = Join-Path $attacker 'replay.ps1'
             $replayOut = Join-Path $attacker 'replay-result.txt'
@@ -212,7 +212,7 @@ jobs:
             $replayProc = Start-Process $pwsh -ArgumentList $replayArgs -Credential $lowCred -PassThru -Wait -LoadUserProfile -WindowStyle Hidden
             if ($replayProc.ExitCode -ne 0) { throw "Protected marker replay failed: $($replayProc.ExitCode)" }
             $replayResult = (Get-Content $replayOut -Raw).Trim()
-            if ($replayResult -ne "NOAUTH=401 AUTH=200 MARKERHASH=$expectedMarker DIRECT=DENIED") { throw "Protected marker mismatch: $replayResult; high_server_tail=$(@(Get-Content $logA | Select-Object -Last 3) -join ',')" }
+          if (-not $replayResult.StartsWith("NOAUTH=401 AUTH=200 MARKERHASH=$expectedMarker DIRECT=DENIED ")) { throw "Protected marker mismatch: $replayResult expected_marker_hash=$expectedMarker; high_server_tail=$(@(Get-Content $logA | Select-Object -Last 3) -join ',')" }
             Write-Host 'F033_PROTECTED_MARKER_REPLAY_PASS'
           } finally {
             Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue
