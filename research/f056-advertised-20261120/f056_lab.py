@@ -28,7 +28,8 @@ cert_cmd = [openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout",
 subprocess.run(cert_cmd, check=True, capture_output=True, text=True)
 DER = ROOT / "localhost-cert.cer"
 subprocess.run([openssl, "x509", "-in", str(CERT), "-outform", "der", "-out", str(DER)], check=True, capture_output=True, text=True)
-trust_cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", "Import-Certificate -FilePath '" + str(DER) + "' -CertStoreLocation Cert:\\CurrentUser\\Root | Select-Object -ExpandProperty Thumbprint"]
+trust_script = "$c=[System.Security.Cryptography.X509Certificates.X509Certificate2]::new('" + str(DER) + "'); $s=[System.Security.Cryptography.X509Certificates.X509Store]::new('Root',[System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser); $s.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite); $s.Add($c); $s.Close(); $c.Thumbprint"
+trust_cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", trust_script]
 trust = subprocess.run(trust_cmd, capture_output=True, text=True)
 if trust.returncode != 0:
     print("CERT_IMPORT_STDOUT", trust.stdout)
