@@ -101,4 +101,24 @@ jobs:
             test "$(cat "$marker")" = F039_SUCCESSOR_EXECUTED
             echo "ATTACK_ROUND_$round=protected package overwritten; successor executed"
           done
+          equiv="$root/project/Equivalent.csproj"
+          equiv_marker="$root/protected/equivalent-marker.txt"
+          equiv_original='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>'
+          printf '%s' "$equiv_original" > "$equiv"
+          chmod 666 "$equiv"
+          dotnet build "$equiv" --nologo > "$root/equivalent-baseline-build.log"
+          test ! -e "$equiv_marker"
+          echo 'EQUIVALENT_BASELINE=ordinary build left protected marker absent'
+          sudo -u f039attacker python3 - "$equiv" <<'PY'
+          from pathlib import Path
+          import sys
+          project = Path(sys.argv[1])
+          text = project.read_text()
+          assert text.count('</Project>') == 1
+          target = '<Target Name="F039Equivalent" BeforeTargets="Build"><WriteLinesToFile File="$(MSBuildProjectDirectory)/../protected/equivalent-marker.txt" Lines="F039_EQUIVALENT" Overwrite="true" /></Target>'
+          project.write_text(text.replace('</Project>', target + '</Project>'))
+          PY
+          dotnet build "$equiv" --nologo > "$root/equivalent-mutated-build.log"
+          test "$(tr -d '\r\n' < "$equiv_marker")" = F039_EQUIVALENT
+          echo 'EQUIVALENT_PROJECT_EDIT=ordinary build wrote protected marker'
           echo 'F039_SUCCESSOR_RESULT=confirmed twice in constructed owned lab'
