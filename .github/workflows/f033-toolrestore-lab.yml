@@ -197,6 +197,17 @@ jobs:
                 Write-Host "CASE $($case.Name): legitimate_auth=$authA attacker_auth=$authB low_direct_access=DENIED encrypted_parent=$($case.Secret)"
                 if ($authA -ne $case.A -or $authB -ne $case.B) { throw "Unexpected credential recipient for $($case.Name)" }
               }
+              $args = "-NoProfile -File `"$writerPath`" -Config `"$config`" -Manifest `"$manifest`" -Parent `"$parentPath`" -Secret `"$secretFile`" -Port $portB -Kind same -Probe `"$probe`""
+              $writerProc = Start-Process $pwsh -ArgumentList $args -Credential $lowCred -PassThru -Wait -LoadUserProfile -WindowStyle Hidden
+              if ($writerProc.ExitCode -ne 0) { throw 'Low-principal writer failed in explicit-config control' }
+              [IO.File]::WriteAllText($parentPath, [IO.File]::ReadAllText($parentCred))
+              $countA = @(Get-Content $logA).Count
+              $countB = @(Get-Content $logB).Count
+              & dotnet tool restore --configfile $parentPath --no-cache --disable-parallel --ignore-failed-sources --verbosity quiet *> (Join-Path $trusted 'explicit-config.restore.log')
+              $authA = @((Get-Content $logA | Select-Object -Skip $countA) | Where-Object { $_ -eq "AUTH $expected" }).Count -gt 0
+              $authB = @((Get-Content $logB | Select-Object -Skip $countB) | Where-Object { $_ -eq "AUTH $expected" }).Count -gt 0
+              Write-Host "CASE explicit-config: legitimate_auth=$authA attacker_auth=$authB"
+              if (-not $authA -or $authB) { throw 'Explicit trusted config failed to bind credential to legitimate endpoint' }
             } finally { Pop-Location }
             Write-Host 'F033_TOOLRESTORE_CONTROL_MATRIX_PASS'
             $replay = @'
