@@ -70,9 +70,10 @@ jobs:
           try {
             & icacls $root /grant "$($lowAccount):(OI)(CI)M"
             if ($LASTEXITCODE -ne 0) { throw 'Failed to grant low user extraction-root access' }
-            & icacls $outside /inheritance:r /grant:r 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
+            $highAccount = "$env:COMPUTERNAME\$env:USERNAME"
+            & icacls $outside /inheritance:r /grant:r "$($highAccount):(OI)(CI)F" 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
             if ($LASTEXITCODE -ne 0) { throw 'Failed to protect outside directory' }
-            & icacls $trusted /inheritance:r /grant:r 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
+            & icacls $trusted /inheritance:r /grant:r "$($highAccount):(OI)(CI)F" 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
             if ($LASTEXITCODE -ne 0) { throw 'Failed to protect trusted project' }
             Write-Host "HIGH_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
             Write-Host "DOTNET=$(dotnet --version)"
@@ -86,11 +87,12 @@ jobs:
               if ($proc.ExitCode -ne 0) { throw "Low process $Mode failed: $($proc.ExitCode)" }
             }
             function Run-Unzip([string]$Archive) {
-              & dotnet msbuild $project /t:Extract "/p:ArchivePath=$Archive" "/p:Destination=$root" /nologo /v:minimal
+              & dotnet msbuild $project /t:Extract "/p:ArchivePath=$Archive" "/p:Destination=$root" /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
               return $LASTEXITCODE
             }
             Run-Low 'archives'
             $exit = Run-Unzip (Join-Path $root 'inside.zip')
+            Write-Host "INSIDE_EXIT=$exit"
             if ($exit -ne 0 -or [IO.File]::ReadAllText((Join-Path $root 'inside.txt')) -ne 'INSIDE') { throw 'Inside baseline failed' }
             Write-Host 'INSIDE_BASELINE=PASS'
             $exit = Run-Unzip (Join-Path $root 'traversal.zip')
