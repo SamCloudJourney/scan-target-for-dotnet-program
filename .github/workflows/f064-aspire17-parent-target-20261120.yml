@@ -41,6 +41,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Aspire version failed' }
           $repo = 'https://github.com/SamCloudJourney/scan-target-for-dotnet-program'
           $ref = 'f064-aspire17-parent-target-20261120'
+          git config --global core.longpaths true
+          if ($LASTEXITCODE -ne 0) { throw 'Git long path configuration failed' }
           $base = 'research/f064-aspire17-parent-target-20261120'
           function Invoke-Source([string]$variant, [string]$output) {
             & $aspire --non-interactive --nologo new --template-repository $repo --template-repository-ref $ref --template-path "$base/$variant" --name F064Synthetic --output $output --suppress-agent-init 2>&1 | Out-Host
