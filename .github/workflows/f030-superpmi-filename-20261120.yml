@@ -1,0 +1,98 @@
+name: F030 SuperPMI filename boundary
+on:
+  push:
+    branches: [f030-superpmi-filename-20261120]
+permissions:
+  contents: read
+jobs:
+  two-principal-windows:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Run synthetic two-principal controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $root = 'C:\f030_lab'
+          $src = Join-Path $root 'src'
+          $core = Join-Path $root 'core'
+          $inputDir = Join-Path $root 'intake'
+          $nested = Join-Path $inputDir 'nested'
+          $protected = Join-Path $root 'protected'
+          $cache = Join-Path $root 'cache'
+          foreach ($p in @($src,$core,$nested,$protected,$cache)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
+          foreach ($file in @('superpmi.py','coreclr_arguments.py','jitutil.py')) {
+            $url = "https://raw.githubusercontent.com/dotnet/runtime/v10.0.15/src/coreclr/scripts/$file"
+            Invoke-WebRequest -Uri $url -OutFile (Join-Path $src $file)
+            $digest = (Get-FileHash (Join-Path $src $file) -Algorithm SHA256).Hash
+            Write-Host "SOURCE $file SHA256=$digest"
+          }
+          Copy-Item "$env:windir\System32\whoami.exe" (Join-Path $core 'corerun.exe')
+          Copy-Item "$env:windir\System32\whoami.exe" (Join-Path $core 'superpmi.exe')
+          Copy-Item "$env:windir\System32\whoami.exe" (Join-Path $core 'mcs.exe')
+          [IO.File]::WriteAllText((Join-Path $core 'pmi.dll'), '')
+          $actorUser = 'f030actor'
+          $actorPassword = 'F030-ephemeral-2026!'
+          & net.exe user $actorUser $actorPassword /add | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'actor account creation failed' }
+          & icacls.exe $root /grant "$($actorUser):(OI)(CI)RX" | Out-Null
+          & icacls.exe $inputDir /grant "$($actorUser):(OI)(CI)M" | Out-Null
+          & icacls.exe $protected /inheritance:r | Out-Null
+          & icacls.exe $protected /grant:r "$($env:USERNAME):(OI)(CI)F" 'SYSTEM:(OI)(CI)F' 'Administrators:(OI)(CI)F' | Out-Null
+          $marker = 'F030_SYNTHETIC_CANARY_20261120'
+          $canaryPath = Join-Path $protected 'canary.txt'
+          [IO.File]::WriteAllText($canaryPath, $marker)
+          $env:F030_CANARY_PATH = $canaryPath
+          $secure = ConvertTo-SecureString $actorPassword -AsPlainText -Force
+          $cred = [pscredential]::new("$env:COMPUTERNAME\$actorUser", $secure)
+          function Invoke-Actor([string]$script) {
+            $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
+            $proc = Start-Process -FilePath "$env:windir\System32\WindowsPowerShell\v1.0\powershell.exe" -Credential $cred -ArgumentList "-NoProfile -NonInteractive -EncodedCommand $encoded" -WorkingDirectory $inputDir -Wait -PassThru
+            if ($proc.ExitCode -ne 0) { throw "actor process exited $($proc.ExitCode)" }
+          }
+          $actorBaseline = @'
+          $root = 'C:\f030_lab'
+          $inputDir = Join-Path $root 'intake'
+          $nested = Join-Path $inputDir 'nested'
+          try {
+            [void][IO.File]::ReadAllText((Join-Path $root 'protected\canary.txt'))
+            [IO.File]::WriteAllText((Join-Path $inputDir 'direct.txt'), 'READ_ALLOWED')
+          } catch {
+            [IO.File]::WriteAllText((Join-Path $inputDir 'direct.txt'), 'DENIED')
+          }
+          [IO.File]::WriteAllText((Join-Path $nested 'safe.dll'), '')
+          [IO.File]::WriteAllText((Join-Path $nested 'seed& type %F030_CANARY_PATH% & rem .txt'), '')
+          '@
+          Invoke-Actor $actorBaseline
+          $direct = [IO.File]::ReadAllText((Join-Path $inputDir 'direct.txt'))
+          Write-Host "DIRECT_READ=$direct"
+          if ($direct -ne 'DENIED') { throw 'direct read control failed' }
+          function Run-Collection([string]$caseName) {
+            $temp = Join-Path $root "temp_$caseName"
+            New-Item -ItemType Directory -Path $temp -Force | Out-Null
+            $args = @(
+              'collect','--pmi','--skip_merge_step','--skip_toc_step','--skip_cleanup',
+              '-core_root',$core,'-pmi_location',(Join-Path $core 'pmi.dll'),
+              '-assemblies',$inputDir,'-spmi_location',$cache,'-temp_dir',$temp,
+              '-output_mch_path',(Join-Path $root "$caseName.mch"),'-log_level','DEBUG'
+            )
+            & py -3 (Join-Path $src 'superpmi.py') @args 2>&1 | Out-File -FilePath (Join-Path $root "$caseName.log") -Encoding utf8
+            $output = (Get-ChildItem $temp -Filter '*.stdout' -File | ForEach-Object { Get-Content $_.FullName -Raw }) -join ';'
+            Write-Host "CASE=$caseName STDOUT=$output"
+            return $output
+          }
+          $safe = Run-Collection 'safe'
+          if ($safe -match $marker) { throw 'safe or excluded-extension control unexpectedly read canary' }
+          $actorPayload = @'
+          [IO.File]::WriteAllText('C:\f030_lab\intake\nested\seed& type %F030_CANARY_PATH% & rem .dll', '')
+          '@
+          Invoke-Actor $actorPayload
+          $payloadPath = Join-Path $nested 'seed& type %F030_CANARY_PATH% & rem .dll'
+          if (-not (Test-Path -LiteralPath $payloadPath)) { throw 'payload file was not created by actor' }
+          $evil = Run-Collection 'one_factor_dll'
+          if ($evil -notmatch $marker) { throw 'one-factor DLL filename did not read canary' }
+          $argv = (& (Join-Path $core 'corerun.exe') (Join-Path $core 'pmi.dll') 'DRIVEALL' $payloadPath 2>&1) -join ';'
+          Write-Host "ARGV_CONTROL=$argv"
+          if ($argv -match $marker) { throw 'argv control unexpectedly read canary' }
+          Write-Host 'F030_RESULT=WINDOWS_TWO_PRINCIPAL_BOUNDARY_REPRODUCED'
