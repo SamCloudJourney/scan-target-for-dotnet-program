@@ -1,8 +1,6 @@
 name: F034 publisher metadata and UI capacity
 on:
-  push:
-    branches:
-      - f034-publisher-ui-20261120
+  workflow_dispatch:
 permissions:
   contents: read
   packages: write
