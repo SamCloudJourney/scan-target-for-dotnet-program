@@ -35,7 +35,7 @@ jobs:
           dotnet tool install Aspire.Cli --version 17.0.0 --tool-path $toolDir
           if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI install failed' }
           Get-ChildItem -LiteralPath $toolDir | ForEach-Object { Write-Host "TOOL|$($_.Name)" }
-          $aspire = (Get-ChildItem -LiteralPath $toolDir -File | Where-Object { $_.Name -match '^aspire(\\..*)?
+          $aspire = (Get-ChildItem -LiteralPath $toolDir -File | Where-Object { $_.Name -like 'aspire*' } | Select-Object -First 1).FullName
           if ($LASTEXITCODE -ne 0) { throw 'Aspire version failed' }
           $repo = 'https://github.com/SamCloudJourney/scan-target-for-dotnet-program'
           $ref = 'f064-aspire17-parent-target-20261120'
