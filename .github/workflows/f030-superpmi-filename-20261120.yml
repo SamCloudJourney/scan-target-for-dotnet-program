@@ -47,9 +47,20 @@ jobs:
           $secure = ConvertTo-SecureString $actorPassword -AsPlainText -Force
           $cred = [pscredential]::new("$env:COMPUTERNAME\$actorUser", $secure)
           function Invoke-Actor([string]$script) {
-            $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
-            $proc = Start-Process -FilePath "$env:windir\System32\WindowsPowerShell\v1.0\powershell.exe" -Credential $cred -ArgumentList "-NoProfile -NonInteractive -EncodedCommand $encoded" -WorkingDirectory $inputDir -Wait -PassThru
-            if ($proc.ExitCode -ne 0) { throw "actor process exited $($proc.ExitCode)" }
+            $done = Join-Path $inputDir 'actor_done.txt'
+            Remove-Item $done -ErrorAction SilentlyContinue
+            $script += [Environment]::NewLine + "[IO.File]::WriteAllText('C:\f030_lab\intake\actor_done.txt','DONE')"
+            [IO.File]::WriteAllText((Join-Path $root 'actor.ps1'), $script)
+            & schtasks.exe /Create /F /TN F030Actor /SC ONCE /ST 23:59 /RU "$env:COMPUTERNAME\$actorUser" /RP $actorPassword /TR 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\f030_lab\actor.ps1' | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'actor scheduled task creation failed' }
+            & schtasks.exe /Run /TN F030Actor | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'actor scheduled task start failed' }
+            for ($i=0; $i -lt 30 -and -not (Test-Path $done); $i++) { Start-Sleep -Seconds 1 }
+            if (-not (Test-Path $done)) {
+              & schtasks.exe /Query /TN F030Actor /V /FO LIST
+              throw 'actor scheduled task did not complete'
+            }
+            & schtasks.exe /Delete /TN F030Actor /F | Out-Null
           }
           $actorBaseline = @'
           $root = 'C:\f030_lab'
