@@ -1,0 +1,29 @@
+name: F042 local ADB peer access control
+
+on:
+  push:
+    branches:
+      - research/f042-maui-aspire-20261120
+    paths:
+      - .github/workflows/f042-adb-equivalence.yml
+
+jobs:
+  local-adb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Compare owner and separate UID access to local ADB server
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v adb
+          sudo useradd -m -s /bin/bash f042_peer
+          adb start-server
+          echo "F042_OWNER_UID=$(id -u)"
+          echo "F042_ADB_SERVER=$(pgrep -a -f 'adb.*server' | tail -2 || true)"
+          echo "F042_ADB_LISTEN=$(ss -ltnp | grep ':5037' || true)"
+          echo 'F042_OWNER_DEVICES_BEGIN'
+          adb devices
+          echo 'F042_PEER_DEVICES_BEGIN'
+          sudo -H -u f042_peer adb devices
+          echo "F042_ADB_SERVER_AFTER=$(pgrep -a -f 'adb.*server' | tail -2 || true)"
