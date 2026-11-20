@@ -146,9 +146,11 @@ for iteration in 1 2; do
   # the file from /tmp and reads the fixed port from the readable AppHost.
   discovered="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
     /usr/bin/find /tmp -maxdepth 8 -type f -name 'f076mysqlone-config.user.inc.*.php' -print -quit 2>/dev/null || true)"
+  echo "discovered_candidate=$discovered" | tee -a "$out/$label-permissions.txt"
   test "$discovered" = "$file"
   source_file="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
     /usr/bin/find /tmp -maxdepth 3 -type f -name AppHost.cs -print 2>/dev/null | head -1)"
+  echo "source_candidate=$source_file" | tee -a "$out/$label-permissions.txt"
   test "$source_file" = "$case_dir/AppHost.cs"
   discovered_port="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
     /usr/bin/grep -oE 'port: [0-9]+' "$source_file" | head -1 | cut -d' ' -f2)"
