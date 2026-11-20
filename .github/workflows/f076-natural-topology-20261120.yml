@@ -1,0 +1,28 @@
+name: F-076 natural shared path lab
+on:
+  push:
+    branches:
+      - f076-natural-topology-20261120
+permissions:
+  contents: read
+jobs:
+  unix-natural-path:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: labs/f076-aspire-phpmyadmin-20261120
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Test Aspire 17 in shared /tmp without permission relaxation
+        shell: bash
+        run: bash labs/f076-aspire-phpmyadmin-20261120/natural.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: f076-natural-topology-20261120
+          path: ${{ runner.temp }}/f076-natural-results/
+          if-no-files-found: warn
