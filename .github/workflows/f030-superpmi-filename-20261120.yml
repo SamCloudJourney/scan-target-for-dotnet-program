@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Run synthetic two-principal controls
-        shell: pwsh
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
