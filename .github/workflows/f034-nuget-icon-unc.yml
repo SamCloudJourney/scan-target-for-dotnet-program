@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repeat: [1]
+        repeat: [1, 2]
     steps:
       - name: Probe synthetic feed and owned SMB share
         shell: powershell
@@ -101,6 +101,7 @@ jobs:
               if (!Paths.TryGetValue(name, out list)) { list = new List<string>(); Paths[name] = list; }
               list.Add(path);
             }
+            public static void Install() { AppDomain.CurrentDomain.AssemblyResolve += Resolve; }
             public static Assembly Resolve(object sender, ResolveEventArgs args) {
               AssemblyName requested = new AssemblyName(args.Name);
               List<string> list;
@@ -120,7 +121,7 @@ jobs:
           }
           '@
                 Get-ChildItem -Path $vsRoot -Recurse -File -Filter '*.dll' -ErrorAction SilentlyContinue | ForEach-Object { [F034Resolver]::Add($_.FullName) }
-                [AppDomain]::CurrentDomain.add_AssemblyResolve([ResolveEventHandler][F034Resolver]::Resolve)
+                [F034Resolver]::Install()
                 $assembly = [Reflection.Assembly]::LoadFrom($dll.FullName)
                 $type = $assembly.GetType('NuGet.PackageManagement.VisualStudio.NuGetPackageFileService', $true)
                 $instance = [Runtime.Serialization.FormatterServices]::GetUninitializedObject($type)
