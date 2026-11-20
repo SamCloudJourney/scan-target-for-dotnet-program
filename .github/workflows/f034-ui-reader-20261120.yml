@@ -76,6 +76,7 @@ jobs:
             Write-Host "DEVENV_EXITED=$($p.HasExited)"
             Write-Host "DEVENV_MAIN_WINDOW=$($p.MainWindowHandle -ne 0)"
             Write-Host "DEVENV_SESSION_ID=$($p.SessionId)"
+            Start-Sleep -Seconds 70
             Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class F034Mouse { [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y); [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint x,uint y,uint d,UIntPtr e); }'
             [F034Mouse]::SetCursorPos(802,470) | Out-Null
             [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
