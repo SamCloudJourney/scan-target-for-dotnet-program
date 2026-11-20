@@ -107,6 +107,8 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
         source_url = "https://localhost:" + str(source.server_port) + "/index.json"
         if endpoint == "same":
             resource_url = "https://localhost:" + str(source.server_port) + "/flat/"
+        elif endpoint == "https_ip":
+            resource_url = "https://127.0.0.1:" + str(sink.server_port) + "/flat/"
         elif endpoint == "http":
             resource_url = "http://localhost:" + str(sink.server_port) + "/flat/"
         else:
@@ -136,7 +138,7 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
         print("F056_CASE", json.dumps(record, sort_keys=True), flush=True)
         if name == "same_origin":
             assert MARKER in source_flat_auth and not sink.seen, "same-origin credential baseline failed"
-        elif name == "cross_https":
+        elif name in ("cross_https", "cross_https_ip"):
             assert MARKER in sink_auth, "cross-HTTPS credential observation failed"
         elif name == "cross_https_no_credentials":
             assert MARKER not in sink_auth, "no-credential control failed"
@@ -154,6 +156,7 @@ for major, sdk in selected.items():
     run_case(major, sdk, "cross_https", "https", True, False, 1)
     run_case(major, sdk, "same_origin", "same", True, False, 1)
     run_case(major, sdk, "cross_https", "https", True, False, 2)
+    run_case(major, sdk, "cross_https_ip", "https_ip", True, False, 1)
     run_case(major, sdk, "cross_https_no_credentials", "https", False, False, 1)
     run_case(major, sdk, "cross_http_default", "http", True, False, 1)
     run_case(major, sdk, "cross_http_optin", "http", True, True, 1)
