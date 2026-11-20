@@ -14,7 +14,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dotnet tool install Aspire.Cli --version 13.6.5 --tool-path "$RUNNER_TEMP/f073-tools"
+          dotnet tool install Aspire.Cli --version 17.0.0 --tool-path "$RUNNER_TEMP/f073-tools"
           npm install -g --prefix "$RUNNER_TEMP/f073-npm" @playwright/cli
           "$RUNNER_TEMP/f073-tools/aspire" --version
           "$RUNNER_TEMP/f073-npm/bin/playwright-cli" --version
@@ -77,19 +77,19 @@ jobs:
           unchanged "$base/raw/protected"
           echo "RAW_PLAYWRIGHT_CONTROL=UNCHANGED"
           new_case denied
-          aspire agent init --workspace-root "$base/denied/repo" --skill-locations standard --skills none
+          aspire agent init --workspace-root "$base/denied/repo" --agents copilot --scope project --skills none
           unchanged "$base/denied/protected"
           echo "SKILL_NONE_CONTROL=UNCHANGED"
           for kind in positive1 positive2; do
             new_case "$kind"
-            aspire agent init --workspace-root "$base/$kind/repo" --skill-locations standard --skills playwright-cli
+            aspire agent init --workspace-root "$base/$kind/repo" --agents copilot --scope project --skills playwright-cli
             changed "$base/$kind/protected"
             echo "ASPIRE_$kind=OUTSIDE_WRITE_AND_DELETE"
           done
           mkdir -p "$base/path/repo/.agents/skills/playwright-cli"
           printf 'INSIDE_OLD\n' > "$base/path/repo/.agents/skills/playwright-cli/SKILL.md"
           printf 'DELETE_ME\n' > "$base/path/repo/.agents/skills/playwright-cli/stale.md"
-          aspire agent init --workspace-root "$base/path/repo" --skill-locations standard --skills playwright-cli
+          aspire agent init --workspace-root "$base/path/repo" --agents copilot --scope project --skills playwright-cli
           test "$(cat "$base/path/repo/.agents/skills/playwright-cli/SKILL.md")" != INSIDE_OLD
           test ! -e "$base/path/repo/.agents/skills/playwright-cli/stale.md"
           echo "IN_REPOSITORY_PATH_CONTROL=WRITE_AND_DELETE"
@@ -101,7 +101,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          dotnet tool install Aspire.Cli --version 13.6.5 --tool-path "$env:RUNNER_TEMP\f073-tools"
+          dotnet tool install Aspire.Cli --version 17.0.0 --tool-path "$env:RUNNER_TEMP\f073-tools"
           npm install -g --prefix "$env:RUNNER_TEMP\f073-npm" @playwright/cli
           Get-ChildItem "$env:RUNNER_TEMP\f073-tools" | Select-Object Name,Length
           Get-Command aspire* -ErrorAction SilentlyContinue | Select-Object Name,Source
@@ -127,9 +127,9 @@ jobs:
             $link = Join-Path $repo '.agents\skills\playwright-cli'
             New-Item -ItemType SymbolicLink -Path $link -Target $protected | Out-Null
             git -C $repo add .agents/skills/playwright-cli
-            Write-Output "CASE=$kind"
-            git -C $repo ls-files --stage .agents/skills/playwright-cli
-            Write-Output "LINK_TARGET=$((Get-Item $link).Target)"
+            Write-Host "CASE=$kind"
+            git -C $repo ls-files --stage .agents/skills/playwright-cli | ForEach-Object { Write-Host $_ }
+            Write-Host "LINK_TARGET=$((Get-Item $link).Target)"
             return @{ repo = $repo; protected = $protected }
           }
           function Assert-Unchanged($protected) {
@@ -138,16 +138,16 @@ jobs:
           }
           $denied = New-Case 'denied'
           $cli = Get-ChildItem "$env:RUNNER_TEMP\f073-tools" | Where-Object Name -Like "aspire*" | Select-Object -First 1
-          & $cli.FullName agent init --workspace-root $denied.repo --skill-locations standard --skills none
+          & $cli.FullName agent init --workspace-root $denied.repo --agents copilot --scope project --skills none
           if ($LASTEXITCODE -ne 0) { throw "Denied CLI exited $LASTEXITCODE" }
           Assert-Unchanged $denied.protected
           Write-Output 'SKILL_NONE_CONTROL=UNCHANGED'
           $positive = New-Case 'positive'
-          & $cli.FullName agent init --workspace-root $positive.repo --skill-locations standard --skills playwright-cli
+          & $cli.FullName agent init --workspace-root $positive.repo --agents copilot --scope project --skills playwright-cli
           Write-Output "ASPIRE_EXIT=$LASTEXITCODE"
           $skill = Join-Path $positive.protected 'SKILL.md'
           $stale = Join-Path $positive.protected 'stale.md'
-          Write-Output "OUTSIDE_SKILL_CONTENT=$((Get-Content $skill -Raw).Trim())"
+          Write-Output "OUTSIDE_SKILL_SHA256=$((Get-FileHash $skill -Algorithm SHA256).Hash)"
           Write-Output "OUTSIDE_STALE_EXISTS=$(Test-Path $stale)"
           if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI failed' }
           if ((Get-Content $skill -Raw).Trim() -eq 'OUTSIDE_OLD') { throw 'Outside overwrite not observed' }
