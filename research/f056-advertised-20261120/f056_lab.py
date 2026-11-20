@@ -25,20 +25,26 @@ if not openssl:
 if not openssl:
     raise RuntimeError("OpenSSL missing on runner")
 cert_cmd = [openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(KEY), "-out", str(CERT), "-days", "1", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1"]
-subprocess.run(cert_cmd, check=True, capture_output=True, text=True)
+print("CHECKPOINT openssl certificate", flush=True)
+subprocess.run(cert_cmd, check=True, capture_output=True, text=True, timeout=20)
+print("CHECKPOINT certificate generated", flush=True)
 DER = ROOT / "localhost-cert.cer"
-subprocess.run([openssl, "x509", "-in", str(CERT), "-outform", "der", "-out", str(DER)], check=True, capture_output=True, text=True)
+subprocess.run([openssl, "x509", "-in", str(CERT), "-outform", "der", "-out", str(DER)], check=True, capture_output=True, text=True, timeout=20)
+print("CHECKPOINT certificate converted", flush=True)
 trust_script = "$c=[System.Security.Cryptography.X509Certificates.X509Certificate2]::new('" + str(DER) + "'); $s=[System.Security.Cryptography.X509Certificates.X509Store]::new('Root',[System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser); $s.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite); $s.Add($c); $s.Close(); $c.Thumbprint"
 trust_cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", trust_script]
-trust = subprocess.run(trust_cmd, capture_output=True, text=True)
+print("CHECKPOINT trust begin", flush=True)
+trust = subprocess.run(trust_cmd, capture_output=True, text=True, timeout=20)
+print("CHECKPOINT trust end", trust.returncode, flush=True)
 if trust.returncode != 0:
     print("CERT_IMPORT_STDOUT", trust.stdout)
     print("CERT_IMPORT_STDERR", trust.stderr)
     raise RuntimeError("Test certificate import failed")
-print("TRUSTED_TEST_CERT_THUMBPRINT", trust.stdout.strip())
+print("TRUSTED_TEST_CERT_THUMBPRINT", trust.stdout.strip(), flush=True)
 
-sdk_text = subprocess.run(["dotnet", "--list-sdks"], check=True, capture_output=True, text=True).stdout
-print("INSTALLED_SDKS", sdk_text.strip())
+print("CHECKPOINT sdk list begin", flush=True)
+sdk_text = subprocess.run(["dotnet", "--list-sdks"], check=True, capture_output=True, text=True, timeout=20).stdout
+print("INSTALLED_SDKS", sdk_text.strip(), flush=True)
 sdk_versions = [line.split(" ", 1)[0] for line in sdk_text.splitlines()]
 selected = {}
 for major in (10, 11):
@@ -116,10 +122,19 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
         env = os.environ.copy()
         env.update({"DOTNET_CLI_HOME": str(case / "home"), "NUGET_PACKAGES": str(case / "packages"), "NUGET_HTTP_CACHE_PATH": str(case / "cache"), "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_NOLOGO": "1", "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1", "NO_PROXY": "localhost,127.0.0.1", "no_proxy": "localhost,127.0.0.1", "HTTP_PROXY": "", "HTTPS_PROXY": "", "ALL_PROXY": ""})
         command = ["dotnet", "restore", "probe.csproj", "--configfile", "NuGet.Config", "--disable-parallel", "--no-cache", "--force", "--verbosity", "quiet"]
-        result = subprocess.run(command, cwd=case, env=env, capture_output=True, text=True, timeout=90)
+        print("CHECKPOINT restore begin", sdk, name, repeat, flush=True)
+        try:
+            result = subprocess.run(command, cwd=case, env=env, capture_output=True, text=True, timeout=40)
+            timed_out = False
+        except subprocess.TimeoutExpired as exc:
+            timed_out = True
+            out = exc.stdout or b""
+            err = exc.stderr or b""
+            result = subprocess.CompletedProcess(command, 124, out.decode(errors="replace") if isinstance(out, bytes) else out, err.decode(errors="replace") if isinstance(err, bytes) else err)
+        print("CHECKPOINT restore end", sdk, name, repeat, "timed_out=" + str(timed_out), flush=True)
         source_flat_auth = decoded_auth([r for r in source.seen if r["path"].startswith("/flat/")])
         sink_auth = decoded_auth(sink.seen)
-        record = {"sdk": sdk, "case": name, "repeat": repeat, "command": command, "source_url": source_url, "resource_url": resource_url, "source_flat_requests": len(source_flat_auth), "source_flat_basic_decoded": source_flat_auth, "sink_requests": len(sink.seen), "sink_basic_decoded": sink_auth, "exit": result.returncode, "stdout_tail": result.stdout[-1400:], "stderr_tail": result.stderr[-1000:]}
+        record = {"sdk": sdk, "case": name, "repeat": repeat, "command": command, "source_url": source_url, "resource_url": resource_url, "source_flat_requests": len(source_flat_auth), "source_flat_basic_decoded": source_flat_auth, "sink_requests": len(sink.seen), "sink_basic_decoded": sink_auth, "exit": result.returncode, "timed_out": timed_out, "stdout_tail": result.stdout[-1400:], "stderr_tail": result.stderr[-1000:]}
         print("F056_CASE", json.dumps(record, sort_keys=True), flush=True)
         if name == "same_origin":
             assert MARKER in source_flat_auth and not sink.seen, "same-origin credential baseline failed"
@@ -138,8 +153,8 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
         sink.server_close()
 
 for major, sdk in selected.items():
-    run_case(major, sdk, "same_origin", "same", True, False, 1)
     run_case(major, sdk, "cross_https", "https", True, False, 1)
+    run_case(major, sdk, "same_origin", "same", True, False, 1)
     run_case(major, sdk, "cross_https", "https", True, False, 2)
     run_case(major, sdk, "cross_https_no_credentials", "https", False, False, 1)
     run_case(major, sdk, "cross_http_default", "http", True, False, 1)
