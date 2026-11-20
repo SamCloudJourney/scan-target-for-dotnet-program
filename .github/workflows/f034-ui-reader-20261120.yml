@@ -76,6 +76,24 @@ jobs:
             Write-Host "DEVENV_EXITED=$($p.HasExited)"
             Write-Host "DEVENV_MAIN_WINDOW=$($p.MainWindowHandle -ne 0)"
             Write-Host "DEVENV_SESSION_ID=$($p.SessionId)"
+            Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class F034Mouse { [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y); [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint x,uint y,uint d,UIntPtr e); }'
+            [F034Mouse]::SetCursorPos(802,470) | Out-Null
+            [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 150
+            [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+            Write-Host "CLICKED_SKIP_SIGNIN=True"
+            Start-Sleep -Seconds 20
+            try {
+              Add-Type -AssemblyName System.Windows.Forms
+              Add-Type -AssemblyName System.Drawing
+              $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+              $bmp = New-Object System.Drawing.Bitmap($bounds.Width,$bounds.Height)
+              $g = [System.Drawing.Graphics]::FromImage($bmp)
+              $g.CopyFromScreen($bounds.Location,[System.Drawing.Point]::Empty,$bounds.Size)
+              $bmp.Save((Join-Path $dir 'post-skip.png'),[System.Drawing.Imaging.ImageFormat]::Png)
+              $g.Dispose(); $bmp.Dispose()
+              Write-Host "POST_SKIP_SCREENSHOT=True"
+            } catch { Write-Host "POST_SKIP_SCREENSHOT_ERROR=$($_.Exception.Message)" }
             $dte = $null
             for ($i=0; $i -lt 20; $i++) {
               try { $dte = [Runtime.InteropServices.Marshal]::GetActiveObject('VisualStudio.DTE.17.0'); break } catch { Start-Sleep -Seconds 2 }
@@ -140,5 +158,6 @@ jobs:
           name: f034-ui-pilot
           path: |
             ${{ runner.temp }}/f034-consumer/visual-studio.png
+            ${{ runner.temp }}/f034-consumer/post-skip.png
             ${{ runner.temp }}/f034-consumer/ActivityLog.xml
           if-no-files-found: ignore
