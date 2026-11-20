@@ -47,7 +47,7 @@ jobs:
           $pkgId = 'F034.Synthetic.Icon.Publisher.20261120'
           $search = & dotnet package search $pkgId --configfile $config --prerelease --take 5 2>&1
           Write-Host "CLI_SEARCH_EXIT=$LASTEXITCODE"
-          Write-Host "CLI_SEARCH_MATCH=$([bool]($search -match $pkgId))"
+          Write-Host "CLI_SEARCH_MATCH=$([bool]($search -match "F034.Synthetic.Icon.Publ"))"
           $search | Select-Object -Last 7 | ForEach-Object { Write-Host "CLI_SEARCH_LINE=$_" }
           $shareDir = Join-Path $dir 'share'
           New-Item -ItemType Directory -Force -Path $shareDir | Out-Null
@@ -105,23 +105,25 @@ jobs:
             }
             Write-Host "DTE_ATTACHED=$([bool]$dte)"
             if ($dte) {
-              Write-Host "DTE_SOLUTION_OPEN=$($dte.Solution.IsOpen)"
-              Write-Host "DTE_SOLUTION_NAME=$($dte.Solution.FullName)"
-              $nugetCmds = @()
-              foreach ($cmd in $dte.Commands) {
-                try {
-                  if ($cmd.Name -match 'NuGet|PackageManager|AddPackages') {
-                    $nugetCmds += [pscustomobject]@{Name=$cmd.Name;Available=$cmd.IsAvailable}
-                  }
-                } catch {}
+              $solutionPath = ''
+              for ($i=0; $i -lt 48; $i++) {
+                try { $solutionPath = [string]$dte.Solution.FullName } catch {}
+                if ($solutionPath) { break }
+                Start-Sleep -Seconds 5
               }
-              $nugetCmds | Select-Object -First 60 | ForEach-Object { Write-Host "DTE_COMMAND=$($_.Name);AVAILABLE=$($_.Available)" }
-              $candidate = $nugetCmds | Where-Object { $_.Available -and $_.Name -match 'AddPackagesForSolution|ManageNuGetPackagesForSolution|ManageNuGetPackages' } | Select-Object -First 1
-              if ($candidate) {
-                Write-Host "DTE_EXECUTE=$($candidate.Name)"
-                try { $dte.ExecuteCommand($candidate.Name); Write-Host "DTE_EXECUTE_RESULT=success" } catch { Write-Host "DTE_EXECUTE_ERROR=$($_.Exception.Message)" }
-                Start-Sleep -Seconds 15
-              } else { Write-Host "DTE_EXECUTE_RESULT=no-available-package-command" }
+              Write-Host "DTE_SOLUTION_OPEN=$($dte.Solution.IsOpen)"
+              Write-Host "DTE_SOLUTION_NAME=$solutionPath"
+              if ($solutionPath) {
+                try {
+                  $dte.ExecuteCommand('Tools.ManageNuGetPackagesforSolution', $pkgId)
+                  Write-Host "DTE_NUGET_SEARCH_COMMAND=success"
+                } catch {
+                  Write-Host "DTE_NUGET_SEARCH_COMMAND_ERROR=$($_.Exception.Message)"
+                }
+                Start-Sleep -Seconds 35
+              } else {
+                Write-Host "DTE_NUGET_SEARCH_COMMAND=solution-not-ready"
+              }
             }
             if ($p -and -not $p.HasExited -and $p.MainWindowHandle -ne 0) {
               try {
