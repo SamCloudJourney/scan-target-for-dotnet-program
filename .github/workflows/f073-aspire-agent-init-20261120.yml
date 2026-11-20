@@ -1,0 +1,151 @@
+name: F073 Aspire agent init owned canary lab
+on:
+  push:
+    branches:
+      - f073-aspire-agent-init-20261120
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install released CLI and Playwright CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet tool install Aspire.Cli --version 13.6.5 --tool-path "$RUNNER_TEMP/f073-tools"
+          npm install -g --prefix "$RUNNER_TEMP/f073-npm" @playwright/cli
+          "$RUNNER_TEMP/f073-tools/aspire" --version
+          "$RUNNER_TEMP/f073-npm/bin/playwright-cli" --version
+      - name: Cross-principal canary matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/f073-tools:$RUNNER_TEMP/f073-npm/bin:$PATH"
+          base="$RUNNER_TEMP/f073-lab"
+          mkdir -p "$base"
+          chmod 755 "$base"
+          sudo useradd -m f073low
+          new_case() {
+            kind="$1"
+            case_dir="$base/$kind"
+            repo="$case_dir/repo"
+            protected="$case_dir/protected"
+            mkdir -p "$repo/.agents/skills" "$protected"
+            chmod 755 "$case_dir" "$repo" "$repo/.agents"
+            chmod 777 "$repo/.agents/skills"
+            chmod 700 "$protected"
+            printf 'OUTSIDE_OLD\n' > "$protected/SKILL.md"
+            printf 'DELETE_ME\n' > "$protected/stale.md"
+            git -C "$repo" init -q
+            sudo -u f073low ln -s ../../../protected "$repo/.agents/skills/playwright-cli"
+            git -C "$repo" add .agents/skills/playwright-cli
+            echo "CASE=$kind"
+            git -C "$repo" ls-files --stage .agents/skills/playwright-cli
+            echo "link=$(readlink "$repo/.agents/skills/playwright-cli")"
+            echo "resolved=$(readlink -f "$repo/.agents/skills/playwright-cli")"
+            echo "protected_perms=$(stat -c '%U:%G %a' "$protected")"
+            if sudo -u f073low test -r "$protected/SKILL.md"; then
+              echo "LOW_DIRECT_READ=ALLOWED"
+              exit 1
+            else
+              echo "LOW_DIRECT_READ=DENIED"
+            fi
+            if sudo -u f073low test -w "$protected/SKILL.md"; then
+              echo "LOW_DIRECT_WRITE=ALLOWED"
+              exit 1
+            else
+              echo "LOW_DIRECT_WRITE=DENIED"
+            fi
+            test -w "$protected/SKILL.md"
+          }
+          unchanged() {
+            protected="$1"
+            test "$(cat "$protected/SKILL.md")" = OUTSIDE_OLD
+            test "$(cat "$protected/stale.md")" = DELETE_ME
+          }
+          changed() {
+            protected="$1"
+            test "$(cat "$protected/SKILL.md")" != OUTSIDE_OLD
+            test ! -e "$protected/stale.md"
+            echo "OUTSIDE_SKILL_SHA256=$(sha256sum "$protected/SKILL.md" | cut -d ' ' -f 1)"
+            echo "OUTSIDE_STALE_EXISTS=no"
+          }
+          new_case raw
+          ( cd "$base/raw/repo" && playwright-cli install --skills )
+          unchanged "$base/raw/protected"
+          echo "RAW_PLAYWRIGHT_CONTROL=UNCHANGED"
+          new_case denied
+          aspire agent init --workspace-root "$base/denied/repo" --skill-locations standard --skills none
+          unchanged "$base/denied/protected"
+          echo "SKILL_NONE_CONTROL=UNCHANGED"
+          for kind in positive1 positive2; do
+            new_case "$kind"
+            aspire agent init --workspace-root "$base/$kind/repo" --skill-locations standard --skills playwright-cli
+            changed "$base/$kind/protected"
+            echo "ASPIRE_$kind=OUTSIDE_WRITE_AND_DELETE"
+          done
+          mkdir -p "$base/path/repo/.agents/skills/playwright-cli"
+          printf 'INSIDE_OLD\n' > "$base/path/repo/.agents/skills/playwright-cli/SKILL.md"
+          printf 'DELETE_ME\n' > "$base/path/repo/.agents/skills/playwright-cli/stale.md"
+          aspire agent init --workspace-root "$base/path/repo" --skill-locations standard --skills playwright-cli
+          test "$(cat "$base/path/repo/.agents/skills/playwright-cli/SKILL.md")" != INSIDE_OLD
+          test ! -e "$base/path/repo/.agents/skills/playwright-cli/stale.md"
+          echo "IN_REPOSITORY_PATH_CONTROL=WRITE_AND_DELETE"
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install released CLI and Playwright CLI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet tool install Aspire.Cli --version 13.6.5 --tool-path "$env:RUNNER_TEMP\f073-tools"
+          npm install -g --prefix "$env:RUNNER_TEMP\f073-npm" @playwright/cli
+          & "$env:RUNNER_TEMP\f073-tools\aspire.exe" --version
+          & "$env:RUNNER_TEMP\f073-npm\playwright-cli.cmd" --version
+      - name: Windows symlink and canary matrix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:PATH = "$env:RUNNER_TEMP\f073-tools;$env:RUNNER_TEMP\f073-npm;$env:PATH"
+          $base = Join-Path $env:RUNNER_TEMP 'f073-windows'
+          New-Item -ItemType Directory -Force -Path $base | Out-Null
+          function New-Case([string]$kind) {
+            $caseDir = Join-Path $base $kind
+            $repo = Join-Path $caseDir 'repo'
+            $protected = Join-Path $caseDir 'protected'
+            New-Item -ItemType Directory -Force -Path (Join-Path $repo '.agents\skills'), $protected | Out-Null
+            Set-Content -Path (Join-Path $protected 'SKILL.md') -Value 'OUTSIDE_OLD'
+            Set-Content -Path (Join-Path $protected 'stale.md') -Value 'DELETE_ME'
+            git -C $repo init -q
+            git -C $repo config core.symlinks true
+            $link = Join-Path $repo '.agents\skills\playwright-cli'
+            New-Item -ItemType SymbolicLink -Path $link -Target $protected | Out-Null
+            git -C $repo add .agents/skills/playwright-cli
+            Write-Output "CASE=$kind"
+            git -C $repo ls-files --stage .agents/skills/playwright-cli
+            Write-Output "LINK_TARGET=$((Get-Item $link).Target)"
+            return @{ repo = $repo; protected = $protected }
+          }
+          function Assert-Unchanged($protected) {
+            if ((Get-Content (Join-Path $protected 'SKILL.md') -Raw).Trim() -ne 'OUTSIDE_OLD') { throw 'Outside overwrite in negative control' }
+            if (-not (Test-Path (Join-Path $protected 'stale.md'))) { throw 'Outside deletion in negative control' }
+          }
+          $denied = New-Case 'denied'
+          aspire agent init --workspace-root $denied.repo --skill-locations standard --skills none
+          if ($LASTEXITCODE -ne 0) { throw "Denied CLI exited $LASTEXITCODE" }
+          Assert-Unchanged $denied.protected
+          Write-Output 'SKILL_NONE_CONTROL=UNCHANGED'
+          $positive = New-Case 'positive'
+          aspire agent init --workspace-root $positive.repo --skill-locations standard --skills playwright-cli
+          Write-Output "ASPIRE_EXIT=$LASTEXITCODE"
+          $skill = Join-Path $positive.protected 'SKILL.md'
+          $stale = Join-Path $positive.protected 'stale.md'
+          Write-Output "OUTSIDE_SKILL_CONTENT=$((Get-Content $skill -Raw).Trim())"
+          Write-Output "OUTSIDE_STALE_EXISTS=$(Test-Path $stale)"
+          if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI failed' }
+          if ((Get-Content $skill -Raw).Trim() -eq 'OUTSIDE_OLD') { throw 'Outside overwrite not observed' }
+          if (Test-Path $stale) { throw 'Outside deletion not observed' }
+          Write-Output 'WINDOWS_SYMLINK=OUTSIDE_WRITE_AND_DELETE'
