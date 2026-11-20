@@ -23,6 +23,8 @@ jobs:
           [IO.File]::WriteAllText($canary, 'BEFORE')
           $project = Join-Path $trusted 'trusted.proj'
           [IO.File]::WriteAllText($project, '<Project><Target Name="Extract"><Unzip SourceFiles="$(ArchivePath)" DestinationFolder="$(Destination)" SkipUnchangedFiles="false" /></Target></Project>')
+          $successor = Join-Path $trusted 'successor.proj'
+          [IO.File]::WriteAllText($successor, '<Project><Target Name="Run"><Message Text="TRUSTED_BASELINE" Importance="high" /></Target></Project>')
           $lowScript = Join-Path $root 'low.ps1'
           @'
           param([string]$Root, [string]$Outside, [string]$Trusted, [string]$Mode)
@@ -41,6 +43,8 @@ jobs:
             New-TestZip (Join-Path $Root 'traversal.zip') '../outside/protected.txt' 'TRAVERSAL'
             New-TestZip (Join-Path $Root 'pivot.zip') 'pivot/protected.txt' 'F066_MARKER'
             New-TestZip (Join-Path $Root 'wrong.zip') 'other/skip.txt' 'NEGATIVE'
+            $payload = '<Project><Target Name="Run"><Exec Command="cmd /c echo F066_EXEC_MARKER &gt; &quot;$(MSBuildThisFileDirectory)successor-executed.txt&quot;" /></Target></Project>'
+            New-TestZip (Join-Path $Root 'successor.zip') 'trustedpivot/successor.proj' $payload
             Write-Host 'LOW_ARCHIVES_CREATED'
           } elseif ($Mode -eq 'junction') {
             $link = Join-Path $Root 'pivot'
@@ -59,6 +63,17 @@ jobs:
               Write-Host 'LOW_TRUSTED_PROJECT_WRITE_DENIED'
             }
             Write-Host "LOW_LINK=$link"
+          } elseif ($Mode -eq 'successor') {
+            $link = Join-Path $Root 'trustedpivot'
+            & cmd.exe /c "mklink /J `"$link`" `"$Trusted`""
+            if ($LASTEXITCODE -ne 0) { throw "mklink failed: $LASTEXITCODE" }
+            try {
+              [IO.File]::AppendAllText((Join-Path $Trusted 'successor.proj'), 'LOW_PROJECT_EDIT')
+              throw 'LOW_SUCCESSOR_EDIT_UNEXPECTEDLY_SUCCEEDED'
+            } catch [UnauthorizedAccessException] {
+              Write-Host 'LOW_SUCCESSOR_WRITE_DENIED'
+            }
+            Write-Host "LOW_SUCCESSOR_LINK=$link"
           } else { throw "Unknown mode $Mode" }
           '@ | Set-Content -LiteralPath $lowScript -Encoding utf8
           $lowName = 'f066low'
@@ -111,6 +126,20 @@ jobs:
             Write-Host "LINK_WRITE_EXIT=$exit OUTSIDE_CANARY=$result"
             if ($exit -ne 0 -or $result -ne 'F066_MARKER') { throw 'Link-write result failed' }
             Write-Host 'F066_SPLIT_IDENTITY_RESULT=PASS'
+            $baseline = [IO.File]::ReadAllText($successor)
+            $exit = Run-Unzip (Join-Path $root 'successor.zip')
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($successor) -ne $baseline -or (Test-Path (Join-Path $trusted 'successor-executed.txt'))) { throw 'Successor no-link control failed' }
+            Write-Host 'SUCCESSOR_NO_LINK_CONTROL=PASS'
+            Remove-Item -LiteralPath (Join-Path $root 'trustedpivot') -Recurse -Force
+            Run-Low 'successor'
+            $exit = Run-Unzip (Join-Path $root 'successor.zip')
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($successor) -eq $baseline) { throw 'Successor overwrite failed' }
+            Write-Host 'SUCCESSOR_OVERWRITE=PASS'
+            & dotnet msbuild $successor /t:Run /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
+            $exit = $LASTEXITCODE
+            $marker = Join-Path $trusted 'successor-executed.txt'
+            if ($exit -ne 0 -or !(Test-Path $marker) -or [IO.File]::ReadAllText($marker).Trim() -ne 'F066_EXEC_MARKER') { throw 'Successor execution failed' }
+            Write-Host "SUCCESSOR_EXECUTION=PASS EXIT=$exit MARKER=$([IO.File]::ReadAllText($marker).Trim())"
           } finally {
             Remove-LocalUser -Name $lowName -ErrorAction SilentlyContinue
           }
