@@ -39,11 +39,11 @@ jobs:
       - name: Run bounded two-client matrix
         shell: pwsh
         run: |
-          python f043-lab/probe.py | Tee-Object -FilePath f043-results.jsonl
+          python f043-lab/probe2.py | Tee-Object -FilePath f043-targeted-results.jsonl
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: f043-bounded-results
-          path: f043-results.jsonl
+          name: f043-targeted-results
+          path: f043-targeted-results.jsonl
           if-no-files-found: ignore
