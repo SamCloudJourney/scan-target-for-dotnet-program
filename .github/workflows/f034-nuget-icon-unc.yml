@@ -110,7 +110,7 @@ jobs:
                 foreach (string path in list) {
                   try {
                     AssemblyName candidate = AssemblyName.GetAssemblyName(path);
-                    if (candidate.Version != requested.Version) continue;
+                    if (!candidate.Version.Equals(requested.Version)) continue;
                     return Assembly.LoadFrom(path);
                   } catch {}
                 }
