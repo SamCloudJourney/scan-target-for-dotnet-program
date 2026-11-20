@@ -32,11 +32,23 @@ jobs:
           dotnet --version
           dotnet workload install android --skip-manifest-update
           dotnet workload list
+      - name: Enable KVM when available
+        shell: bash
+        run: |
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
+          else
+            echo 'F042_KVM=MISSING; forcing software emulation'
+          fi
       - name: Run emulator and owned F042 test
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: 'yes'
         with:
           api-level: 35
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          emulator-boot-timeout: 900
           script: bash /tmp/f042-maui-aspire-1335.sh
