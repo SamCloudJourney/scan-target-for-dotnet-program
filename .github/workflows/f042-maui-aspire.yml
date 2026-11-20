@@ -1,0 +1,35 @@
+name: F042 Aspire MAUI reachability
+
+on:
+  push:
+    branches:
+      - research/f042-maui-aspire-20261120
+    paths:
+      - .github/workflows/f042-maui-aspire.yml
+      - .github/scripts/f042-maui-aspire.sh
+
+jobs:
+  android-aspire:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install released .NET 11 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Install Android workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --version
+          dotnet workload install android --skip-manifest-update
+          dotnet workload list
+      - name: Run emulator and owned F042 test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: bash .github/scripts/f042-maui-aspire.sh
