@@ -67,30 +67,30 @@ jobs:
             exitCode=$?
             set -e
             printf 'CASE=%s CLI_EXIT=%s\n' "$caseName" "$exitCode"
-            rg 'Using assemblies:|safe.dll|seed;|Starting collection using PMI|Error|No assemblies' "$root/$caseName.log" | head -18 || true
+            grep -E 'Using assemblies:|safe.dll|seed;|Starting collection using PMI|Error|No assemblies' "$root/$caseName.log" | head -18 || true
             cat "$temp"/*.stdout 2>/dev/null || true
           }
           safeOutput="$(run_collection safe)"
           printf '%s\n' "$safeOutput"
-          if printf '%s' "$safeOutput" | rg -q "$marker"; then echo 'safe control leaked canary'; exit 1; fi
-          if ! printf '%s' "$safeOutput" | rg -q 'F030_TOOL_ID=runner'; then echo 'safe control did not reach tool'; exit 1; fi
+          if printf '%s' "$safeOutput" | grep -q "$marker"; then echo 'safe control leaked canary'; exit 1; fi
+          if ! printf '%s' "$safeOutput" | grep -q 'F030_TOOL_ID=runner'; then echo 'safe control did not reach tool'; exit 1; fi
           sudo -u nobody env -u F030_CANARY_PATH python3 - "$nested" <<'ACTOR'
           import pathlib, sys
           (pathlib.Path(sys.argv[1])/'seed; cat "$F030_CANARY_PATH" ; #.dll').write_bytes(b'')
           ACTOR
-          payloadPath="$nested/seed; cat \"$F030_CANARY_PATH\" ; #.dll"
+          payloadPath="$nested/"'seed; cat "$F030_CANARY_PATH" ; #.dll'
           test -f "$payloadPath"
           oneOutput="$(run_collection one_factor_1)"
           printf '%s\n' "$oneOutput"
-          if ! printf '%s' "$oneOutput" | rg -q "$marker"; then echo 'one-factor DLL did not read canary'; exit 1; fi
+          if ! printf '%s' "$oneOutput" | grep -q "$marker"; then echo 'one-factor DLL did not read canary'; exit 1; fi
           twoOutput="$(run_collection one_factor_2)"
           printf '%s\n' "$twoOutput"
-          if ! printf '%s' "$twoOutput" | rg -q "$marker"; then echo 'second run did not read canary'; exit 1; fi
+          if ! printf '%s' "$twoOutput" | grep -q "$marker"; then echo 'second run did not read canary'; exit 1; fi
           argvOutput="$(python3 - "$core/corerun" "$core/pmi.dll" "$payloadPath" <<'ARGV'
           import subprocess, sys
           print(subprocess.run([sys.argv[1],sys.argv[2],'DRIVEALL',sys.argv[3]],capture_output=True,text=True).stdout,end='')
           ARGV
           )"
           printf 'ARGV_CONTROL=%s\n' "$argvOutput"
-          if printf '%s' "$argvOutput" | rg -q "$marker"; then echo 'argv control leaked canary'; exit 1; fi
+          if printf '%s' "$argvOutput" | grep -q "$marker"; then echo 'argv control leaked canary'; exit 1; fi
           printf 'F030_RESULT=TWO_PRINCIPAL_SYNTHETIC_BOUNDARY_REPRODUCED\n'
