@@ -1,0 +1,86 @@
+name: F064 Aspire 17 two UID template author control
+on:
+  push:
+    branches:
+      - f064-aspire17-two-uid-20261120
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: research/f064-aspire17-parent-target-20261120
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.100
+      - name: Prove lower UID source cannot write protected parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DOTNET_CLI_HOME="$RUNNER_TEMP/f064-aspire17-two-uid-home"
+          export DOTNET_CLI_TELEMETRY_OPTOUT=1
+          root="$RUNNER_TEMP/f064-aspire17-two-uid-20261120"
+          source_dir="$root/author-template"
+          workspace="$root/workspace"
+          trusted="$workspace/trusted"
+          target="$workspace/Directory.Build.targets"
+          marker="$root/trusted-build-marker.txt"
+          tool_dir="$root/tools"
+          mkdir -p "$root" "$workspace" "$trusted" "$tool_dir"
+          chmod 755 "$root"
+          chmod 700 "$workspace"
+          cp -a "$GITHUB_WORKSPACE/research/f064-aspire17-parent-target-20261120/safe" "$source_dir"
+          sudo useradd --create-home --shell /bin/bash f064author
+          sudo chown -R f064author:f064author "$source_dir"
+          printf '%s\n' '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>' > "$trusted/Trusted.csproj"
+          printf '%s\n' 'public class Trusted { public static int Value => 1; }' > "$trusted/Class1.cs"
+          printf '%s\n' '<Project><!-- F064_PROTECTED_GUARD --></Project>' > "$target"
+          guard_hash="$(sha256sum "$target" | cut -d ' ' -f 1)"
+          echo "RESULT|identities|host_uid=$(id -u)|author_uid=$(id -u f064author)|workspace_mode=$(stat -c '%a' "$workspace")"
+          if sudo -u f064author sh -c 'printf "%s\n" "ATTACKER_DIRECT" > "$1"' sh "$target"; then
+            echo 'Author direct write unexpectedly succeeded' >&2
+            exit 1
+          fi
+          test "$(sha256sum "$target" | cut -d ' ' -f 1)" = "$guard_hash"
+          echo "RESULT|author-direct-write|denied=True|protected-unchanged=True"
+          dotnet --version
+          dotnet tool install Aspire.Cli --version 17.0.0 --tool-path "$tool_dir"
+          "$tool_dir/aspire" --version
+          build_trusted() {
+            local label="$1"
+            local expected="$2"
+            rm -f "$marker"
+            dotnet build "$trusted/Trusted.csproj" -t:Rebuild -p:F064MarkerPath="$marker" --nologo -v:q
+            if test -f "$marker"; then
+              test "$expected" = 'True'
+              test "$(cat "$marker")" = 'F064_TRUSTED_BUILD_CONSUMED'
+              echo "RESULT|$label|trusted-build=0|marker=True"
+            else
+              test "$expected" = 'False'
+              echo "RESULT|$label|trusted-build=0|marker=False"
+            fi
+          }
+          build_trusted baseline False
+          "$tool_dir/aspire" --non-interactive --nologo new --template-path "$source_dir" --name F064Synthetic --output "$workspace/safe" --suppress-agent-init
+          test -f "$workspace/safe/Directory.Build.targets"
+          test "$(sha256sum "$target" | cut -d ' ' -f 1)" = "$guard_hash"
+          echo "RESULT|safe-template|inside=True|protected-unchanged=True"
+          build_trusted safe-control False
+          config="$source_dir/.template.config/template.json"
+          sudo -u f064author python3 -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); assert d["sources"][0]["target"]=="./"; d["sources"][0]["target"]="../"; open(p,"w").write(json.dumps(d,indent=2)+"\n")' "$config"
+          test "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sources"][0]["target"])' "$config")" = '../'
+          echo "RESULT|author-mutation|target=./->../|payload-unchanged=True"
+          "$tool_dir/aspire" --non-interactive --nologo new --template-path "$source_dir" --name F064Synthetic --output "$workspace/escape" --suppress-agent-init
+          test "$(sha256sum "$target" | cut -d ' ' -f 1)" != "$guard_hash"
+          test "$(sha256sum "$target" | cut -d ' ' -f 1)" = "$(sha256sum "$workspace/safe/Directory.Build.targets" | cut -d ' ' -f 1)"
+          test ! -f "$marker"
+          echo "RESULT|aspire-existing-parent|overwritten=True|same-payload=True|marker-before=False"
+          build_trusted trusted-import True
+          rm -f "$target"
+          build_trusted removed-control False
