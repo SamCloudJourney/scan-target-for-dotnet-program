@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repeat: [1, 2]
+        repeat: [1]
     steps:
       - name: Probe synthetic feed and owned SMB share
         shell: powershell
@@ -54,7 +54,10 @@ jobs:
             $feed = Invoke-RestMethod "http://127.0.0.1:$port/search?q=F034"
             Write-Host "FEED_ICON_EQUALS_UNC=$($feed.data[0].iconUrl -eq $uncUri)"
             Write-Host "DOTNET_VERSION=$(dotnet --version)"
-            $searchOutput = & dotnet package search F034 --source "http://127.0.0.1:$port/index.json" --take 1 2>&1
+            $configPath = Join-Path $feedDir 'NuGet.Config'
+            $configXml = "<configuration><packageSources><clear/><add key=`"F034`" value=`"http://127.0.0.1:$port/index.json`" allowInsecureConnections=`"true`" /></packageSources></configuration>"
+            [IO.File]::WriteAllText($configPath, $configXml)
+            $searchOutput = & dotnet package search F034 --configfile $configPath --take 1 2>&1
             Write-Host "DOTNET_SEARCH_EXIT=$LASTEXITCODE"
             Write-Host "DOTNET_SEARCH_FOUND_OWNED=$([bool]($searchOutput -match 'F034.Owned.Icon'))"
             $searchOutput | Select-Object -First 8 | ForEach-Object { Write-Host "DOTNET_SEARCH_LINE=$_" }
@@ -67,19 +70,22 @@ jobs:
             if ($dll) {
               Write-Host "VS_NUGET_DLL_VERSION=$($dll.VersionInfo.FileVersion)"
               try {
-                $dllMap = @{}
-                Get-ChildItem -Path $vsRoot -Recurse -File -Filter '*.dll' -ErrorAction SilentlyContinue | ForEach-Object {
-                  if (-not $dllMap.ContainsKey($_.Name)) { $dllMap[$_.Name] = $_.FullName }
+                $taskDeps = @(Get-ChildItem -Path $vsRoot -Recurse -File -Filter 'System.Threading.Tasks.Extensions.dll' -ErrorAction SilentlyContinue)
+                Write-Host "TASK_EXT_CANDIDATE_COUNT=$($taskDeps.Count)"
+                $loadedTaskExt = $false
+                foreach ($dep in $taskDeps) {
+                  try {
+                    $depVersion = [Reflection.AssemblyName]::GetAssemblyName($dep.FullName).Version.ToString()
+                    Write-Host "TASK_EXT_CANDIDATE_VERSION=$depVersion"
+                    if ($depVersion -eq '4.2.0.1' -and -not $loadedTaskExt) {
+                      [void][Reflection.Assembly]::LoadFrom($dep.FullName)
+                      $loadedTaskExt = $true
+                    }
+                  } catch {
+                    Write-Host "TASK_EXT_LOAD_ERROR=$($_.Exception.GetType().FullName)"
+                  }
                 }
-                Write-Host "VS_DLL_MAP_COUNT=$($dllMap.Count)"
-                $resolveHandler = [ResolveEventHandler]{
-                  param($sender, $args)
-                  $depName = ([Reflection.AssemblyName]::new($args.Name)).Name + '.dll'
-                  $depPath = $dllMap[$depName]
-                  if ($depPath) { return [Reflection.Assembly]::LoadFrom($depPath) }
-                  return $null
-                }
-                [AppDomain]::CurrentDomain.add_AssemblyResolve($resolveHandler)
+                Write-Host "TASK_EXT_LOADED=$loadedTaskExt"
                 $assembly = [Reflection.Assembly]::LoadFrom($dll.FullName)
                 $type = $assembly.GetType('NuGet.PackageManagement.VisualStudio.NuGetPackageFileService', $true)
                 $instance = [Runtime.Serialization.FormatterServices]::GetUninitializedObject($type)
