@@ -129,6 +129,8 @@ watch_log="$root/watch.log"
 
 cleanup_watch() {
     if [[ -n "${watchpid:-}" ]]; then
+        pgid="$(ps -o pgid= -p "$watchpid" | tr -d " " || true)"
+        if [[ "$pgid" == "$watchpid" ]]; then kill -TERM -- "-$pgid" 2>/dev/null || true; fi
         kill "$watchpid" 2>/dev/null || true
         wait "$watchpid" 2>/dev/null || true
         watchpid=""
@@ -137,7 +139,7 @@ cleanup_watch() {
 trap cleanup_watch EXIT
 
 echo F042_BASELINE_START
-dotnet watch --project "$host/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
+setsid dotnet watch --project "$host/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
 watchpid=$!
 for i in $(seq 1 240); do
     if adb shell pidof com.example.f042mobile >/dev/null 2>&1; then
@@ -205,7 +207,7 @@ EOF
 chmod a+r "$peer/query.py"
 sudo -u f042_peer python3 "$peer/query.py" "$(command -v dotnet)" "$peer/bin/Debug/net11.0/Peer.dll" "$F042_EXPECTED_HASH_FILE" > "$root/peer.log" 2>&1 &
 peerpid=$!
-dotnet watch --project "$host/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
+setsid dotnet watch --project "$host/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
 watchpid=$!
 wait "$peerpid" || true
 echo "F042_EXPECTED_HASH=$(cat "$F042_EXPECTED_HASH_FILE")"
