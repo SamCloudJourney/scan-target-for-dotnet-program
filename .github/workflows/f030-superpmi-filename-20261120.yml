@@ -13,7 +13,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/f030_lab"
+          root="/tmp/f030_lab"
           src="$root/src"
           core="$root/core"
           inputDir="$root/intake"
