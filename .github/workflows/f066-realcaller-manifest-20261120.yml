@@ -40,7 +40,7 @@ jobs:
           '@ | Set-Content -LiteralPath $wrapper -Encoding utf8
           $successor = Join-Path $trusted 'successor.proj'
           [IO.File]::WriteAllText($successor, '<Project><Target Name="Run"><Message Text="TRUSTED_BASELINE" Importance="high" /></Target></Project>')
-          $lowScript = Join-Path $trusted 'low.ps1'
+          $lowScript = Join-Path $root 'low.ps1'
           @'
           param([string]$Root, [string]$Packages, [string]$Outside, [string]$Trusted, [string]$Mode)
           $ErrorActionPreference = 'Stop'
