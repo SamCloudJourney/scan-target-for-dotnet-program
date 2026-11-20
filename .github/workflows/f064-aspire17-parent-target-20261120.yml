@@ -67,6 +67,9 @@ jobs:
           $guardHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
           $blockedRc = Invoke-Source 'escape' (Join-Path $workspace 'blocked')
           $unchanged = ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -eq $guardHash)
+          $blockedInside = Join-Path $workspace 'blocked/Directory.Build.targets'
+          $parentText = (Get-Content -Raw -LiteralPath $target).Trim()
+          Write-Host "DIAG|existing-parent|rc=$blockedRc|unchanged=$unchanged|inside=$(Test-Path -LiteralPath $blockedInside)|parent=$parentText"
           if ($blockedRc -eq 0 -or !$unchanged) { throw 'Existing-file guard failed' }
           Write-Host "RESULT|existing-parent-guard|rc=$blockedRc|unchanged=$unchanged"
           Remove-Item -LiteralPath $target -Force
