@@ -22,7 +22,8 @@ jobs:
           $root = Join-Path $env:RUNNER_TEMP 'f057-roslyn-cache'
           $victim = Join-Path $root 'victim'
           $poison = Join-Path $root 'poison'
-          $cacheRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'roslyn-cache'
+          $env:ROSLYN_CACHE_PATH = Join-Path $root '.roslyn-cache'
+          $cacheRoot = $env:ROSLYN_CACHE_PATH
           $victimCache = Join-Path $cacheRoot 'Victim.dll'
           New-Item -ItemType Directory -Force -Path $root | Out-Null
           function Invoke-Dotnet([string[]]$Command) {
@@ -31,7 +32,7 @@ jobs:
           }
           function Build-Victim {
             Invoke-Dotnet @('clean', $victim, '-c', 'Release', '-v:q')
-            Invoke-Dotnet @('build', $victim, '-c', 'Release', '-p:Features=use-global-cache', '-p:UseSharedCompilation=true', '-v:n')
+            Invoke-Dotnet @('build', $victim, '-c', 'Release', '-p:UseSharedCompilation=true', '-v:n')
           }
           function Run-Victim {
             $dll = Join-Path $victim 'bin\Release\net11.0\Victim.dll'
@@ -43,6 +44,7 @@ jobs:
           Write-Host "IDENTITY=$(whoami)"
           Write-Host "GROUPS=$(whoami /groups | Out-String)"
           Write-Host "CACHE_ROOT=$cacheRoot"
+          Write-Host "CACHE_CONFIG=ROSLYN_CACHE_PATH_ENV"
           if (Test-Path $victimCache) { Remove-Item -LiteralPath $victimCache -Recurse -Force }
           Invoke-Dotnet @('new', 'console', '--framework', 'net11.0', '--no-restore', '-n', 'Victim', '-o', $victim)
           Invoke-Dotnet @('new', 'console', '--framework', 'net11.0', '--no-restore', '-n', 'Victim', '-o', $poison)
@@ -171,6 +173,10 @@ jobs:
           $hit2 = Run-Victim
           Write-Host "EXACT_KEY_OUTPUT_2=$hit2"
           if ($hit1 -ne 'POISON' -or $hit2 -ne 'POISON') { throw 'Exact-key output was not poisoned twice' }
+          $publish = Join-Path $root "published"
+          Invoke-Dotnet @('publish', $victim, '-c', 'Release', '-p:UseSharedCompilation=true', '-o', $publish, '-v:q')
+          $publishedOutput = (& dotnet (Join-Path $publish "Victim.dll") | Out-String).Trim()
+          Write-Host "PUBLISHED_OUTPUT=$publishedOutput"
           Set-Content -LiteralPath (Join-Path $victim 'Program.cs') -Value 'Console.WriteLine("WRONG_KEY_BASELINE");'
           Build-Victim
           $wrongKey = Run-Victim
