@@ -107,26 +107,7 @@ jobs:
             $attackXml = [IO.File]::ReadAllText($project)
             if ($attackXml -ne $benignXml.Replace('Include="spec.json"', 'Include="..\protected\canary.txt"')) { throw 'Project mutation was not one-factor' }
             $attackerProof = [IO.File]::ReadAllText($attackerResult)
-            if ($attackerProof -notmatch 'f039attacker;DIRECT_WRITE=denied
-            if ([IO.File]::ReadAllText($canary) -ne $original) { throw 'Attacker directly changed protected canary' }
-            Write-Host 'ATTACKER=separate local account; project Include only changed; direct canary write denied'
-            Push-Location $projectDir
-            try {
-              for ($round = 1; $round -le 2; $round++) {
-                [IO.File]::WriteAllText($canary, $original)
-                & $shim refresh --updateProject $project $url
-                if ($LASTEXITCODE -ne 0) { throw "Attack refresh failed in round ${round}: $LASTEXITCODE" }
-                $observed = [IO.File]::ReadAllText($canary)
-                Write-Host "ATTACK_ROUND_${round}_CANARY=$observed"
-                if ($observed -ne $payload) { throw "Protected overwrite absent in round $round" }
-              }
-            } finally { Pop-Location }
-            Write-Host 'F039_RESULT=protected overwrite confirmed twice'
-          } finally {
-            Stop-Job $server -ErrorAction SilentlyContinue
-            Remove-Job $server -Force -ErrorAction SilentlyContinue
-          }
-) { throw "Attacker token or direct-write control failed: $attackerProof" }
+            if ($attackerProof -notmatch 'f039attacker;DIRECT_WRITE=denied$') { throw "Attacker token or direct-write control failed: $attackerProof" }
             Write-Host "ATTACKER_PROOF=$attackerProof"
             if ([IO.File]::ReadAllText($canary) -ne $original) { throw 'Attacker directly changed protected canary' }
             Write-Host 'ATTACKER=separate local account; project Include only changed; direct canary write denied'
