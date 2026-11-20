@@ -16,6 +16,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export PATH="${ANDROID_HOME:-/usr/local/lib/android/sdk}/platform-tools:$PATH"
+          if ! command -v adb; then sdkmanager --install platform-tools; fi
           command -v adb
           sudo useradd -m -s /bin/bash f042_peer
           adb start-server
