@@ -27,6 +27,7 @@ echo "::add-mask::$ASPIRE_DASHBOARD_FRONTEND_BROWSERTOKEN"
 app_pid=""
 case_dir=""
 mysql_port=""
+runner_home_mode="$(stat -c %a /home/runner)"
 stop_app() {
   if [ -n "$app_pid" ]; then
     kill -TERM "$app_pid" 2>/dev/null || true
@@ -55,7 +56,7 @@ open(sys.argv[2], "w", encoding="utf-8").write(s)
 PY
   done
 }
-cleanup() { stop_app; sanitize_logs; }
+cleanup() { sudo chmod "$runner_home_mode" /home/runner 2>/dev/null || true; stop_app; sanitize_logs; }
 trap cleanup EXIT
 reader() {
   sudo -u nobody -H /usr/bin/env -i PYTHONPATH=/tmp/f076-pydeps PATH=/usr/bin:/bin \
@@ -120,6 +121,12 @@ for iteration in 1 2; do
   done
   test -s "$out/$label-owner-init.json"
   reader deny "$file" "$mysql_port" | tee "$out/$label-denied.json"
+  reader read-permission "$file" "$mysql_port" | tee "$out/$label-home-private.json"
+  sudo chmod o+x /home/runner
+  echo "home_mode_opened=$(stat -c %a /home/runner)" | tee -a "$out/permissions.txt"
+  discovered="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/find /home/runner/.local/share/dotnet/runfile -type f -name '*config.user.inc.*.php' -print -quit)"
+  test "$discovered" = "$file"
+  echo "second_principal_discovered_file=true" | tee -a "$out/permissions.txt"
   reader read "$file" "$mysql_port" | tee "$out/$label-cross-user.json"
   PYTHONPATH=/tmp/f076-pydeps python3 /tmp/f076-reader.py owner-check "$file" "$mysql_port" | tee "$out/$label-owner-after.json"
   chmod 600 "$file"
@@ -129,13 +136,17 @@ for iteration in 1 2; do
   chmod 700 "$parent"
   reader read-permission "$file" "$mysql_port" | tee "$out/$label-parent-0700.json"
   chmod 755 "$parent"
+  sudo chmod "$runner_home_mode" /home/runner
+  reader read-permission "$file" "$mysql_port" | tee "$out/$label-home-restored.json"
   stop_app
 done
 start_case secureumask 077 0
 secure_file="$(config_path)"
 test -n "$secure_file"
 inspect_file "$secure_file" secureumask
+sudo chmod o+x /home/runner
 reader read-permission "$secure_file" "$mysql_port" | tee "$out/secureumask-cross-user.json"
+sudo chmod "$runner_home_mode" /home/runner
 stop_app
 start_case single 022 1
 single_file="$(config_path)"
