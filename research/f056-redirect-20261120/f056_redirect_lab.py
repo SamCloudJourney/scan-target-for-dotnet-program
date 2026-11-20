@@ -80,6 +80,21 @@ class Recorder(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
                 return
+        if self.path.startswith("/flat/") and hasattr(self.server, "same_origin_success"):
+            expected = "Basic " + base64.b64encode(MARKER.encode()).decode()
+            if self.headers.get("Authorization") != expected:
+                self.send_response(401)
+                self.send_header("WWW-Authenticate", 'Basic realm="f056-flat"')
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            body = b'{"versions":[]}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path.startswith("/flat/") and hasattr(self.server, "redirect_url"):
             self.send_response(302)
             self.send_header("Location", self.server.redirect_url + self.path[len("/flat/"):])
@@ -139,6 +154,7 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
     try:
         source_url = "https://localhost:" + str(source.server_port) + "/index.json"
         if endpoint == "same":
+            source.same_origin_success = True
             resource_url = "https://localhost:" + str(source.server_port) + "/flat/"
         elif endpoint == "redirect_https":
             resource_url = "https://localhost:" + str(source.server_port) + "/flat/"
@@ -176,6 +192,7 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
         authorized_index_requests = sum(r["path"] == "/index.json" and MARKER in decoded_auth([r]) for r in source.seen)
         record = {"authorized_index_requests": authorized_index_requests, "sdk": sdk, "case": name, "repeat": repeat, "command": command, "source_url": source_url, "resource_url": resource_url, "source_flat_requests": len(source_flat_auth), "source_flat_basic_decoded": source_flat_auth, "sink_requests": len(sink.seen), "sink_basic_decoded": sink_auth, "protected_denied_status": denied_status, "protected_replay_status": replay_status, "source_redirect_requests": sum(r["path"].startswith("/flat/") for r in source.seen), "exit": result.returncode, "timed_out": timed_out, "stdout_tail": result.stdout[-1400:], "stderr_tail": result.stderr[-1000:]}
         print("F056_CASE", json.dumps(record, sort_keys=True), flush=True)
+        assert not timed_out, "restore case timed out"
         assert denied_status == 401, "protected resource did not deny anonymous access"
         if captured:
             assert replay_status == 200, "captured credential did not unlock protected resource"
