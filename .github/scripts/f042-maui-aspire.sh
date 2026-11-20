@@ -15,7 +15,7 @@ echo "F042_PROC_MOUNT=$(findmnt -no OPTIONS /proc)"
 echo "F042_OWNER_UID=$(id -u)"
 echo "F042_OWNER_DIR_MODE=$(stat -c %a "$root")"
 
-dotnet new android -n F042Mobile -o "$mobile" --no-restore
+dotnet new android -n F042Mobile -o "$mobile"
 sed -i '/<PropertyGroup>/a\    <ApplicationId>com.example.f042mobile</ApplicationId>' "$mobile/F042Mobile.csproj"
 cat > "$host/Host.csproj" <<EOF
 <Project Sdk="Microsoft.NET.Sdk">
