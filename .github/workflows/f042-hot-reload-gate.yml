@@ -1,0 +1,70 @@
+name: F042 owned Hot Reload gate
+
+on:
+  push:
+    branches:
+      - research/f042-hot-reload-20261120
+    paths:
+      - .github/workflows/f042-hot-reload-gate.yml
+
+jobs:
+  watch-gate:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - name: Install released SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Exercise shipped dotnet watch with synthetic project
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet --version
+          $root = Join-Path $env:RUNNER_TEMP 'f042-owned'
+          New-Item -ItemType Directory -Force $root | Out-Null
+          $project = Join-Path $root 'Owned.csproj'
+          @'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net11.0</TargetFramework>
+              <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectCapability Include="HotReloadWebSockets" />
+            </ItemGroup>
+            <Target Name="F042DelayChildLaunch" BeforeTargets="ComputeRunArguments">
+              <Exec Command="ping 127.0.0.1 -n 16 &gt; NUL" />
+            </Target>
+          </Project>
+          '@ | Set-Content -Path $project -Encoding utf8
+          @'
+          Console.WriteLine("F042_OWNED_APP_STARTED");
+          await Task.Delay(TimeSpan.FromSeconds(75));
+          '@ | Set-Content -Path (Join-Path $root 'Program.cs') -Encoding utf8
+          dotnet build $project --nologo
+          $out = Join-Path $root 'watch.out'
+          $err = Join-Path $root 'watch.err'
+          $watch = Start-Process -FilePath (Get-Command dotnet).Source -ArgumentList @('watch','--project',$project,'run','--no-restore') -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+          try {
+            $found = $null
+            for ($i = 0; $i -lt 160; $i++) {
+              $found = Get-CimInstance Win32_Process -Filter "Name = 'dotnet.exe'" | Where-Object { $_.CommandLine -match 'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=' } | Select-Object -First 1
+              if ($found) { break }
+              Start-Sleep -Milliseconds 250
+            }
+            if ($found) {
+              $key = [regex]::Match($found.CommandLine, 'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=([A-Za-z0-9+/=]+)').Groups[1].Value
+              $endpoint = [regex]::Match($found.CommandLine, 'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_ENDPOINT=(ws[^\s"']+)').Groups[1].Value
+              Write-Output "F042_ARGV_PRESENT=True PID=$($found.ProcessId) KEY_LENGTH=$($key.Length) ENDPOINT=$endpoint"
+            } else {
+              Write-Output 'F042_ARGV_PRESENT=False'
+            }
+            Start-Sleep -Seconds 3
+            if (Test-Path $out) { Write-Output 'F042_WATCH_STDOUT_BEGIN'; Get-Content $out -Tail 60 | ForEach-Object { $_ -replace 'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=[A-Za-z0-9+/=]+', 'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=<redacted>' }; Write-Output 'F042_WATCH_STDOUT_END' }
+            if (Test-Path $err) { Write-Output 'F042_WATCH_STDERR_BEGIN'; Get-Content $err -Tail 60; Write-Output 'F042_WATCH_STDERR_END' }
+          } finally {
+            Get-CimInstance Win32_Process -Filter "Name = 'dotnet.exe'" | Where-Object { $_.CommandLine -match 'f042-owned' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+            Stop-Process -Id $watch.Id -Force -ErrorAction SilentlyContinue
+          }
