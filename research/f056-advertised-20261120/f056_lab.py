@@ -26,8 +26,14 @@ if not openssl:
     raise RuntimeError("OpenSSL missing on runner")
 cert_cmd = [openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(KEY), "-out", str(CERT), "-days", "1", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1"]
 subprocess.run(cert_cmd, check=True, capture_output=True, text=True)
-trust_cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", "Import-Certificate -FilePath '" + str(CERT) + "' -CertStoreLocation Cert:\\CurrentUser\\Root | Select-Object -ExpandProperty Thumbprint"]
-trust = subprocess.run(trust_cmd, check=True, capture_output=True, text=True)
+DER = ROOT / "localhost-cert.cer"
+subprocess.run([openssl, "x509", "-in", str(CERT), "-outform", "der", "-out", str(DER)], check=True, capture_output=True, text=True)
+trust_cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", "Import-Certificate -FilePath '" + str(DER) + "' -CertStoreLocation Cert:\\CurrentUser\\Root | Select-Object -ExpandProperty Thumbprint"]
+trust = subprocess.run(trust_cmd, capture_output=True, text=True)
+if trust.returncode != 0:
+    print("CERT_IMPORT_STDOUT", trust.stdout)
+    print("CERT_IMPORT_STDERR", trust.stderr)
+    raise RuntimeError("Test certificate import failed")
 print("TRUSTED_TEST_CERT_THUMBPRINT", trust.stdout.strip())
 
 sdk_text = subprocess.run(["dotnet", "--list-sdks"], check=True, capture_output=True, text=True).stdout
