@@ -54,7 +54,9 @@ jobs:
           probe("short_valid", b"A" * 20, False)
           probe("short_nul", b"A" * 20 + b"\x00", False)
           probe("long_valid_segmented", b"A" * 20000, True)
-          probe("long_nul_segmented", b"A" * 20000 + b"\x00", True)
+          for i in range(3):
+              probe(f"long_nul_segmented_{i+1}", b"A" * 20000 + b"\x00", True)
+          probe("recovery_short_valid", b"A" * 20, False)
           PY
           sleep 1
           echo "SERVER_LOG_BEGIN"
