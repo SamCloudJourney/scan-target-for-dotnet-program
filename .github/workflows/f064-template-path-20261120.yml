@@ -1,0 +1,104 @@
+name: F064 isolated template path validation
+on:
+  push:
+    branches:
+      - f064-template-path-20261120
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.100'
+      - name: Exercise template target, rename, and profile consumer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DOTNET_CLI_HOME = Join-Path $env:RUNNER_TEMP 'f064-cli-home'
+          $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+          $root = Join-Path $env:RUNNER_TEMP 'f064-template-path-20261120'
+          New-Item -ItemType Directory -Force $root | Out-Null
+          dotnet --version
+          Write-Host "RUNNER_OS=$env:RUNNER_OS ROOT=$root"
+          function New-Template([string]$shortName, [string]$target, [string]$payload, [hashtable]$rename = @{}) {
+            $base = Join-Path $root "templates/$shortName"
+            New-Item -ItemType Directory -Force (Join-Path $base '.template.config'), (Join-Path $base 'content') | Out-Null
+            Set-Content -LiteralPath (Join-Path $base 'content/payload.txt') -Value $payload -Encoding UTF8
+            $cfg = @{
+              identity = "F064.$shortName"
+              name = "F064 $shortName"
+              shortName = $shortName
+              tags = @{ type = 'item' }
+              sources = @(@{ source = './content'; target = $target; rename = $rename })
+            } | ConvertTo-Json -Depth 10
+            Set-Content -LiteralPath (Join-Path $base '.template.config/template.json') -Value $cfg -Encoding UTF8
+            & dotnet new install $base | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "Install failed: $shortName" }
+          }
+          function Invoke-Template([string]$shortName, [string]$output) {
+            $msg = & dotnet new $shortName --output $output 2>&1
+            $rc = $LASTEXITCODE
+            $msg | Out-Host
+            return $rc
+          }
+          New-Template 'f064safe' './' 'F064_SAFE'
+          New-Template 'f064target' '../protected' 'F064_ESCAPED'
+          New-Template 'f064rename' './' 'F064_RENAMED' @{ 'payload.txt' = '../protected/payload.txt' }
+          $safeOut = Join-Path $root 'safe/out'
+          $safeRc = Invoke-Template 'f064safe' $safeOut
+          $safePath = Join-Path $safeOut 'payload.txt'
+          if ($safeRc -ne 0 -or !(Test-Path -LiteralPath $safePath)) { throw 'Safe baseline failed' }
+          Write-Host "RESULT|safe|rc=$safeRc|path=$([IO.Path]::GetFullPath($safePath))|sha=$((Get-FileHash -LiteralPath $safePath -Algorithm SHA256).Hash)"
+          $insideOut = Join-Path $root 'inside/out'
+          New-Item -ItemType Directory -Force $insideOut | Out-Null
+          $insidePath = Join-Path $insideOut 'payload.txt'
+          Set-Content -LiteralPath $insidePath -Value 'F064_GUARD_INSIDE' -Encoding UTF8
+          $insideRc = Invoke-Template 'f064safe' $insideOut
+          $insideValue = Get-Content -Raw -LiteralPath $insidePath
+          if ($insideRc -eq 0 -or $insideValue.Trim() -ne 'F064_GUARD_INSIDE') { throw 'Inside overwrite guard failed' }
+          Write-Host "RESULT|inside-existing|rc=$insideRc|unchanged=true"
+          $escapeOut = Join-Path $root 'escape/out'
+          $escapePath = Join-Path $root 'escape/protected/payload.txt'
+          $escapeRc = Invoke-Template 'f064target' $escapeOut
+          if ($escapeRc -ne 0 -or !(Test-Path -LiteralPath $escapePath)) { throw 'Target traversal failed' }
+          if ((Get-Content -Raw -LiteralPath $escapePath).Trim() -ne 'F064_ESCAPED') { throw 'Target content mismatch' }
+          Write-Host "RESULT|target-new-outside|rc=$escapeRc|path=$([IO.Path]::GetFullPath($escapePath))|sha=$((Get-FileHash -LiteralPath $escapePath -Algorithm SHA256).Hash)"
+          Set-Content -LiteralPath $escapePath -Value 'F064_GUARD_OUTSIDE' -Encoding UTF8
+          $outsideRc = Invoke-Template 'f064target' $escapeOut
+          if ($outsideRc -eq 0 -or (Get-Content -Raw -LiteralPath $escapePath).Trim() -ne 'F064_GUARD_OUTSIDE') { throw 'Outside overwrite guard failed' }
+          Write-Host "RESULT|target-existing-outside|rc=$outsideRc|unchanged=true"
+          $renameOut = Join-Path $root 'rename/out'
+          $renamePath = Join-Path $root 'rename/protected/payload.txt'
+          $renameRc = Invoke-Template 'f064rename' $renameOut
+          Write-Host "RESULT|rename-new-outside|rc=$renameRc|exists=$(Test-Path -LiteralPath $renamePath)"
+          $forceMsg = & dotnet new f064target --output $escapeOut --force 2>&1
+          $forceRc = $LASTEXITCODE
+          $forceMsg | Out-Host
+          if ($forceRc -ne 0 -or (Get-Content -Raw -LiteralPath $escapePath).Trim() -ne 'F064_ESCAPED') { throw 'Force control failed' }
+          Write-Host "RESULT|outside-existing-force|rc=$forceRc|overwritten=true"
+          $profilePath = $PROFILE.CurrentUserAllHosts
+          $profileDir = Split-Path -Parent $profilePath
+          $homeSource = Join-Path $env:USERPROFILE 'source/f064-lab'
+          $profileOut = Join-Path $homeSource 'generated'
+          $markerPath = Join-Path $root 'profile-executed.txt'
+          $expectedProfileDir = [IO.Path]::GetFullPath((Join-Path $profileOut '../../../Documents/PowerShell'))
+          Write-Host "PROFILE|actual=$profilePath|computed=$expectedProfileDir"
+          if ($expectedProfileDir -ine [IO.Path]::GetFullPath($profileDir)) { throw 'Profile path layout mismatch' }
+          if (Test-Path -LiteralPath $profilePath) { throw 'Runner profile already exists; avoid overwrite' }
+          try {
+            $script = "Set-Content -LiteralPath '$markerPath' -Value 'F064_PROFILE_EXECUTED' -Encoding UTF8"
+            New-Template 'f064profile' '../../../Documents/PowerShell' $script @{ 'payload.txt' = 'profile.ps1' }
+            $profileRc = Invoke-Template 'f064profile' $profileOut
+            if ($profileRc -ne 0 -or !(Test-Path -LiteralPath $profilePath) -or (Test-Path -LiteralPath $markerPath)) { throw 'Profile creation control failed' }
+            Write-Host "RESULT|profile-created|rc=$profileRc|exists=true|marker-before=false"
+            & pwsh -NoLogo -NonInteractive -Command 'Write-Output F064_CHILD_STARTED' | Out-Host
+            if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $markerPath)) { throw 'Profile consumer did not execute' }
+            if ((Get-Content -Raw -LiteralPath $markerPath).Trim() -ne 'F064_PROFILE_EXECUTED') { throw 'Profile marker mismatch' }
+            Write-Host 'RESULT|profile-auto-consumer|marker-after=true'
+          } finally {
+            if (Test-Path -LiteralPath $profilePath) { Remove-Item -LiteralPath $profilePath -Force }
+          }
