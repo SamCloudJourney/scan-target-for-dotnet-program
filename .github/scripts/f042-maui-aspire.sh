@@ -28,7 +28,6 @@ cat > "$host/Host.csproj" <<EOF
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="13.6.5" />
     <PackageReference Include="Aspire.Hosting.Maui" Version="13.6.5-preview.1.26559.7" />
-    <ProjectReference Include="$mobile/F042Mobile.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>
 EOF
