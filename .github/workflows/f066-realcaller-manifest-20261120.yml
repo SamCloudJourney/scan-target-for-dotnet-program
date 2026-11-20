@@ -1,0 +1,155 @@
+name: F066 pinned SDK manifest Unzip split identity
+on:
+  push:
+    branches:
+      - f066-realcaller-manifest-20261120
+permissions:
+  contents: read
+jobs:
+  manifest-unzip:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Exercise pinned maintained target with inert split identity inputs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = Join-Path $env:RUNNER_TEMP 'f066-realcaller-manifest'
+          $root = Join-Path $base 'extract'
+          $packages = Join-Path $base 'packages'
+          $outside = Join-Path $base 'outside'
+          $trusted = Join-Path $base 'trusted'
+          New-Item -ItemType Directory -Force $root, $packages, $outside, $trusted | Out-Null
+          $canary = Join-Path $outside 'protected.txt'
+          [IO.File]::WriteAllText($canary, 'BEFORE')
+          $sourceTargets = Join-Path $trusted 'GenerateMSIs.targets'
+          $sourceUri = 'https://raw.githubusercontent.com/dotnet/dotnet/v11.0.100/src/sdk/src/Layout/redist/targets/GenerateMSIs.targets'
+          Invoke-WebRequest -Uri $sourceUri -OutFile $sourceTargets
+          $sourceBlob = (& git hash-object -- $sourceTargets).Trim()
+          if ($sourceBlob -ne '0e85dc576bc3384be86d97dc2e35c48d245b84a2') { throw "Pinned target blob mismatch: $sourceBlob" }
+          Write-Host "PINNED_TARGET_BLOB=$sourceBlob"
+          $wrapper = Join-Path $trusted 'invoke.proj'
+          @'
+          <Project>
+            <ItemGroup><BuiltinManifests Include="F066" /></ItemGroup>
+            <Import Project="$(MSBuildThisFileDirectory)GenerateMSIs.targets" />
+          </Project>
+          '@ | Set-Content -LiteralPath $wrapper -Encoding utf8
+          $successor = Join-Path $trusted 'successor.proj'
+          [IO.File]::WriteAllText($successor, '<Project><Target Name="Run"><Message Text="TRUSTED_BASELINE" Importance="high" /></Target></Project>')
+          $lowScript = Join-Path $trusted 'low.ps1'
+          @'
+          param([string]$Root, [string]$Packages, [string]$Outside, [string]$Trusted, [string]$Mode)
+          $ErrorActionPreference = 'Stop'
+          Write-Host "LOW_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+          $destination = Join-Path $Root 'extracted-manifests\F066.Manifest-1.Msi.x64.1'
+          if ($Mode -eq 'archives') {
+            function New-TestNupkg([string]$Dir, [string]$Entry, [string]$Body) {
+              New-Item -ItemType Directory -Force $Dir | Out-Null
+              $path = Join-Path $Dir 'F066.Manifest-1.Msi.x64.1.nupkg'
+              $zip = [IO.Compression.ZipFile]::Open($path, [IO.Compression.ZipArchiveMode]::Create)
+              try {
+                $item = $zip.CreateEntry($Entry)
+                $writer = [IO.StreamWriter]::new($item.Open())
+                try { $writer.Write($Body) } finally { $writer.Dispose() }
+              } finally { $zip.Dispose() }
+            }
+            New-TestNupkg (Join-Path $Packages 'inside') 'inside.txt' 'INSIDE'
+            New-TestNupkg (Join-Path $Packages 'traversal') '../escaped.txt' 'TRAVERSAL'
+            New-TestNupkg (Join-Path $Packages 'canary') 'canarypivot/protected.txt' 'F066_REALCALLER_CANARY'
+            New-TestNupkg (Join-Path $Packages 'wrong') 'other/skip.txt' 'NEGATIVE'
+            $payload = '<Project><Target Name="Run"><Exec Command="cmd /c echo F066_REALCALLER_EXEC_MARKER &gt; &quot;$(MSBuildThisFileDirectory)successor-executed.txt&quot;" /></Target></Project>'
+            New-TestNupkg (Join-Path $Packages 'successor') 'trustedpivot/successor.proj' $payload
+            Write-Host 'LOW_PACKAGES_CREATED'
+          } elseif ($Mode -eq 'canaryjunction') {
+            $link = Join-Path $destination 'canarypivot'
+            & cmd.exe /c "mklink /J `"$link`" `"$Outside`""
+            if ($LASTEXITCODE -ne 0) { throw "Canary mklink failed: $LASTEXITCODE" }
+            try {
+              [IO.File]::WriteAllText((Join-Path $Outside 'protected.txt'), 'LOW_DIRECT')
+              throw 'LOW_DIRECT_UNEXPECTEDLY_SUCCEEDED'
+            } catch [UnauthorizedAccessException] { Write-Host 'LOW_DIRECT_CANARY_DENIED' }
+            Write-Host "LOW_CANARY_LINK=$link"
+          } elseif ($Mode -eq 'successorjunction') {
+            $link = Join-Path $destination 'trustedpivot'
+            & cmd.exe /c "mklink /J `"$link`" `"$Trusted`""
+            if ($LASTEXITCODE -ne 0) { throw "Successor mklink failed: $LASTEXITCODE" }
+            foreach ($path in @((Join-Path $Trusted 'invoke.proj'), (Join-Path $Trusted 'GenerateMSIs.targets'), (Join-Path $Trusted 'successor.proj'))) {
+              try {
+                [IO.File]::AppendAllText($path, 'LOW_DIRECT')
+                throw "LOW_DIRECT_UNEXPECTEDLY_SUCCEEDED: $path"
+              } catch [UnauthorizedAccessException] { Write-Host "LOW_TRUSTED_WRITE_DENIED=$([IO.Path]::GetFileName($path))" }
+            }
+            Write-Host "LOW_SUCCESSOR_LINK=$link"
+          } else { throw "Unknown low mode: $Mode" }
+          '@ | Set-Content -LiteralPath $lowScript -Encoding utf8
+          $lowName = 'f066rclow'
+          $password = [guid]::NewGuid().ToString('N') + 'Aa1!'
+          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          New-LocalUser -Name $lowName -Password $secure -PasswordNeverExpires | Out-Null
+          $lowAccount = "$env:COMPUTERNAME\$lowName"
+          $credential = [pscredential]::new($lowAccount, $secure)
+          try {
+            & icacls $root /grant "$($lowAccount):(OI)(CI)M"
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to grant low account extraction-root access' }
+            & icacls $packages /grant "$($lowAccount):(OI)(CI)M"
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to grant low account package access' }
+            & icacls $outside /deny "$($lowAccount):(OI)(CI)W" /T
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to deny low account canary write' }
+            & icacls $trusted /deny "$($lowAccount):(OI)(CI)W" /T
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to deny low account trusted writes' }
+            Write-Host "HIGH_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+            Write-Host "DOTNET=$(dotnet --version)"
+            function Run-Low([string]$Mode) {
+              $out = Join-Path $base "low-$Mode.stdout.txt"
+              $err = Join-Path $base "low-$Mode.stderr.txt"
+              $args = "-NoProfile -NonInteractive -File `"$lowScript`" -Root `"$root`" -Packages `"$packages`" -Outside `"$outside`" -Trusted `"$trusted`" -Mode $Mode"
+              $proc = Start-Process -FilePath (Get-Command pwsh).Source -Credential $credential -ArgumentList $args -Wait -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+              Get-Content $out
+              if (Test-Path $err) { Get-Content $err }
+              if ($proc.ExitCode -ne 0) { throw "Low mode $Mode failed: $($proc.ExitCode)" }
+            }
+            function Run-RealUnzip([string]$Mode) {
+              $sourceDir = Join-Path $packages $Mode
+              & dotnet msbuild $wrapper /t:UnzipBuiltinWorkloadManifestMsiNuPkg "/p:ArtifactsShippingPackagesDir=$sourceDir" "/p:IntermediateOutputPath=$root/" /p:MsiArchitectureForWorkloadManifests=x64 /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
+              return $LASTEXITCODE
+            }
+            $destination = Join-Path $root 'extracted-manifests\F066.Manifest-1.Msi.x64.1'
+            Run-Low 'archives'
+            $exit = Run-RealUnzip 'inside'
+            if ($exit -ne 0 -or [IO.File]::ReadAllText((Join-Path $destination 'inside.txt')) -ne 'INSIDE') { throw 'Inside baseline failed' }
+            Write-Host 'INSIDE_BASELINE=PASS'
+            $exit = Run-RealUnzip 'traversal'
+            if ($exit -eq 0 -or (Test-Path (Join-Path $root 'extracted-manifests\escaped.txt')) -or [IO.File]::ReadAllText($canary) -ne 'BEFORE') { throw 'Traversal denial failed' }
+            Write-Host "TRAVERSAL_DENIED=PASS EXIT=$exit"
+            $exit = Run-RealUnzip 'canary'
+            if ($exit -ne 0 -or [IO.File]::ReadAllText((Join-Path $destination 'canarypivot\protected.txt')) -ne 'F066_REALCALLER_CANARY' -or [IO.File]::ReadAllText($canary) -ne 'BEFORE') { throw 'Canary no-link control failed' }
+            Write-Host 'CANARY_NO_LINK_CONTROL=PASS'
+            Remove-Item -LiteralPath (Join-Path $destination 'canarypivot') -Recurse -Force
+            Run-Low 'canaryjunction'
+            $exit = Run-RealUnzip 'wrong'
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($canary) -ne 'BEFORE') { throw 'Wrong entry control failed' }
+            Write-Host 'WRONG_ENTRY_CONTROL=PASS'
+            $exit = Run-RealUnzip 'canary'
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($canary) -ne 'F066_REALCALLER_CANARY') { throw 'Protected canary write failed' }
+            Write-Host 'REAL_CALLER_PROTECTED_OVERWRITE=PASS'
+            $baseline = [IO.File]::ReadAllText($successor)
+            $exit = Run-RealUnzip 'successor'
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($successor) -ne $baseline -or (Test-Path (Join-Path $trusted 'successor-executed.txt'))) { throw 'Successor no-link control failed' }
+            Write-Host 'SUCCESSOR_NO_LINK_CONTROL=PASS'
+            Remove-Item -LiteralPath (Join-Path $destination 'trustedpivot') -Recurse -Force
+            Run-Low 'successorjunction'
+            $exit = Run-RealUnzip 'successor'
+            if ($exit -ne 0 -or [IO.File]::ReadAllText($successor) -eq $baseline) { throw 'Successor overwrite failed' }
+            Write-Host 'REAL_CALLER_SUCCESSOR_OVERWRITE=PASS'
+            & dotnet msbuild $successor /t:Run /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
+            $exit = $LASTEXITCODE
+            $marker = Join-Path $trusted 'successor-executed.txt'
+            if ($exit -ne 0 -or !(Test-Path $marker) -or [IO.File]::ReadAllText($marker).Trim() -ne 'F066_REALCALLER_EXEC_MARKER') { throw 'Successor execution failed' }
+            Write-Host "REAL_CALLER_SUCCESSOR_EXECUTION=PASS EXIT=$exit MARKER=$([IO.File]::ReadAllText($marker).Trim())"
+          } finally {
+            Remove-LocalUser -Name $lowName -ErrorAction SilentlyContinue
+          }
