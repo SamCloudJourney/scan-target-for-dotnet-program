@@ -37,6 +37,20 @@ jobs:
           s = s.replace(needle, 'if (name == "F042_SHELL_ONLY_SECRET") Console.WriteLine("F042_SHELL_ONLY_RECEIVED_HASH=" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant());\n        ' + needle)
           s = s.replace('seq 1 600', 'seq 1 30')
           s = s.replace('seq 1 150', 'seq 1 1')
+          uid_line = "print('F042_ATTACK_UID=' + str(os.getuid()), flush=True)"
+          assert s.count(uid_line) == 1
+          s = s.replace(uid_line, uid_line + chr(10) + "print('F042_PEER_ENV_HAS_SHELL_ONLY=' + str('F042_SHELL_ONLY_SECRET' in os.environ), flush=True)")
+          argv_line = "        print('F042_SECRET_NAME_IN_ARGV=' + str(b'F042_SYNTH_SECRET=' in raw), flush=True)"
+          assert s.count(argv_line) == 1
+          argv_check = [
+              "        visible = []",
+              "        for cp in glob.glob('/proc/[0-9]*/cmdline'):",
+              "            try:",
+              "                if b'F042_SHELL_ONLY_SECRET=' in open(cp, 'rb').read(): visible.append(cp)",
+              "            except OSError: pass",
+              "        print('F042_SHELL_ONLY_NAME_ANY_ARGV=' + str(bool(visible)), flush=True)",
+          ]
+          s = s.replace(argv_line, argv_line + chr(10) + chr(10).join(argv_check))
           p.write_text(s)
           PY
           bash -n /tmp/f042-shell-env-probe.sh
