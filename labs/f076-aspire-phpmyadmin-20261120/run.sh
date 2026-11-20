@@ -97,7 +97,7 @@ start_case() {
   test -n "$mysql_port"
   echo "containers_started=$label mysql_host_port=$mysql_port"
 }
-config_path() { find "$case_dir" -type f -name '*config.user.inc.*.php' -print -quit; }
+config_path() { docker inspect f076-phpmyadmin --format '{{range .Mounts}}{{if eq .Destination "/etc/phpmyadmin/config.user.inc.php"}}{{println .Source}}{{end}}{{end}}'; }
 inspect_file() {
   local file="$1" label="$2"
   echo "file_mode_$label=$(stat -c '%a' "$file")" | tee -a "$out/permissions.txt"
