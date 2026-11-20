@@ -1,0 +1,92 @@
+name: F034 publisher metadata and UI capacity
+on:
+  push:
+    branches:
+      - f034-publisher-ui-20261120
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publisher:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      NUGET_AUTH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          source-url: https://nuget.pkg.github.com/SamCloudJourney/index.json
+      - name: Publish synthetic icon metadata and inspect registry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $projectDir = Join-Path $env:RUNNER_TEMP 'f034-publisher'
+          New-Item -ItemType Directory -Force -Path $projectDir | Out-Null
+          $pkgId = 'F034.Synthetic.Icon.Publisher.20261120'
+          $pkgVersion = '1.0.\${{ github.run_number }}-a\${{ github.run_attempt }}'
+          $icon = 'file://127.0.0.1/F034Icon/icon.png'
+          $xml = @"
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net8.0</TargetFramework>
+              <PackageId>$pkgId</PackageId>
+              <Version>$pkgVersion</Version>
+              <Authors>F034 owned lab</Authors>
+              <Description>Inert metadata validation package for F034</Description>
+              <RepositoryUrl>https://github.com/SamCloudJourney/scan-target-for-dotnet-program</RepositoryUrl>
+              <PackageIconUrl>$icon</PackageIconUrl>
+              <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+            </PropertyGroup>
+          </Project>
+          "@
+          [IO.File]::WriteAllText((Join-Path $projectDir 'F034.csproj'), $xml)
+          [IO.File]::WriteAllText((Join-Path $projectDir 'Class1.cs'), 'namespace F034 { public sealed class Marker {} }')
+          dotnet restore (Join-Path $projectDir 'F034.csproj') --source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw 'restore failed' }
+          dotnet pack (Join-Path $projectDir 'F034.csproj') --no-restore -o $projectDir
+          if ($LASTEXITCODE -ne 0) { throw 'pack failed' }
+          $pkg = Get-ChildItem $projectDir -Filter '*.nupkg' | Select-Object -First 1
+          $zip = Join-Path $projectDir 'pkg.zip'
+          Copy-Item $pkg.FullName $zip
+          $extract = Join-Path $projectDir 'extract'
+          Expand-Archive $zip -DestinationPath $extract
+          $nuspec = Get-ChildItem $extract -Filter '*.nuspec' | Select-Object -First 1
+          [xml]$manifest = Get-Content $nuspec.FullName
+          $packedIcon = $manifest.package.metadata.iconUrl
+          Write-Host "PACKED_ICON_EQUALS_INPUT=$($packedIcon -eq $icon)"
+          Write-Host "PACKED_ICON=$packedIcon"
+          Write-Host "PACKAGE_ID=$pkgId"
+          Write-Host "PACKAGE_VERSION=$pkgVersion"
+          Write-Host "PACKAGE_SHA256=$((Get-FileHash $pkg.FullName -Algorithm SHA256).Hash)"
+          dotnet nuget push $pkg.FullName --source https://nuget.pkg.github.com/SamCloudJourney/index.json --skip-duplicate
+          Write-Host "PUBLISH_EXIT=$LASTEXITCODE"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $pair = 'SamCloudJourney:' + $env:NUGET_AUTH_TOKEN
+          $headers = @{ Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair)) }
+          $index = Invoke-RestMethod -Headers $headers -Uri 'https://nuget.pkg.github.com/SamCloudJourney/index.json'
+          $searchResource = @($index.resources | Where-Object { $_.'@type' -match 'SearchQueryService' }) | Select-Object -First 1
+          Write-Host "REGISTRY_SEARCH_SERVICE_PRESENT=$([bool]$searchResource)"
+          if ($searchResource) {
+            $query = $searchResource.'@id' + '?q=' + [uri]::EscapeDataString($pkgId) + '&prerelease=true&take=10'
+            $response = Invoke-RestMethod -Headers $headers -Uri $query
+            $match = @($response.data | Where-Object { $_.id -eq $pkgId }) | Select-Object -First 1
+            Write-Host "REGISTRY_SEARCH_MATCH=$([bool]$match)"
+            if ($match) {
+              Write-Host "REGISTRY_ICON_EQUALS_PACKED=$($match.iconUrl -eq $icon)"
+              Write-Host "REGISTRY_ICON=$($match.iconUrl)"
+            }
+          }
+      - name: Check Visual Studio UI session capacity
+        shell: pwsh
+        run: |
+          Write-Host "USER_INTERACTIVE=$([Environment]::UserInteractive)"
+          Write-Host "RUNNER_SESSION_ID=$((Get-Process -Id $PID).SessionId)"
+          Write-Host "EXPLORER_COUNT=@((Get-Process explorer -ErrorAction SilentlyContinue)).Count"
+          $pf86 = [Environment]::GetFolderPath('ProgramFilesX86')
+          $vswhere = Join-Path $pf86 'Microsoft Visual Studio/Installer/vswhere.exe'
+          if (Test-Path $vswhere) {
+            $devenv = & $vswhere -latest -property productPath
+            Write-Host "DEVENV_PATH_PRESENT=$([bool]$devenv)"
+            if ($devenv) { Write-Host "DEVENV_VERSION=$((Get-Item $devenv).VersionInfo.FileVersion)" }
+          }
