@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-          root="$(mktemp -d "$RUNNER_TEMP/f039-successor.XXXXXX")"
+          root="$(mktemp -d "/tmp/f039-successor.XXXXXX")"
           mkdir -p "$root/project" "$root/protected" "$root/source" "$root/tool"
           chmod 755 "$root" "$root/source"
           chmod 777 "$root/project"
