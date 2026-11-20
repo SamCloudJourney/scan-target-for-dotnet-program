@@ -1,6 +1,8 @@
 name: F034 publisher metadata and UI capacity
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - f034-publisher-ui-20261120
 permissions:
   contents: read
   packages: write
@@ -22,7 +24,7 @@ jobs:
           $projectDir = Join-Path $env:RUNNER_TEMP 'f034-publisher'
           New-Item -ItemType Directory -Force -Path $projectDir | Out-Null
           $pkgId = 'F034.Synthetic.Icon.Publisher.20261120'
-          $pkgVersion = '1.0.${{ github.run_number }}-a${{ github.run_attempt }}'
+          $pkgVersion = '1.0.3'
           $icon = 'file://127.0.0.1/F034Icon/icon.png'
           $xml = @"
           <Project Sdk="Microsoft.NET.Sdk">
