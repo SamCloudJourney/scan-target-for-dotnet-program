@@ -1,0 +1,123 @@
+name: F057 Roslyn cache controlled Windows test
+on:
+  push:
+    branches:
+      - research/f057-roslyn-cache-20261120
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-key-cache:
+    runs-on: windows-2022
+    timeout-minutes: 18
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Build and replay shipped compiler cache with controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+          $root = Join-Path $env:RUNNER_TEMP 'f057-roslyn-cache'
+          $victim = Join-Path $root 'victim'
+          $poison = Join-Path $root 'poison'
+          $cacheRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'roslyn-cache'
+          $victimCache = Join-Path $cacheRoot 'Victim.dll'
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          function Invoke-Dotnet([string[]]$Command) {
+            & dotnet @Command
+            if ($LASTEXITCODE -ne 0) { throw "dotnet failed ($LASTEXITCODE): $($Command -join ' ')" }
+          }
+          function Build-Victim {
+            Invoke-Dotnet @('clean', $victim, '-c', 'Release', '-v:q')
+            Invoke-Dotnet @('build', $victim, '-c', 'Release', '-p:Features=use-global-cache', '-p:UseSharedCompilation=true', '-v:n')
+          }
+          function Run-Victim {
+            $dll = Join-Path $victim 'bin\Release\net11.0\Victim.dll'
+            $value = (& dotnet $dll | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0) { throw "Victim exit $LASTEXITCODE" }
+            return $value
+          }
+          Write-Host "SDK=$(dotnet --version)"
+          Write-Host "IDENTITY=$(whoami)"
+          Write-Host "GROUPS=$(whoami /groups | Out-String)"
+          Write-Host "CACHE_ROOT=$cacheRoot"
+          if (Test-Path $victimCache) { Remove-Item -LiteralPath $victimCache -Recurse -Force }
+          Invoke-Dotnet @('new', 'console', '--framework', 'net11.0', '--no-restore', '-n', 'Victim', '-o', $victim)
+          Invoke-Dotnet @('new', 'console', '--framework', 'net11.0', '--no-restore', '-n', 'Victim', '-o', $poison)
+          Set-Content -LiteralPath (Join-Path $victim 'Program.cs') -Value 'Console.WriteLine("BASELINE");'
+          Set-Content -LiteralPath (Join-Path $poison 'Program.cs') -Value 'Console.WriteLine("POISON");'
+          Build-Victim
+          $cold = Run-Victim
+          Write-Host "COLD_OUTPUT=$cold"
+          if ($cold -ne 'BASELINE') { throw 'Cold baseline failed' }
+          $entries = @(Get-ChildItem -LiteralPath $victimCache -Recurse -File -Filter assembly -ErrorAction SilentlyContinue)
+          Write-Host "CACHE_ENTRY_COUNT=$($entries.Count)"
+          if ($entries.Count -ne 1) { throw 'Expected one shipped compiler cache entry' }
+          $entry = $entries[0].FullName
+          $key = $entries[0].Directory.Name
+          Write-Host "EXACT_KEY=$key"
+          Invoke-Dotnet @('build', $poison, '-c', 'Release', '-v:q')
+          $poisonDll = Join-Path $poison 'bin\Release\net11.0\Victim.dll'
+          $canary = Join-Path $root 'protected-canary.txt'
+          Set-Content -LiteralPath $canary -Value 'HIGH_CANARY'
+          & icacls.exe $canary /setintegritylevel H
+          Write-Host "CANARY_ACL=$(icacls.exe $canary | Out-String)"
+          $lowScript = Join-Path $root 'medium.ps1'
+          $lowResult = Join-Path $root 'medium-result.json'
+          @'
+          param([string]$CacheAssembly, [string]$PoisonDll, [string]$Canary, [string]$Result)
+          $groupText = (whoami /groups | Out-String)
+          $data = [ordered]@{
+            identity = (whoami)
+            mediumIntegrity = $groupText.Contains('S-1-16-8192')
+            highIntegrity = $groupText.Contains('S-1-16-12288')
+            cacheWrite = $false
+            canaryWrite = $false
+            cacheError = ''
+            canaryError = ''
+          }
+          try { Copy-Item -LiteralPath $PoisonDll -Destination $CacheAssembly -Force; $data.cacheWrite = $true }
+          catch { $data.cacheError = $_.Exception.Message }
+          try { Set-Content -LiteralPath $Canary -Value 'LOW_WRITE'; $data.canaryWrite = $true }
+          catch { $data.canaryError = $_.Exception.Message }
+          $data | ConvertTo-Json -Compress | Set-Content -LiteralPath $Result
+          '@ | Set-Content -LiteralPath $lowScript
+          $lowCommand = "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $lowScript -CacheAssembly $entry -PoisonDll $poisonDll -Canary $canary -Result $lowResult"
+          & runas.exe /trustlevel:0x20000 $lowCommand
+          Write-Host "RUNAS_EXIT=$LASTEXITCODE"
+          for ($i = 0; $i -lt 40 -and -not (Test-Path $lowResult); $i++) { Start-Sleep -Milliseconds 500 }
+          $actor = 'high-fallback'
+          if (Test-Path $lowResult) {
+            $low = Get-Content -LiteralPath $lowResult -Raw | ConvertFrom-Json
+            Write-Host "MEDIUM_RESULT=$($low | ConvertTo-Json -Compress)"
+            if ($low.mediumIntegrity -and $low.cacheWrite -and -not $low.canaryWrite) { $actor = 'medium-same-SID' }
+          } else {
+            Write-Host 'MEDIUM_RESULT=unavailable'
+          }
+          if ($actor -eq 'high-fallback') { Copy-Item -LiteralPath $poisonDll -Destination $entry -Force }
+          Write-Host "MUTATION_ACTOR=$actor"
+          Write-Host "CACHE_SHA=$((Get-FileHash -LiteralPath $entry -Algorithm SHA256).Hash)"
+          Write-Host "POISON_SHA=$((Get-FileHash -LiteralPath $poisonDll -Algorithm SHA256).Hash)"
+          Build-Victim
+          $hit1 = Run-Victim
+          Write-Host "EXACT_KEY_OUTPUT_1=$hit1"
+          Build-Victim
+          $hit2 = Run-Victim
+          Write-Host "EXACT_KEY_OUTPUT_2=$hit2"
+          if ($hit1 -ne 'POISON' -or $hit2 -ne 'POISON') { throw 'Exact-key output was not poisoned twice' }
+          Set-Content -LiteralPath (Join-Path $victim 'Program.cs') -Value 'Console.WriteLine("WRONG_KEY_BASELINE");'
+          Build-Victim
+          $wrongKey = Run-Victim
+          Write-Host "WRONG_KEY_OUTPUT=$wrongKey"
+          if ($wrongKey -ne 'WRONG_KEY_BASELINE') { throw 'Wrong-key control failed' }
+          $wrongEntries = @(Get-ChildItem -LiteralPath $victimCache -Recurse -File -Filter assembly)
+          Write-Host "KEY_COUNT_AFTER_MUTATION=$($wrongEntries.Count)"
+          Remove-Item -LiteralPath (Split-Path $entry -Parent) -Recurse -Force
+          Set-Content -LiteralPath (Join-Path $victim 'Program.cs') -Value 'Console.WriteLine("BASELINE");'
+          Build-Victim
+          $coldAgain = Run-Victim
+          Write-Host "REMOVED_ENTRY_OUTPUT=$coldAgain"
+          if ($coldAgain -ne 'BASELINE') { throw 'Removed-entry control failed' }
+          Write-Host 'F057_RESULT=PASS'
