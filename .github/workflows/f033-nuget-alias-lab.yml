@@ -1,0 +1,171 @@
+name: F033 NuGet alias two-principal lab
+
+on:
+  push:
+    branches:
+      - research/f033-nuget-alias-20261120
+    paths:
+      - .github/workflows/f033-nuget-alias-lab.yml
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-restore:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.404
+      - name: Run two-principal credential routing controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = 'C:\F033Lab'
+          $trusted = Join-Path $root 'trusted'
+          $repo = Join-Path $root 'repo'
+          $attacker = Join-Path $root 'attacker'
+          $config = Join-Path $repo 'NuGet.Config'
+          $project = Join-Path $repo 'Fixed.csproj'
+          $secretFile = Join-Path $trusted 'secret.txt'
+          $lowName = 'f033low'
+          $portA = 55331
+          $portB = 55332
+          $lowProcess = $null
+          $highProcess = $null
+          try {
+            New-Item -ItemType Directory -Force $trusted, $repo, $attacker | Out-Null
+            $lowPassText = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(12)) + 'aA1!'
+            $lowPass = ConvertTo-SecureString $lowPassText -AsPlainText -Force
+            New-LocalUser -Name $lowName -Password $lowPass -AccountNeverExpires -PasswordNeverExpires | Out-Null
+            $lowCred = [pscredential]::new(".\$lowName", $lowPass)
+            $highIdentity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+            & icacls $root /grant '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+            & icacls $trusted /inheritance:r /grant:r "${highIdentity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
+            & icacls $attacker /grant "${lowName}:(OI)(CI)M" | Out-Null
+
+            $pw = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(20))
+            [IO.File]::WriteAllText($secretFile, $pw)
+            $expected = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("labuser:$pw")))
+            $parentConfig = @"
+          <configuration><packageSources><clear /><add key="PrivateFeed" value="http://127.0.0.1:$portA/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>
+          "@
+            [IO.File]::WriteAllText((Join-Path $root 'NuGet.Config'), $parentConfig)
+            [IO.File]::WriteAllText($config, '<configuration />')
+            & icacls $config /grant "${lowName}:M" | Out-Null
+            [IO.File]::WriteAllText($project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include="F033.Nonexistent" Version="1.0.0" /></ItemGroup></Project>')
+
+            $server = @'
+          param([int]$Port, [string]$Log)
+          $ErrorActionPreference = 'Stop'
+          $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $Port)
+          $listener.Start()
+          try {
+            $deadline = [DateTime]::UtcNow.AddMinutes(12)
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (-not $listener.Pending()) { Start-Sleep -Milliseconds 100; continue }
+              $client = $listener.AcceptTcpClient()
+              try {
+                $stream = $client.GetStream()
+                $stream.ReadTimeout = 3000
+                $reader = [IO.StreamReader]::new($stream, [Text.Encoding]::ASCII, $false, 1024, $true)
+                $requestLine = $reader.ReadLine()
+                if ($null -eq $requestLine) { continue }
+                $auth = $null
+                while ($true) {
+                  $line = $reader.ReadLine()
+                  if ([string]::IsNullOrEmpty($line)) { break }
+                  if ($line.StartsWith('Authorization:', [StringComparison]::OrdinalIgnoreCase)) { $auth = $line.Substring(14).Trim() }
+                }
+                if ($auth -and $auth.StartsWith('Basic ', [StringComparison]::OrdinalIgnoreCase)) {
+                  $decoded = [Convert]::FromBase64String($auth.Substring(6))
+                  $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($decoded))
+                  Add-Content -Path $Log -Value "AUTH $digest"
+                  $response = "HTTP/1.1 404 Not Found`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
+                } else {
+                  Add-Content -Path $Log -Value 'NOAUTH'
+                  $response = "HTTP/1.1 401 Unauthorized`r`nWWW-Authenticate: Basic realm=`"F033`"`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
+                }
+                $bytes = [Text.Encoding]::ASCII.GetBytes($response)
+                $stream.Write($bytes, 0, $bytes.Length)
+                $stream.Flush()
+              } catch {
+                Add-Content -Path $Log -Value ('ERROR ' + $_.Exception.GetType().Name)
+              } finally {
+                $client.Close()
+              }
+            }
+          } finally { $listener.Stop() }
+          '@
+            $serverA = Join-Path $trusted 'server.ps1'
+            $serverB = Join-Path $attacker 'server.ps1'
+            [IO.File]::WriteAllText($serverA, $server)
+            [IO.File]::WriteAllText($serverB, $server)
+            $logA = Join-Path $trusted 'requests.log'
+            $logB = Join-Path $attacker 'requests.log'
+            [IO.File]::WriteAllText($logA, '')
+            [IO.File]::WriteAllText($logB, '')
+            & icacls $serverB /grant "${lowName}:R" | Out-Null
+            & icacls $logB /grant "${lowName}:M" | Out-Null
+
+            $writer = @'
+          param([string]$Config, [string]$Project, [string]$Secret, [int]$Port, [string]$Kind, [string]$Probe)
+          $readSecret = 'DENIED'
+          $writeProject = 'DENIED'
+          try { Get-Content $Secret -ErrorAction Stop | Out-Null; $readSecret = 'ALLOWED' } catch {}
+          try { Add-Content $Project '<!-- low mutation -->' -ErrorAction Stop; $writeProject = 'ALLOWED' } catch {}
+          Set-Content $Probe "secret=$readSecret project=$writeProject"
+          if ($Kind -eq 'empty') { $xml = '<configuration />' }
+          elseif ($Kind -eq 'same') { $xml = '<configuration><packageSources><add key="PrivateFeed" value="http://127.0.0.1:' + $Port + '/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>' }
+          else { $xml = '<configuration><packageSources><add key="OtherFeed" value="http://127.0.0.1:' + $Port + '/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>' }
+          Set-Content -Path $Config -Value $xml -NoNewline
+          '@
+            $writerPath = Join-Path $attacker 'write-config.ps1'
+            [IO.File]::WriteAllText($writerPath, $writer)
+            & icacls $writerPath /grant "${lowName}:R" | Out-Null
+            $pwsh = (Get-Command pwsh).Source
+            $highProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverA, '-Port', $portA, '-Log', $logA) -PassThru -WindowStyle Hidden
+            $lowProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverB, '-Port', $portB, '-Log', $logB) -Credential $lowCred -PassThru -LoadUserProfile -WindowStyle Hidden
+            Start-Sleep -Seconds 4
+            if ($highProcess.HasExited -or $lowProcess.HasExited) { throw 'A listener exited before testing' }
+            $env:NUGET_PACKAGES = Join-Path $trusted 'packages'
+            $env:NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT = '1'
+            $env:NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS = '100'
+            $env:DOTNET_NOLOGO = '1'
+            Push-Location $repo
+            try {
+              foreach ($case in @(
+                @{Name='legitimate'; Kind='empty'; Secret=$true; A=$true; B=$false},
+                @{Name='denied'; Kind='same'; Secret=$false; A=$false; B=$false},
+                @{Name='one-factor'; Kind='same'; Secret=$true; A=$false; B=$true},
+                @{Name='different-alias'; Kind='other'; Secret=$true; A=$true; B=$false}
+              )) {
+                $probe = Join-Path $attacker 'probe.txt'
+                $args = "-NoProfile -File `"$writerPath`" -Config `"$config`" -Project `"$project`" -Secret `"$secretFile`" -Port $portB -Kind $($case.Kind) -Probe `"$probe`""
+                $writerProc = Start-Process $pwsh -ArgumentList $args -Credential $lowCred -PassThru -Wait -LoadUserProfile -WindowStyle Hidden
+                if ($writerProc.ExitCode -ne 0) { throw "Low-principal writer failed in $($case.Name): $($writerProc.ExitCode)" }
+                $probeResult = Get-Content $probe -Raw
+                if ($probeResult.Trim() -ne 'secret=DENIED project=DENIED') { throw "ACL boundary failed: $probeResult" }
+                $countA = @(Get-Content $logA).Count
+                $countB = @(Get-Content $logB).Count
+                if ($case.Secret) { $env:NuGetPackageSourceCredentials_PrivateFeed = "Username=labuser;Password=$pw;ValidAuthenticationTypes=Basic" }
+                else { Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue }
+                $restoreLog = Join-Path $trusted ($case.Name + '.restore.log')
+                & dotnet restore $project --force --no-cache --disable-parallel --ignore-failed-sources --verbosity quiet *> $restoreLog
+                $newA = @(Get-Content $logA | Select-Object -Skip $countA)
+                $newB = @(Get-Content $logB | Select-Object -Skip $countB)
+                $authA = @($newA | Where-Object { $_ -eq "AUTH $expected" }).Count -gt 0
+                $authB = @($newB | Where-Object { $_ -eq "AUTH $expected" }).Count -gt 0
+                Write-Host "CASE $($case.Name): legitimate_auth=$authA attacker_auth=$authB low_direct_access=DENIED"
+                if ($authA -ne $case.A -or $authB -ne $case.B) { throw "Unexpected credential recipient for $($case.Name)" }
+              }
+            } finally { Pop-Location }
+            Write-Host 'F033_CONTROL_MATRIX_PASS'
+          } finally {
+            Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue
+            if ($lowProcess -and -not $lowProcess.HasExited) { Stop-Process -Id $lowProcess.Id -Force -ErrorAction SilentlyContinue }
+            if ($highProcess -and -not $highProcess.HasExited) { Stop-Process -Id $highProcess.Id -Force -ErrorAction SilentlyContinue }
+            if (Get-LocalUser -Name $lowName -ErrorAction SilentlyContinue) { Remove-LocalUser -Name $lowName }
+            Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue
+          }
