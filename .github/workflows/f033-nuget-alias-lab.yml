@@ -134,6 +134,7 @@ jobs:
             $env:NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT = '1'
             $env:NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS = '100'
             $env:DOTNET_NOLOGO = '1'
+            Write-Host "DOTNET_SDK $(dotnet --version)"
             Push-Location $repo
             try {
               foreach ($case in @(
@@ -170,3 +171,4 @@ jobs:
             if (Get-LocalUser -Name $lowName -ErrorAction SilentlyContinue) { Remove-LocalUser -Name $lowName }
             Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue
           }
+          exit 0
