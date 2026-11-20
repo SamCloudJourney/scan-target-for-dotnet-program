@@ -97,8 +97,11 @@ jobs:
                                   var names = new List<string>();
                                   for (int i = 0; i < count; i++)
                                   {
-                                      names.Add(reader.ReadString());
-                                      reader.ReadString();
+                                      var name = reader.ReadString();
+                                      var value = reader.ReadString();
+                                      names.Add(name);
+                                      if (name == "DEBUG_SESSION_TOKEN")
+                                          Console.WriteLine("F042_TOKEN_NONEMPTY=" + (value.Length > 0) + " TOKEN_LENGTH=" + value.Length);
                                   }
                                   Console.WriteLine("F042_RPC_ENV_COUNT=" + count + " NAMES=" + string.Join(",", names));
                                   await socket.SendAsync(new byte[] { 2 }, WebSocketMessageType.Binary, true, cts.Token);
@@ -138,6 +141,7 @@ jobs:
                   if not (key and endpoint):
                       continue
                   print('F042_PEER_UID=' + str(os.getuid()) + ' ARGV_VISIBLE=True KEY_LENGTH=' + str(len(key)) + ' ENDPOINT=' + endpoint.decode(), flush=True)
+                  print('F042_TOKEN_NAME_IN_ARGV=' + str(b'DEBUG_SESSION_TOKEN=' in raw), flush=True)
                   for mode in ('bad-origin', 'bad-key', 'valid'):
                       result = subprocess.run([dotnet, dll, endpoint.decode(), key.decode(), mode], capture_output=True, text=True, timeout=15)
                       print(result.stdout.strip(), flush=True)
