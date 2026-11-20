@@ -21,8 +21,10 @@ export PATH="$tool/aspire:$PATH"
 "$cli" --version > "$out/cli-version.txt"
 python3 -m pip install --disable-pip-version-check --quiet --target /tmp/f076-natural-pydeps 'PyMySQL[rsa]==1.1.1'
 cp "$src/reader.py" /tmp/f076-natural-reader.py
+cp "$src/discover_reader.py" /tmp/f076-natural-discover.py
 chmod -R a+rX /tmp/f076-natural-pydeps
 chmod 755 /tmp/f076-natural-reader.py
+chmod 755 /tmp/f076-natural-discover.py
 
 export ASPIRE_CLI_TELEMETRY_OPTOUT=1
 export ASPIRE_VERSION_CHECK_DISABLED=true
@@ -33,6 +35,7 @@ echo "::add-mask::$ASPIRE_DASHBOARD_FRONTEND_BROWSERTOKEN"
 app_pid=""
 case_dir=""
 current_label=""
+mysql_port=""
 
 sanitize_current() {
   if [ -n "$case_dir" ] && [ -f "$case_dir/aspire.log" ]; then
@@ -124,10 +127,9 @@ XML
     sleep 2
   done
   test "$ready" = true
-  local actual_port
-  actual_port="$(docker inspect f076-mysql-one --format '{{(index (index .NetworkSettings.Ports "3306/tcp") 0).HostPort}}')"
-  echo "actual_host_port=$actual_port" | tee -a "$out/$current_label-permissions.txt"
-  test "$actual_port" = 13307
+  mysql_port="$(docker inspect f076-mysql-one --format '{{(index (index .NetworkSettings.Ports "3306/tcp") 0).HostPort}}')"
+  echo "actual_host_port=$mysql_port" | tee -a "$out/$current_label-permissions.txt"
+  test -n "$mysql_port"
 }
 
 config_path() {
@@ -146,8 +148,8 @@ for iteration in 1 2; do
   grep -Fq "$Parameters__f076two" "$file"
   echo "owner_verified_two_synthetic_passwords=true" | tee -a "$out/$label-permissions.txt"
 
-  # The local adversary is not passed either the file or the port. It finds
-  # the file from /tmp and reads the fixed port from the readable AppHost.
+  # The local adversary is not passed the file, port, or secret. It finds the
+  # file in /tmp and probes local listening ports visible in /proc/net/tcp.
   discovered="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
     /usr/bin/find /tmp -maxdepth 8 -type f -name 'f076mysqlone-config.user.inc.*.php' -print -quit 2>/dev/null || true)"
   echo "discovered_candidate=$discovered" | tee -a "$out/$label-permissions.txt"
@@ -156,23 +158,20 @@ for iteration in 1 2; do
     /usr/bin/find /tmp -maxdepth 3 -type f -name AppHost.cs -print 2>/dev/null | head -1 || true)"
   echo "source_candidate=$source_file" | tee -a "$out/$label-permissions.txt"
   test "$source_file" = "$case_dir/AppHost.cs"
-  discovered_port="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
-    /usr/bin/grep -oE 'port: [0-9]+' "$source_file" | head -1 | cut -d' ' -f2)"
-  test "$discovered_port" = 13307
   echo "second_principal_discovered_file=true" | tee -a "$out/$label-permissions.txt"
-  echo "second_principal_discovered_fixed_port_from_source=true" | tee -a "$out/$label-permissions.txt"
   sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/test ! -r /var/run/docker.sock
 
   for attempt in $(seq 1 90); do
-    if PYTHONPATH=/tmp/f076-natural-pydeps python3 /tmp/f076-natural-reader.py owner-init "$file" "$discovered_port" > "$out/$label-owner-init.json" 2>/dev/null; then break; fi
+    if PYTHONPATH=/tmp/f076-natural-pydeps python3 /tmp/f076-natural-reader.py owner-init "$file" "$mysql_port" > "$out/$label-owner-init.json" 2>/dev/null; then break; fi
     sleep 2
   done
   test -s "$out/$label-owner-init.json"
-  reader deny "$file" "$discovered_port" | tee "$out/$label-wrong-password.json"
-  reader read "$discovered" "$discovered_port" | tee "$out/$label-cross-user.json"
-  PYTHONPATH=/tmp/f076-natural-pydeps python3 /tmp/f076-natural-reader.py owner-check "$file" "$discovered_port" | tee "$out/$label-owner-after.json"
+  reader deny "$file" "$mysql_port" | tee "$out/$label-wrong-password.json"
+  sudo -u nobody -H /usr/bin/env -i PYTHONPATH=/tmp/f076-natural-pydeps PATH=/usr/bin:/bin \
+    /usr/bin/python3 /tmp/f076-natural-discover.py | tee "$out/$label-cross-user.json"
+  PYTHONPATH=/tmp/f076-natural-pydeps python3 /tmp/f076-natural-reader.py owner-check "$file" "$mysql_port" | tee "$out/$label-owner-after.json"
   chmod 600 "$file"
-  reader read-permission "$file" "$discovered_port" | tee "$out/$label-file-0600.json"
+  reader read-permission "$file" "$mysql_port" | tee "$out/$label-file-0600.json"
   sanitize_current
   stop_app
   rm -rf "$case_dir"
@@ -184,7 +183,7 @@ secure_file="$(config_path)"
 test -n "$secure_file"
 test "$(stat -c %a "$secure_file")" = 644
 namei -l "$secure_file" > "$out/secureumask-permissions.txt"
-reader read-permission "$secure_file" 13307 | tee "$out/secureumask-denied.json"
+reader read-permission "$secure_file" "$mysql_port" | tee "$out/secureumask-denied.json"
 sanitize_current
 stop_app
 echo 'f076_natural_lab_complete=true' | tee "$out/complete.txt"
