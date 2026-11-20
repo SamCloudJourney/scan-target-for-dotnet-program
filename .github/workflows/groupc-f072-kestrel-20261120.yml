@@ -1,0 +1,62 @@
+name: Group C F072 bounded Kestrel check
+on:
+  push:
+    branches:
+      - research/groupc-f072-kestrel-20261120
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.100'
+      - name: Four controlled loopback requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --info | head -35
+          dotnet new web -o /tmp/groupc-f072-app --framework net11.0
+          dotnet run --project /tmp/groupc-f072-app --no-launch-profile --urls http://127.0.0.1:5077 > /tmp/groupc-f072-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if python3 -c 'import socket; s=socket.socket(); s.settimeout(0.1); s.connect(("127.0.0.1",5077)); s.close()' 2>/dev/null; then break; fi
+            sleep 0.25
+          done
+          python3 - <<'PY'
+          import socket
+          import time
+          def probe(label, value, segmented):
+              s = socket.create_connection(("127.0.0.1", 5077), timeout=3)
+              s.settimeout(3)
+              head = b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Check: "
+              tail = b"\r\nConnection: close\r\n\r\n"
+              if segmented:
+                  s.sendall(head + value[:1200])
+                  time.sleep(0.15)
+                  s.sendall(value[1200:] + tail)
+              else:
+                  s.sendall(head + value + tail)
+              chunks = []
+              try:
+                  while True:
+                      chunk = s.recv(8192)
+                      if not chunk: break
+                      chunks.append(chunk)
+              except (TimeoutError, ConnectionResetError) as e:
+                  print(label, "recv_exception", type(e).__name__)
+              finally:
+                  s.close()
+              response = b"".join(chunks)
+              print(label, "status", response.split(b"\r\n", 1)[0].decode("ascii", "replace"), "bytes", len(response))
+          probe("short_valid", b"A" * 20, False)
+          probe("short_nul", b"A" * 20 + b"\x00", False)
+          probe("long_valid_segmented", b"A" * 3000, True)
+          probe("long_nul_segmented", b"A" * 3000 + b"\x00", True)
+          PY
+          sleep 1
+          echo "SERVER_LOG_BEGIN"
+          cat /tmp/groupc-f072-server.log
+          echo "SERVER_LOG_END"
