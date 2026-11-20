@@ -41,8 +41,9 @@ jobs:
             New-LocalUser -Name $lowName -Password $lowPass -AccountNeverExpires -PasswordNeverExpires | Out-Null
             $lowCred = [pscredential]::new(".\$lowName", $lowPass)
             $highIdentity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-            & icacls $root /grant '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+            & icacls $root /inheritance:r /grant:r "${highIdentity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
             & icacls $trusted /inheritance:r /grant:r "${highIdentity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
+            & icacls $repo /inheritance:r /grant:r "${highIdentity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
             & icacls $attacker /grant "${lowName}:(OI)(CI)M" | Out-Null
 
             $pw = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(20))
