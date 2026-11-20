@@ -1,0 +1,76 @@
+name: F082 Aspire describe synthetic check
+on:
+  push:
+    branches:
+      - f082-aspire-describe-20261120
+  workflow_dispatch:
+jobs:
+  describe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run released Aspire with synthetic values
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'f082-owned'
+          $tools = Join-Path $root 'tools'
+          New-Item -ItemType Directory -Force -Path $root, $tools | Out-Null
+          Set-Location $root
+          dotnet --version
+          dotnet tool install Aspire.Cli --tool-path $tools --version 13.6.5
+          if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI install failed' }
+          $cli = Join-Path $tools 'aspire.exe'
+          & $cli --version
+          $project = Join-Path $root 'F082.AppHost.csproj'
+          @'
+          <Project Sdk="Aspire.AppHost.Sdk/13.6.5">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>enable</Nullable>
+              <AspireUseCliBundle>true</AspireUseCliBundle>
+            </PropertyGroup>
+          </Project>
+          '@ | Set-Content -Path $project -Encoding utf8
+          @'
+          using Aspire.Hosting;
+          using Aspire.Hosting.ApplicationModel;
+          var builder = DistributedApplication.CreateBuilder(args);
+          var secret = builder.AddParameter("password", "F082_SYNTHETIC_ONLY_4qZ9", secret: true);
+          builder.AddExecutable("probe", "powershell.exe", ".", "-NoProfile", "-Command", "Start-Sleep -Seconds 300")
+              .WithEnvironment("F082_DIRECT", secret)
+              .WithEnvironment("F082_CONNECTION", ReferenceExpression.Create($"Host=example.invalid;Password={secret};"));
+          builder.Build().Run();
+          '@ | Set-Content -Path (Join-Path $root 'Program.cs') -Encoding utf8
+          dotnet restore $project
+          if ($LASTEXITCODE -ne 0) { throw 'AppHost restore failed' }
+          dotnet build $project --no-restore
+          if ($LASTEXITCODE -ne 0) { throw 'AppHost build failed' }
+          $started = & $cli run --detach --apphost $project --no-build --non-interactive --nologo --format Json 2>&1
+          $started | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0) { throw 'AppHost launch failed' }
+          $found = $false
+          for ($i = 0; $i -lt 40; $i++) {
+            Start-Sleep -Seconds 3
+            $raw = & $cli describe --apphost $project --format Json --non-interactive --nologo 2>&1
+            if ($LASTEXITCODE -ne 0) { continue }
+            try { $data = ($raw -join [Environment]::NewLine) | ConvertFrom-Json } catch { continue }
+            $probe = $data.resources | Where-Object { $_.name -eq 'probe' } | Select-Object -First 1
+            if ($null -eq $probe -or $null -eq $probe.environment.F082_CONNECTION) { continue }
+            Write-Host ('CLI_DIRECT=' + [string]$probe.environment.F082_DIRECT)
+            Write-Host ('CLI_COMPOSITE=' + [string]$probe.environment.F082_CONNECTION)
+            if ($null -ne $probe.environment.F082_DIRECT) { throw 'Direct secret was not redacted' }
+            if ($probe.environment.F082_CONNECTION -ne 'Host=example.invalid;Password=F082_SYNTHETIC_ONLY_4qZ9;') { throw 'Composite result unexpected' }
+            Write-Host 'F082_MECHANISM_PASS'
+            $found = $true
+            break
+          }
+          & $cli stop --apphost $project --non-interactive --nologo 2>&1 | ForEach-Object { Write-Host $_ }
+          if (-not $found) { throw 'No completed describe snapshot with composed value' }
