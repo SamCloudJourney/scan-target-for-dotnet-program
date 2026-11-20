@@ -33,7 +33,7 @@ jobs:
           profile: pixel_6
           emulator-boot-timeout: 900
           script: |
-            set -euo pipefail
+            set -eu
             root=$(mktemp -d /tmp/f042-apk.XXXXXX)
             chmod 711 "$root"
             mobile="$root/Mobile"
