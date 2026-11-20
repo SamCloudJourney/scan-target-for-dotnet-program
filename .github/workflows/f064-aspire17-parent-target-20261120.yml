@@ -1,0 +1,82 @@
+name: F064 Aspire 17 parent target control
+on:
+  push:
+    branches:
+      - f064-aspire17-parent-target-20261120
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.100
+      - name: Test released Aspire CLI and SDK TemplateEngine
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DOTNET_CLI_HOME = Join-Path $env:RUNNER_TEMP 'f064-aspire17-cli-home'
+          $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+          $root = Join-Path $env:RUNNER_TEMP 'f064-aspire17-parent-target-20261120'
+          $workspace = Join-Path $root 'workspace'
+          $trusted = Join-Path $workspace 'trusted'
+          $target = Join-Path $workspace 'Directory.Build.targets'
+          $marker = Join-Path $root 'trusted-build-marker.txt'
+          $toolDir = Join-Path $root 'tools'
+          New-Item -ItemType Directory -Force $trusted, $toolDir | Out-Null
+          Set-Content -LiteralPath (Join-Path $trusted 'Trusted.csproj') -Value '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>' -Encoding UTF8
+          Set-Content -LiteralPath (Join-Path $trusted 'Class1.cs') -Value 'public class Trusted { public static int Value => 1; }' -Encoding UTF8
+          dotnet --version
+          dotnet tool install Aspire.Cli --version 17.0.0 --tool-path $toolDir
+          if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI install failed' }
+          $aspire = Join-Path $toolDir 'aspire.exe'
+          & $aspire --version
+          if ($LASTEXITCODE -ne 0) { throw 'Aspire version failed' }
+          $repo = 'https://github.com/SamCloudJourney/scan-target-for-dotnet-program'
+          $ref = 'f064-aspire17-parent-target-20261120'
+          $base = 'research/f064-aspire17-parent-target-20261120'
+          function Invoke-Source([string]$variant, [string]$output) {
+            & $aspire --non-interactive --nologo new --template-repository $repo --template-repository-ref $ref --template-path "$base/$variant" --name F064Synthetic --output $output --suppress-agent-init 2>&1 | Out-Host
+            return $LASTEXITCODE
+          }
+          function Invoke-TrustedBuild([string]$label, [bool]$expectedMarker) {
+            if (Test-Path -LiteralPath $marker) { Remove-Item -LiteralPath $marker -Force }
+            & dotnet build (Join-Path $trusted 'Trusted.csproj') -t:Rebuild -p:F064MarkerPath=$marker --nologo -v:q 2>&1 | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "Trusted build failed: $label" }
+            $exists = Test-Path -LiteralPath $marker
+            if ($exists -ne $expectedMarker) { throw "Unexpected marker state: $label=$exists" }
+            if ($exists -and (Get-Content -Raw -LiteralPath $marker).Trim() -ne 'F064_TRUSTED_BUILD_CONSUMED') { throw 'Marker content mismatch' }
+            Write-Host "RESULT|$label|trusted-build=0|marker=$exists"
+          }
+          Invoke-TrustedBuild 'baseline' $false
+          $safeOut = Join-Path $workspace 'safe'
+          $safeRc = Invoke-Source 'safe' $safeOut
+          if ($safeRc -ne 0 -or !(Test-Path -LiteralPath (Join-Path $safeOut 'Directory.Build.targets')) -or (Test-Path -LiteralPath $target)) { throw 'Safe source result mismatch' }
+          Write-Host "RESULT|safe-template|rc=$safeRc|inside=True|parent=False"
+          Invoke-TrustedBuild 'safe-control' $false
+          Set-Content -LiteralPath $target -Value '<Project><!-- F064_GUARD --></Project>' -Encoding UTF8
+          $guardHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
+          $blockedRc = Invoke-Source 'escape' (Join-Path $workspace 'blocked')
+          $unchanged = ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -eq $guardHash)
+          if ($blockedRc -eq 0 -or !$unchanged) { throw 'Existing-file guard failed' }
+          Write-Host "RESULT|existing-parent-guard|rc=$blockedRc|unchanged=$unchanged"
+          Remove-Item -LiteralPath $target -Force
+          $escapeRc = Invoke-Source 'escape' (Join-Path $workspace 'escape-one')
+          if ($escapeRc -ne 0 -or !(Test-Path -LiteralPath $target)) { throw 'Parent target escape failed' }
+          $safeHash = (Get-FileHash -LiteralPath (Join-Path $safeOut 'Directory.Build.targets') -Algorithm SHA256).Hash
+          $escapeHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
+          if ($safeHash -ne $escapeHash) { throw 'Payload bytes differ across one-factor cases' }
+          Write-Host "RESULT|parent-new-file|rc=$escapeRc|same-payload=True|path=$([IO.Path]::GetFullPath($target))"
+          Invoke-TrustedBuild 'parent-import' $true
+          Remove-Item -LiteralPath $target -Force
+          Invoke-TrustedBuild 'removed-control' $false
+          $repeatRc = Invoke-Source 'escape' (Join-Path $workspace 'escape-two')
+          if ($repeatRc -ne 0 -or !(Test-Path -LiteralPath $target)) { throw 'Repeat parent escape failed' }
+          Invoke-TrustedBuild 'repeat-parent-import' $true
+          Write-Host "RESULT|repeat|rc=$repeatRc|same-payload=True"
+          exit 0
