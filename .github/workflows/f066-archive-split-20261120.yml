@@ -70,11 +70,10 @@ jobs:
           try {
             & icacls $root /grant "$($lowAccount):(OI)(CI)M"
             if ($LASTEXITCODE -ne 0) { throw 'Failed to grant low user extraction-root access' }
-            $highAccount = "$env:COMPUTERNAME\$env:USERNAME"
-            & icacls $outside /inheritance:r /grant:r "$($highAccount):(OI)(CI)F" 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
-            if ($LASTEXITCODE -ne 0) { throw 'Failed to protect outside directory' }
-            & icacls $trusted /inheritance:r /grant:r "$($highAccount):(OI)(CI)F" 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
-            if ($LASTEXITCODE -ne 0) { throw 'Failed to protect trusted project' }
+            & icacls $outside /deny "$($lowAccount):(OI)(CI)W" /T
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to deny low user outside write' }
+            & icacls $trusted /deny "$($lowAccount):(OI)(CI)W" /T
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to deny low user trusted project write' }
             Write-Host "HIGH_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
             Write-Host "DOTNET=$(dotnet --version)"
             function Run-Low([string]$Mode) {
