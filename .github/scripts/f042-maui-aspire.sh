@@ -18,13 +18,12 @@ echo "F042_OWNER_DIR_MODE=$(stat -c %a "$root")"
 dotnet new android -n F042Mobile -o "$mobile"
 sed -i '/<PropertyGroup>/a\    <ApplicationId>com.example.f042mobile</ApplicationId>' "$mobile/F042Mobile.csproj"
 cat > "$host/Host.csproj" <<EOF
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.5">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="13.6.5" />
