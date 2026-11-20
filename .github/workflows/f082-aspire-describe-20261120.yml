@@ -25,7 +25,10 @@ jobs:
           dotnet --version
           dotnet tool install Aspire.Cli --tool-path $tools --version 13.6.5
           if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI install failed' }
-          $cli = Join-Path $tools 'aspire.exe'
+          Get-ChildItem -Path $tools | ForEach-Object { Write-Host ('TOOL_FILE=' + $_.Name) }
+          $env:PATH = "$tools;$env:PATH"
+          $cli = (Get-Command aspire -ErrorAction Stop).Source
+          Write-Host ('CLI_PATH=' + $cli)
           & $cli --version
           $project = Join-Path $root 'F082.AppHost.csproj'
           @'
