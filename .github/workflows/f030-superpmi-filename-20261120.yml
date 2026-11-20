@@ -33,7 +33,7 @@ jobs:
           Copy-Item "$env:windir\System32\whoami.exe" (Join-Path $core 'mcs.exe')
           [IO.File]::WriteAllText((Join-Path $core 'pmi.dll'), '')
           $actorUser = 'f030actor'
-          $actorPassword = 'F030-ephemeral-2026!'
+          $actorPassword = 'F030lab!26'
           & net.exe user $actorUser $actorPassword /add | Out-Null
           if ($LASTEXITCODE -ne 0) { throw 'actor account creation failed' }
           & icacls.exe $root /grant "$($actorUser):(OI)(CI)RX" | Out-Null
