@@ -6,6 +6,8 @@ on:
       - research/f042-maui-aspire-20261120
     paths:
       - .github/workflows/f042-maui-headless.yml
+      - .github/scripts/f042-maui-aspire.sh
+      - .github/scripts/f042-maui-aspire-1335.sh
 
 jobs:
   android-route:
