@@ -117,12 +117,31 @@ jobs:
               Write-Host "DTE_SOLUTION_NAME=$solutionPath"
               if ($solutionPath) {
                 try {
-                  $dte.ExecuteCommand('Tools.ManageNuGetPackagesforSolution', $pkgId)
-                  Write-Host "DTE_NUGET_SEARCH_COMMAND=success"
+                  $dte.ExecuteCommand('Tools.ManageNuGetPackagesforSolution')
+                  Write-Host "DTE_NUGET_OPEN_COMMAND=success"
                 } catch {
-                  Write-Host "DTE_NUGET_SEARCH_COMMAND_ERROR=$($_.Exception.Message)"
+                  Write-Host "DTE_NUGET_OPEN_COMMAND_ERROR=$($_.Exception.Message)"
                 }
-                Start-Sleep -Seconds 35
+                Start-Sleep -Seconds 8
+                [F034Mouse]::SetCursorPos(57,114) | Out-Null
+                [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 150
+                [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                Write-Host "UI_CLICKED_BROWSE=True"
+                Start-Sleep -Seconds 15
+                Write-Host "SMB_SESSIONS_BEFORE_UI_SEARCH=$(@(Get-SmbSession).Count)"
+                Set-Clipboard -Value $pkgId
+                [F034Mouse]::SetCursorPos(72,152) | Out-Null
+                [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 150
+                [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 300
+                [System.Windows.Forms.SendKeys]::SendWait('^v')
+                [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+                Write-Host "UI_SUBMITTED_PACKAGE_SEARCH=True"
+                Start-Sleep -Seconds 50
+                Write-Host "SMB_SESSIONS_AFTER_UI_SEARCH=$(@(Get-SmbSession).Count)"
+                Write-Host "SMB_OPEN_FILES_AFTER_UI_SEARCH=$(@(Get-SmbOpenFile).Count)"
               } else {
                 Write-Host "DTE_NUGET_SEARCH_COMMAND=solution-not-ready"
               }
