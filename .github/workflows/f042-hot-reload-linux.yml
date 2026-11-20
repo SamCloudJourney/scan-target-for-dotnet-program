@@ -1,0 +1,144 @@
+name: F042 owned Linux cross-user gate
+
+on:
+  push:
+    branches:
+      - research/f042-hot-reload-20261120
+    paths:
+      - .github/workflows/f042-hot-reload-linux.yml
+
+jobs:
+  linux-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Install released SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Exercise released watch across local users
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --version
+          owned="$(mktemp -d /tmp/f042-owned.XXXXXX)"
+          peer="$(mktemp -d /tmp/f042-peer.XXXXXX)"
+          chmod 755 "$owned" "$peer"
+          cat > "$owned/Owned.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net11.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup><ProjectCapability Include="HotReloadWebSockets" /></ItemGroup>
+            <Target Name="F042DelayChildLaunch" BeforeTargets="ComputeRunArguments">
+              <Exec Command="sleep 20" />
+            </Target>
+          </Project>
+          EOF
+          cat > "$owned/Program.cs" <<'EOF'
+          Console.WriteLine("F042_OWNED_APP_STARTED");
+          await Task.Delay(TimeSpan.FromSeconds(60));
+          EOF
+          cat > "$peer/Peer.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net11.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+          </Project>
+          EOF
+          cat > "$peer/Program.cs" <<'EOF'
+          using System.Net;
+          using System.Net.WebSockets;
+          using System.Security.Cryptography;
+          internal static class Peer
+          {
+              public static async Task Main(string[] args)
+              {
+                  var (endpoint, key, mode) = (args[0], args[1], args[2]);
+                  using var socket = new ClientWebSocket();
+                  if (mode != "missing-origin")
+                      socket.Options.SetRequestHeader("Origin", mode == "bad-origin" ? "wss://wrong.example" : "wss://localhost");
+                  if (mode == "valid")
+                  {
+                      using var rsa = RSA.Create();
+                      rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(key), out _);
+                      var ciphertext = rsa.Encrypt(RandomNumberGenerator.GetBytes(32), RSAEncryptionPadding.OaepSHA256);
+                      socket.Options.AddSubProtocol(WebUtility.UrlEncode(Convert.ToBase64String(ciphertext)));
+                  }
+                  else if (mode == "bad-key")
+                  {
+                      socket.Options.AddSubProtocol("f042-invalid");
+                  }
+                  using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                  try
+                  {
+                      await socket.ConnectAsync(new Uri(endpoint), cts.Token);
+                      Console.WriteLine("F042_" + mode + "=ACCEPTED");
+                      if (mode == "valid")
+                      {
+                          byte[] init = { 1, 1, 0, 0, 0, 0, 1, (byte)'x' };
+                          await socket.SendAsync(init, WebSocketMessageType.Binary, true, cts.Token);
+                          Console.WriteLine("F042_INIT_SENT=True");
+                          byte[] incoming = new byte[4096];
+                          try
+                          {
+                              var result = await socket.ReceiveAsync(incoming, cts.Token);
+                              Console.WriteLine("F042_SERVER_FRAME_TYPE=" + (result.Count > 0 ? incoming[0] : -1) + " BYTES=" + result.Count);
+                          }
+                          catch (OperationCanceledException)
+                          {
+                              Console.WriteLine("F042_SERVER_FRAME_TIMEOUT=True");
+                          }
+                      }
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.WriteLine("F042_" + mode + "=DENIED:" + ex.GetType().Name + ":" + ex.Message.Replace(Environment.NewLine, " "));
+                  }
+              }
+          }
+          EOF
+          dotnet build "$owned/Owned.csproj" --nologo
+          dotnet build "$peer/Peer.csproj" --nologo
+          chmod -R a+rX "$peer"
+          sudo useradd -m -s /bin/bash f042_peer
+          cat > "$peer/query.py" <<'EOF'
+          import glob, os, subprocess, sys, time
+          dotnet, dll = sys.argv[1:3]
+          for _ in range(300):
+              for path in glob.glob('/proc/[0-9]*/cmdline'):
+                  try:
+                      raw = open(path, 'rb').read()
+                  except (OSError, PermissionError):
+                      continue
+                  args = raw.split(b'\0')
+                  key = next((x.split(b'=', 1)[1] for x in args if x.startswith(b'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=')), b'')
+                  endpoint = next((x.split(b'=', 1)[1] for x in args if x.startswith(b'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_ENDPOINT=')), b'')
+                  if not (key and endpoint):
+                      continue
+                  print('F042_PEER_UID=' + str(os.getuid()) + ' ARGV_VISIBLE=True KEY_LENGTH=' + str(len(key)) + ' ENDPOINT=' + endpoint.decode(), flush=True)
+                  for mode in ('bad-origin', 'bad-key', 'valid'):
+                      result = subprocess.run([dotnet, dll, endpoint.decode(), key.decode(), mode], capture_output=True, text=True, timeout=8)
+                      print(result.stdout.strip(), flush=True)
+                      if result.stderr.strip():
+                          print('F042_PEER_STDERR=' + result.stderr.strip()[:400], flush=True)
+                  sys.exit(0)
+              time.sleep(0.1)
+          print('F042_ARGV_VISIBLE=False', flush=True)
+          sys.exit(2)
+          EOF
+          chmod a+r "$peer/query.py"
+          peer_result="$peer/result.log"
+          sudo -u f042_peer python3 "$peer/query.py" "$(command -v dotnet)" "$peer/bin/Debug/net11.0/Peer.dll" > "$peer_result" 2>&1 &
+          peerpid=$!
+          dotnet watch --project "$owned/Owned.csproj" run --no-restore > "$owned/watch.log" 2>&1 &
+          watchpid=$!
+          trap 'kill "$watchpid" 2>/dev/null || true' EXIT
+          wait "$peerpid"
+          cat "$peer_result"
+          sleep 22
+          sed -E 's/DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=[A-Za-z0-9+/=]+/DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=<redacted>/g' "$owned/watch.log" | tail -60
