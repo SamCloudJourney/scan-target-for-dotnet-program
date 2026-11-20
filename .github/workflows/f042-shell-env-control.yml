@@ -1,0 +1,48 @@
+name: F042 owner-only shell environment control
+
+on:
+  push:
+    branches:
+      - research/f042-maui-aspire-20261120
+    paths:
+      - .github/workflows/f042-shell-env-control.yml
+
+jobs:
+  shell-env-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install released SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Install Android workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet workload install android --skip-manifest-update
+      - name: Fetch and specialize owned historical probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/.github/scripts/f042-maui-aspire-1335.sh" \
+            -o /tmp/f042-shell-env-probe.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/f042-shell-env-probe.sh')
+          s = p.read_text()
+          needle = 'if (name == "F042_SYNTH_SECRET")'
+          assert s.count(needle) == 1
+          s = s.replace(needle, 'if (name == "F042_SHELL_ONLY_SECRET") Console.WriteLine("F042_SHELL_ONLY_IN_RPC=True");\\n        ' + needle)
+          s = s.replace('seq 1 600', 'seq 1 30')
+          s = s.replace('seq 1 150', 'seq 1 1')
+          p.write_text(s)
+          PY
+          bash -n /tmp/f042-shell-env-probe.sh
+      - name: Test shell-only value in Aspire launch RPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          export F042_SHELL_ONLY_SECRET="$(openssl rand -hex 24)"
+          bash /tmp/f042-shell-env-probe.sh
