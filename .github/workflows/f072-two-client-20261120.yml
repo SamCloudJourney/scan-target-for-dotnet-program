@@ -31,7 +31,10 @@ jobs:
           protected = []
           def cpu_ns():
               try:
-                  return int(open(f"/proc/{pid}/schedstat").read().split()[0])
+                  stat = open(f"/proc/{pid}/stat").read()
+                  fields = stat[stat.rfind(")") + 2:].split()
+                  ticks = int(fields[11]) + int(fields[12])
+                  return round(ticks * 1e9 / os.sysconf("SC_CLK_TCK"))
               except OSError:
                   return None
           def rss_kib():
