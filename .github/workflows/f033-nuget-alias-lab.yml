@@ -69,7 +69,8 @@ jobs:
             & icacls $parentPath /inheritance:r /grant:r "${highIdentity}:F" 'SYSTEM:F' '*S-1-5-32-544:F' | Out-Null
             [IO.File]::WriteAllText($config, '<configuration />')
             & icacls $config /grant "${lowName}:M" | Out-Null
-            [IO.File]::WriteAllText($project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include="F033.Nonexistent" Version="1.0.0" /></ItemGroup></Project>')
+          [IO.File]::WriteAllText($project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include="F033.Nonexistent" Version="1.0.0" /></ItemGroup></Project>')
+          [IO.File]::WriteAllText((Join-Path $repo 'global.json'), '{"sdk":{"version":"10.0.404","rollForward":"disable"}}')
 
             $server = @'
           param([int]$Port, [string]$Log, [string]$ExpectedDigest, [string]$Marker, [string]$Capture)
@@ -97,7 +98,7 @@ jobs:
                   $decoded = [Convert]::FromBase64String($auth.Substring(6))
                   $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($decoded))
                   Add-Content -Path $Log -Value "AUTH $digest"
-                  if ($Capture) { Set-Content -Path $Capture -Value $auth.Substring(6) -NoNewline }
+                  if ($Capture -and $digest -eq $ExpectedDigest) { Set-Content -Path $Capture -Value $auth.Substring(6) -NoNewline }
                   if ($requestLine -like 'GET /private *' -and $ExpectedDigest -and $Marker -and $digest -eq $ExpectedDigest) {
                     $body = [IO.File]::ReadAllText($Marker)
                     Add-Content -Path $Log -Value 'PRIVATE 200'
@@ -154,7 +155,7 @@ jobs:
             & icacls $writerPath /grant "${lowName}:R" | Out-Null
             $pwsh = (Get-Command pwsh).Source
             $highProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverA, '-Port', $portA, '-Log', $logA, '-ExpectedDigest', $expected, '-Marker', $markerFile) -PassThru -WindowStyle Hidden
-            $lowProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverB, '-Port', $portB, '-Log', $logB, '-Capture', $captured) -Credential $lowCred -PassThru -LoadUserProfile -WindowStyle Hidden
+          $lowProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverB, '-Port', $portB, '-Log', $logB, '-ExpectedDigest', $expected, '-Capture', $captured) -Credential $lowCred -PassThru -LoadUserProfile -WindowStyle Hidden
             Start-Sleep -Seconds 4
             if ($highProcess.HasExited -or $lowProcess.HasExited) { throw 'A listener exited before testing' }
             $env:NUGET_PACKAGES = Join-Path $trusted 'packages'
@@ -198,7 +199,7 @@ jobs:
           try { Get-Content $Secret -ErrorAction Stop | Out-Null; $direct = 'ALLOWED' } catch {}
           try { Get-Content $Marker -ErrorAction Stop | Out-Null; $direct = 'ALLOWED' } catch {}
           $noAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck
-          $token = Get-Content $Capture -Raw
+          $token = (Get-Content $Capture -Raw).Trim()
           $withAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck -Headers @{Authorization="Basic $token"}
           $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($withAuth.Content)))
           Set-Content $Out "NOAUTH=$([int]$noAuth.StatusCode) AUTH=$([int]$withAuth.StatusCode) MARKERHASH=$digest DIRECT=$direct"
