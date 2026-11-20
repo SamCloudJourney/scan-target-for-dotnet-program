@@ -124,3 +124,8 @@ jobs:
             Write-Host "RESULT|alias-$name|fileexists-before=$preFileExists|rc=$rc|victim-unchanged=$($preHash -eq $postHash)|alias=$alias"
             if ($preHash -ne $postHash) { throw "F064 existing-file overwrite reached: $name" }
           }
+          Set-Content -LiteralPath $renamePath -Value 'F064_GUARD_RENAME' -Encoding UTF8
+          $renameExistingRc = Invoke-Template 'f064rename' $renameOut
+          if ($renameExistingRc -eq 0 -or (Get-Content -Raw -LiteralPath $renamePath).Trim() -ne 'F064_GUARD_RENAME') { throw 'Rename overwrite guard failed' }
+          Write-Host "RESULT|rename-existing-outside|rc=$renameExistingRc|unchanged=true"
+          exit 0
