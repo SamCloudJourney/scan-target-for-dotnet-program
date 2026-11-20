@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dotnet workload install android --skip-manifest-update
+          dotnet workload install android
           dotnet workload list
       - name: Fetch owned probe
         shell: bash
