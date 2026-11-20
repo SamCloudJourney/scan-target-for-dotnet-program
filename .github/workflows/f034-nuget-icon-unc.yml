@@ -34,7 +34,7 @@ jobs:
           $uncUri = "file://$addr/$shareName/icon.bin"
           $missingUri = "file://$addr/$shareName/missing.bin"
           $feedIndex = @{ version='3.0.0'; resources=@(
-            @{ '@id'="http://127.0.0.1:$port/search"; '@type'='SearchQueryService/3.5.0' },
+            @{ '@id'="http://127.0.0.1:$port/search"; '@type'='SearchQueryService' },
             @{ '@id'="http://127.0.0.1:$port/flat/"; '@type'='PackageBaseAddress/3.0.0' },
             @{ '@id'="http://127.0.0.1:$port/registration/"; '@type'='RegistrationsBaseUrl/3.6.0' }
           ) } | ConvertTo-Json -Depth 8 -Compress
@@ -51,11 +51,12 @@ jobs:
             $py = (Get-Command python -ErrorAction Stop).Source
             $feedProc = Start-Process -FilePath $py -ArgumentList @('-m','http.server',$port,'--bind','127.0.0.1','--directory',$feedDir) -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP 'f034-feed-out.txt') -RedirectStandardError (Join-Path $env:RUNNER_TEMP 'f034-feed-err.txt')
             Start-Sleep -Seconds 2
+            Write-Host "FEED_INDEX_JSON=$feedIndex"
             $feed = Invoke-RestMethod "http://127.0.0.1:$port/search?q=F034"
             Write-Host "FEED_ICON_EQUALS_UNC=$($feed.data[0].iconUrl -eq $uncUri)"
             Write-Host "DOTNET_VERSION=$(dotnet --version)"
             $configPath = Join-Path $feedDir 'NuGet.Config'
-            $configXml = "<configuration><packageSources><clear/><add key=`"F034`" value=`"http://127.0.0.1:$port/index.json`" allowInsecureConnections=`"true`" /></packageSources></configuration>"
+            $configXml = "<configuration><packageSources><clear/><add key=`"F034`" value=`"http://127.0.0.1:$port/index.json`" protocolVersion=`"3`" allowInsecureConnections=`"true`" /></packageSources></configuration>"
             [IO.File]::WriteAllText($configPath, $configXml)
             $searchOutput = & dotnet package search F034 --configfile $configPath --take 1 2>&1
             Write-Host "DOTNET_SEARCH_EXIT=$LASTEXITCODE"
@@ -86,6 +87,40 @@ jobs:
                   }
                 }
                 Write-Host "TASK_EXT_LOADED=$loadedTaskExt"
+                Add-Type -TypeDefinition @'
+          using System;
+          using System.Collections.Generic;
+          using System.IO;
+          using System.Reflection;
+          public static class F034Resolver {
+            private static readonly Dictionary<string, List<string>> Paths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            private static readonly HashSet<string> Busy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            public static void Add(string path) {
+              string name = Path.GetFileNameWithoutExtension(path);
+              List<string> list;
+              if (!Paths.TryGetValue(name, out list)) { list = new List<string>(); Paths[name] = list; }
+              list.Add(path);
+            }
+            public static Assembly Resolve(object sender, ResolveEventArgs args) {
+              AssemblyName requested = new AssemblyName(args.Name);
+              List<string> list;
+              if (!Paths.TryGetValue(requested.Name, out list)) return null;
+              lock (Busy) { if (!Busy.Add(requested.FullName)) return null; }
+              try {
+                foreach (string path in list) {
+                  try {
+                    AssemblyName candidate = AssemblyName.GetAssemblyName(path);
+                    if (candidate.Version != requested.Version) continue;
+                    return Assembly.LoadFrom(path);
+                  } catch {}
+                }
+                return null;
+              } finally { lock (Busy) { Busy.Remove(requested.FullName); } }
+            }
+          }
+          '@
+                Get-ChildItem -Path $vsRoot -Recurse -File -Filter '*.dll' -ErrorAction SilentlyContinue | ForEach-Object { [F034Resolver]::Add($_.FullName) }
+                [AppDomain]::CurrentDomain.add_AssemblyResolve([ResolveEventHandler][F034Resolver]::Resolve)
                 $assembly = [Reflection.Assembly]::LoadFrom($dll.FullName)
                 $type = $assembly.GetType('NuGet.PackageManagement.VisualStudio.NuGetPackageFileService', $true)
                 $instance = [Runtime.Serialization.FormatterServices]::GetUninitializedObject($type)
