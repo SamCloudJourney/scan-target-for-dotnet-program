@@ -1,0 +1,144 @@
+name: F034 Visual Studio reader UI probe
+on:
+  push:
+    branches:
+      - f034-publisher-ui-20261120
+permissions:
+  contents: read
+  packages: read
+jobs:
+  consumer:
+    runs-on: windows-2022
+    timeout-minutes: 18
+    env:
+      NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          source-url: https://nuget.pkg.github.com/SamCloudJourney/index.json
+      - name: Open installed Visual Studio package UI with read-only registry token
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = Join-Path $env:RUNNER_TEMP 'f034-consumer'
+          $proj = Join-Path $dir 'F034Consumer'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          dotnet new classlib -n F034Consumer -f net8.0 -o $proj --no-restore | Out-Null
+          dotnet new sln -n F034Consumer -o $dir | Out-Null
+          $sln = Join-Path $dir 'F034Consumer.sln'
+          if (-not (Test-Path $sln)) { $sln = Join-Path $dir 'F034Consumer.slnx' }
+          dotnet sln $sln add (Join-Path $proj 'F034Consumer.csproj') | Out-Null
+          $config = Join-Path $dir 'NuGet.Config'
+          $configXml = @'
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="gh" value="https://nuget.pkg.github.com/SamCloudJourney/index.json" />
+            </packageSources>
+            <packageSourceCredentials>
+              <gh>
+                <add key="Username" value="SamCloudJourney" />
+                <add key="ClearTextPassword" value="%NUGET_AUTH_TOKEN%" />
+              </gh>
+            </packageSourceCredentials>
+          </configuration>
+          '@
+          [IO.File]::WriteAllText($config, $configXml)
+          Write-Host "CONSUMER_CONFIG_SOURCE=GitHub Packages"
+          $pkgId = 'F034.Synthetic.Icon.Publisher.20261120'
+          $search = & dotnet package search $pkgId --configfile $config --prerelease --take 5 2>&1
+          Write-Host "CLI_SEARCH_EXIT=$LASTEXITCODE"
+          Write-Host "CLI_SEARCH_MATCH=$([bool]($search -match $pkgId))"
+          $search | Select-Object -Last 7 | ForEach-Object { Write-Host "CLI_SEARCH_LINE=$_" }
+          $shareDir = Join-Path $dir 'share'
+          New-Item -ItemType Directory -Force -Path $shareDir | Out-Null
+          $png = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLytQAAAABJRU5ErkJggg==')
+          [IO.File]::WriteAllBytes((Join-Path $shareDir 'icon.png'), $png)
+          $principal = "$env:COMPUTERNAME\$env:USERNAME"
+          New-SmbShare -Name 'F034Icon' -Path $shareDir -FullAccess $principal | Out-Null
+          $pf86 = [Environment]::GetFolderPath('ProgramFilesX86')
+          $vswhere = Join-Path $pf86 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $devenv = & $vswhere -latest -property productPath
+          Write-Host "VISUAL_STUDIO_FILE_VERSION=$((Get-Item $devenv).VersionInfo.FileVersion)"
+          Write-Host "RUNNER_SESSION_ID=$((Get-Process -Id $PID).SessionId)"
+          Write-Host "USER_INTERACTIVE=$([Environment]::UserInteractive)"
+          Write-Host "SMB_SESSIONS_BEFORE=$(@(Get-SmbSession).Count)"
+          $p = $null
+          try {
+            $activity = Join-Path $dir 'ActivityLog.xml'
+            $p = Start-Process -FilePath $devenv -ArgumentList "$sln /Log $activity" -PassThru
+            for ($i=0; $i -lt 40; $i++) {
+              Start-Sleep -Seconds 3
+              $p.Refresh()
+              if ($p.MainWindowHandle -ne 0 -or $p.HasExited) { break }
+            }
+            Write-Host "DEVENV_EXITED=$($p.HasExited)"
+            Write-Host "DEVENV_MAIN_WINDOW=$($p.MainWindowHandle -ne 0)"
+            Write-Host "DEVENV_SESSION_ID=$($p.SessionId)"
+            $dte = $null
+            for ($i=0; $i -lt 20; $i++) {
+              try { $dte = [Runtime.InteropServices.Marshal]::GetActiveObject('VisualStudio.DTE.17.0'); break } catch { Start-Sleep -Seconds 2 }
+            }
+            Write-Host "DTE_ATTACHED=$([bool]$dte)"
+            if ($dte) {
+              Write-Host "DTE_SOLUTION_OPEN=$($dte.Solution.IsOpen)"
+              Write-Host "DTE_SOLUTION_NAME=$($dte.Solution.FullName)"
+              $nugetCmds = @()
+              foreach ($cmd in $dte.Commands) {
+                try {
+                  if ($cmd.Name -match 'NuGet|PackageManager|AddPackages') {
+                    $nugetCmds += [pscustomobject]@{Name=$cmd.Name;Available=$cmd.IsAvailable}
+                  }
+                } catch {}
+              }
+              $nugetCmds | Select-Object -First 60 | ForEach-Object { Write-Host "DTE_COMMAND=$($_.Name);AVAILABLE=$($_.Available)" }
+              $candidate = $nugetCmds | Where-Object { $_.Available -and $_.Name -match 'AddPackagesForSolution|ManageNuGetPackagesForSolution|ManageNuGetPackages' } | Select-Object -First 1
+              if ($candidate) {
+                Write-Host "DTE_EXECUTE=$($candidate.Name)"
+                try { $dte.ExecuteCommand($candidate.Name); Write-Host "DTE_EXECUTE_RESULT=success" } catch { Write-Host "DTE_EXECUTE_ERROR=$($_.Exception.Message)" }
+                Start-Sleep -Seconds 15
+              } else { Write-Host "DTE_EXECUTE_RESULT=no-available-package-command" }
+            }
+            if ($p -and -not $p.HasExited -and $p.MainWindowHandle -ne 0) {
+              try {
+                Add-Type -AssemblyName UIAutomationClient
+                $root = [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
+                $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                Write-Host "UI_AUTOMATION_ELEMENT_COUNT=$($all.Count)"
+                $shown = 0
+                foreach ($el in $all) {
+                  $name = $el.Current.Name
+                  if ($name -match 'NuGet|Browse|Search|Source|Prerelease|F034|Package' -and $shown -lt 80) {
+                    Write-Host "UI_ELEMENT=$($el.Current.ControlType.ProgrammaticName)|$name"
+                    $shown++
+                  }
+                }
+              } catch { Write-Host "UI_AUTOMATION_ERROR=$($_.Exception.Message)" }
+              try {
+                Add-Type -AssemblyName System.Windows.Forms
+                Add-Type -AssemblyName System.Drawing
+                $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+                $bmp = New-Object System.Drawing.Bitmap($bounds.Width,$bounds.Height)
+                $g = [System.Drawing.Graphics]::FromImage($bmp)
+                $g.CopyFromScreen($bounds.Location,[System.Drawing.Point]::Empty,$bounds.Size)
+                $shot = Join-Path $dir 'visual-studio.png'
+                $bmp.Save($shot,[System.Drawing.Imaging.ImageFormat]::Png)
+                $g.Dispose(); $bmp.Dispose()
+                Write-Host "UI_SCREENSHOT=$shot"
+              } catch { Write-Host "SCREENSHOT_ERROR=$($_.Exception.Message)" }
+            }
+            Write-Host "SMB_SESSIONS_AFTER_UI=$(@(Get-SmbSession).Count)"
+            @(Get-SmbSession) | ForEach-Object { Write-Host "SMB_SESSION_USER=$($_.ClientUserName)" }
+          } finally {
+            if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
+            Remove-SmbShare -Name 'F034Icon' -Force -ErrorAction SilentlyContinue
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: f034-ui-pilot
+          path: |
+            ${{ runner.temp }}/f034-consumer/visual-studio.png
+            ${{ runner.temp }}/f034-consumer/ActivityLog.xml
+          if-no-files-found: ignore
