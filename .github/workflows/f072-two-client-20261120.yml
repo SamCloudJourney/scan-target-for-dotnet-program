@@ -1,0 +1,163 @@
+name: F072 bounded two-client Kestrel comparison
+on:
+  push:
+    branches:
+      - research/f072-two-client-20261120
+  workflow_dispatch:
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.404
+            11.0.100
+      - name: Run bounded loopback comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --info | head -35
+          dotnet --list-runtimes
+          mkdir -p /tmp/f072-artifacts
+          cat > /tmp/f072-artifacts/probe.py <<'PY'
+          import json, os, socket, statistics, sys, threading, time
+          
+          port, pid, log_path, tag = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3], sys.argv[4]
+          N = 16
+          phase = "setup"
+          stop = threading.Event()
+          protected = []
+          def cpu_ns():
+              try:
+                  return int(open(f"/proc/{pid}/schedstat").read().split()[0])
+              except OSError:
+                  return None
+          def rss_kib():
+              try:
+                  for line in open(f"/proc/{pid}/status"):
+                      if line.startswith("VmHWM:"):
+                          return int(line.split()[1])
+              except OSError:
+                  pass
+              return None
+          def request(value=b"", segmented=False, timeout=2.0):
+              s = socket.create_connection(("127.0.0.1", port), timeout=timeout)
+              s.settimeout(timeout)
+              head = b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Check: "
+              tail = b"\r\nConnection: close\r\n\r\n"
+              started = time.monotonic()
+              try:
+                  if value:
+                      if segmented:
+                          s.sendall(head + value[:10000])
+                          time.sleep(0.08)
+                          s.sendall(value[10000:] + tail)
+                      else:
+                          s.sendall(head + value + tail)
+                  else:
+                      s.sendall(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+                  chunks = []
+                  while True:
+                      b = s.recv(65536)
+                      if not b:
+                          break
+                      chunks.append(b)
+                  response = b"".join(chunks)
+                  return {"status": response.split(b"\r\n", 1)[0].decode("ascii", "replace"), "bytes": len(response), "ms": round((time.monotonic()-started)*1000, 3)}
+              except (OSError, TimeoutError) as e:
+                  return {"status": "ERROR:" + type(e).__name__, "bytes": 0, "ms": round((time.monotonic()-started)*1000, 3)}
+              finally:
+                  s.close()
+          def protected_worker():
+              global phase
+              while not stop.is_set():
+                  p = phase
+                  result = request(timeout=1.0)
+                  result["phase"] = p
+                  protected.append(result)
+                  stop.wait(0.025)
+          thread = threading.Thread(target=protected_worker, daemon=True)
+          thread.start()
+          results = []
+          def run_phase(label, value=None, segmented=False, count=N, idle_seconds=0):
+              global phase
+              phase = label
+              time.sleep(0.12)
+              before_cpu = cpu_ns()
+              before_log = os.path.getsize(log_path)
+              start = time.monotonic()
+              attack = []
+              if idle_seconds:
+                  time.sleep(idle_seconds)
+              else:
+                  for _ in range(count):
+                      attack.append(request(value, segmented))
+              time.sleep(0.30)
+              elapsed = time.monotonic() - start
+              after_cpu = cpu_ns()
+              after_log = os.path.getsize(log_path)
+              samples = [p for p in protected if p["phase"] == label]
+              lats = sorted(p["ms"] for p in samples)
+              segment = open(log_path, "rb").read()[before_log:after_log]
+              result = {
+                  "phase": label, "attacker_count": len(attack),
+                  "attacker_statuses": {s: sum(x["status"] == s for x in attack) for s in sorted(set(x["status"] for x in attack))},
+                  "protected_count": len(samples),
+                  "protected_statuses": {s: sum(x["status"] == s for x in samples) for s in sorted(set(x["status"] for x in samples))},
+                  "protected_max_ms": max(lats) if lats else None,
+                  "protected_p95_ms": lats[int((len(lats)-1)*0.95)] if lats else None,
+                  "elapsed_s": round(elapsed, 3),
+                  "server_cpu_ms": round((after_cpu-before_cpu)/1e6, 3) if after_cpu is not None and before_cpu is not None else None,
+                  "server_log_bytes": after_log-before_log,
+                  "invalid_operation_mentions": segment.count(b"InvalidOperationException"),
+                  "warning_mentions": segment.count(b"warn:"),
+                  "server_peak_rss_kib": rss_kib(),
+              }
+              results.append(result)
+              print("PHASE " + json.dumps(result, sort_keys=True), flush=True)
+          run_phase("protected_idle", idle_seconds=1.5)
+          run_phase("valid_long", b"A"*20000, True)
+          run_phase("nul_long", b"A"*20000+b"\x00", True)
+          run_phase("nul_short", b"A"*20+b"\x00", False)
+          run_phase("recovery_valid_long", b"A"*20000, True)
+          stop.set()
+          thread.join(timeout=2)
+          with open(f"/tmp/f072-artifacts/metrics-{tag}.json", "w") as f:
+              json.dump({"tag": tag, "results": results, "protected_all_count": len(protected)}, f, indent=2)
+          print("PROTECTED_ALL_COUNT", len(protected), flush=True)
+          PY
+          for item in '11 net11.0' '10 net10.0'; do
+            set -- $item
+            major=$1
+            tfm=$2
+            app="/tmp/f072-app-$major"
+            port=$((5070 + major))
+            dotnet new web -o "$app" --framework "$tfm"
+            dotnet build "$app" -c Release --no-restore
+            log="/tmp/f072-artifacts/server-net$major.log"
+            dotnet "$app/bin/Release/$tfm/f072-app-$major.dll" --urls "http://127.0.0.1:$port" > "$log" 2>&1 &
+            server_pid=$!
+            trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+            ready=0
+            for i in $(seq 1 80); do
+              if python3 -c "import socket; s=socket.create_connection(('127.0.0.1',$port),0.2); s.close()" 2>/dev/null; then ready=1; break; fi
+              sleep 0.25
+            done
+            test "$ready" = 1
+            echo "BEGIN_NET$major pid=$server_pid port=$port"
+            python3 /tmp/f072-artifacts/probe.py "$port" "$server_pid" "$log" "net$major"
+            echo "NET$major_LOG_BYTES $(wc -c < "$log")"
+            echo "NET$major_WARNING_COUNT $(grep -c 'warn:' "$log" || true)"
+            echo "NET$major_INVALIDOP_COUNT $(grep -c 'InvalidOperationException' "$log" || true)"
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+      - name: Preserve synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f072-two-client-evidence
+          path: /tmp/f072-artifacts/
