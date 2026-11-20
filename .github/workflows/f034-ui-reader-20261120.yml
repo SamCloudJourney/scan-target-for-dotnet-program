@@ -128,9 +128,11 @@ jobs:
                 } catch {
                   Write-Host "DTE_NUGET_OPEN_COMMAND_ERROR=$($_.Exception.Message)"
                 }
-                Start-Sleep -Seconds 8
+                Start-Sleep -Seconds 10
                 $p.Refresh()
+                [F034Window]::ShowWindow($p.MainWindowHandle,3) | Out-Null
                 [F034Window]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
+                Add-Type -AssemblyName UIAutomationClient
                 function SaveF034Screen([string]$name) {
                   $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
                   $im = New-Object System.Drawing.Bitmap($b.Width,$b.Height)
@@ -140,38 +142,51 @@ jobs:
                   $gr.Dispose(); $im.Dispose()
                   Write-Host "UI_STAGE_SCREENSHOT=$name"
                 }
-                function ClickF034([int]$x,[int]$y) {
-                  [F034Mouse]::SetCursorPos($x,$y) | Out-Null
-                  [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-                  Start-Sleep -Milliseconds 150
-                  [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                $manager = $null
+                $root = $null
+                for ($i=0; $i -lt 45; $i++) {
+                  try {
+                    $p.Refresh()
+                    $root = [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
+                    $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                    foreach ($el in $all) {
+                      if ($el.Current.Name -eq 'Package manager' -and $el.Current.ControlType.ProgrammaticName -eq 'ControlType.Custom') { $manager = $el; break }
+                    }
+                    if ($manager) { break }
+                  } catch {}
+                  Start-Sleep -Seconds 2
                 }
+                Write-Host "UI_MANAGER_FOUND=$([bool]$manager)"
                 SaveF034Screen 'pre-browse.png'
-                ClickF034 813 47
-                Write-Host "UI_DISMISSED_SIGNIN_IF_PRESENT=True"
-                Start-Sleep -Seconds 2
-                ClickF034 150 82
-                Start-Sleep -Seconds 2
-                ClickF034 57 114
-                Write-Host "UI_CLICKED_BROWSE=True"
-                Start-Sleep -Seconds 15
-                SaveF034Screen 'after-browse.png'
-                Write-Host "SMB_SESSIONS_BEFORE_UI_SEARCH=$(@(Get-SmbSession).Count)"
-                ClickF034 813 47
-                Start-Sleep -Seconds 2
-                ClickF034 150 82
-                Start-Sleep -Seconds 2
-                ClickF034 57 114
-                Start-Sleep -Seconds 3
-                Set-Clipboard -Value $pkgId
-                ClickF034 72 152
-                Start-Sleep -Milliseconds 300
-                [System.Windows.Forms.SendKeys]::SendWait('^v')
-                [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-                Write-Host "UI_SUBMITTED_PACKAGE_SEARCH=True"
-                Start-Sleep -Seconds 12
-                SaveF034Screen 'after-search-12s.png'
-                Start-Sleep -Seconds 38
+                if ($manager) {
+                  $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                  $browse = $null
+                  foreach ($el in $all) {
+                    if ($el.Current.Name -eq 'Browse' -and $el.Current.ControlType.ProgrammaticName -eq 'ControlType.TabItem') { $browse = $el; break }
+                  }
+                  Write-Host "UI_BROWSE_TAB_FOUND=$([bool]$browse)"
+                  if ($browse) {
+                    $browse.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+                    Start-Sleep -Seconds 15
+                    SaveF034Screen 'after-browse.png'
+                    Write-Host "SMB_SESSIONS_BEFORE_UI_SEARCH=$(@(Get-SmbSession).Count)"
+                    $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                    $edit = $null
+                    foreach ($el in $all) {
+                      if ($el.Current.Name -eq 'Search (Ctrl+L)' -and $el.Current.ControlType.ProgrammaticName -eq 'ControlType.Edit') { $edit = $el; break }
+                    }
+                    Write-Host "UI_SEARCH_EDIT_FOUND=$([bool]$edit)"
+                    if ($edit) {
+                      $edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($pkgId)
+                      $edit.SetFocus()
+                      [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+                      Write-Host "UI_SUBMITTED_PACKAGE_SEARCH=True"
+                      Start-Sleep -Seconds 12
+                      SaveF034Screen 'after-search-12s.png'
+                      Start-Sleep -Seconds 38
+                    }
+                  }
+                }
                 Write-Host "SMB_SESSIONS_AFTER_UI_SEARCH=$(@(Get-SmbSession).Count)"
                 Write-Host "SMB_OPEN_FILES_AFTER_UI_SEARCH=$(@(Get-SmbOpenFile).Count)"
               } else {
