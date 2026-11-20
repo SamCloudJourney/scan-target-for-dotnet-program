@@ -115,6 +115,10 @@ dotnet build "$peer/Peer.csproj" --nologo
 chmod -R a+rX "$peer"
 sudo useradd -m -s /bin/bash f042_peer
 
+export ASPNETCORE_URLS=http://127.0.0.1:15173
+export ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=http://127.0.0.1:19172
+export ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=http://127.0.0.1:20091
+export DOTNET_ENVIRONMENT=Development
 export F042_MOBILE_PROJECT="$mobile/F042Mobile.csproj"
 export F042_EXPECTED_HASH_FILE="$root/expected-hash"
 export F042_HOST_CREDENTIAL_FILE="$root/host-credentials"
@@ -153,7 +157,7 @@ for p in glob.glob('/proc/[0-9]*/cmdline'):
 print(n)
 PY
 )"
-grep -E 'F042_|WebSocket|Aspire|error|Error|failed|Failed' "$watch_log" | tail -60 || true
+tr -d '\000' < "$watch_log" | tail -80 || true
 cleanup_watch
 sleep 3
 
@@ -213,5 +217,5 @@ if grep -q 'Generated environment targets file for Android:' "$watch_log"; then
     echo "F042_ANDROID_TARGETS_PARENT_MODE=$(stat -c %a "$(dirname "$path")")"
     if sudo -u f042_peer test -r "$path"; then echo F042_DIRECT_TARGETS=READABLE; else echo F042_DIRECT_TARGETS=DENIED; fi
 fi
-grep -E 'F042_|WebSocket|Aspire|error|Error|failed|Failed' "$watch_log" | tail -100 || true
+tr -d '\000' < "$watch_log" | tail -140 || true
 cleanup_watch
