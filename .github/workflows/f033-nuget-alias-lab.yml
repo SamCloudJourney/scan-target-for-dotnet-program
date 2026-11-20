@@ -28,6 +28,9 @@ jobs:
           $attacker = Join-Path $root 'attacker'
           $config = Join-Path $repo 'NuGet.Config'
           $project = Join-Path $repo 'Fixed.csproj'
+          $parentPath = Join-Path $root 'NuGet.Config'
+          $parentNoCred = Join-Path $trusted 'parent-without-credential.config'
+          $parentCred = Join-Path $trusted 'parent-with-encrypted-credential.config'
           $secretFile = Join-Path $trusted 'secret.txt'
           $markerFile = Join-Path $trusted 'private-marker.txt'
           $lowName = 'f033low'
@@ -56,13 +59,20 @@ jobs:
             $parentConfig = @"
           <configuration><packageSources><clear /><add key="PrivateFeed" value="http://127.0.0.1:$portA/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>
           "@
-            [IO.File]::WriteAllText((Join-Path $root 'NuGet.Config'), $parentConfig)
+            [IO.File]::WriteAllText($parentNoCred, $parentConfig)
+            [IO.File]::WriteAllText($parentPath, '<configuration><packageSources><clear /></packageSources></configuration>')
+            & dotnet nuget add source "http://127.0.0.1:$portA/v3/index.json" --name PrivateFeed --username labuser --password $pw --valid-authentication-types Basic --allow-insecure-connections --configfile $parentPath | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create Windows-encrypted credential' }
+            $encryptedParent = [IO.File]::ReadAllText($parentPath)
+            if (-not $encryptedParent.Contains('key="Password"') -or $encryptedParent.Contains($pw)) { throw 'Credential was not encrypted in the parent config' }
+            [IO.File]::WriteAllText($parentCred, $encryptedParent)
+            & icacls $parentPath /inheritance:r /grant:r "${highIdentity}:F" 'SYSTEM:F' '*S-1-5-32-544:F' | Out-Null
             [IO.File]::WriteAllText($config, '<configuration />')
             & icacls $config /grant "${lowName}:M" | Out-Null
             [IO.File]::WriteAllText($project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include="F033.Nonexistent" Version="1.0.0" /></ItemGroup></Project>')
 
             $server = @'
-          param([int]$Port, [string]$Log, [string]$Secret, [string]$Marker, [string]$Capture)
+          param([int]$Port, [string]$Log, [string]$ExpectedDigest, [string]$Marker, [string]$Capture)
           $ErrorActionPreference = 'Stop'
           $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $Port)
           $listener.Start()
@@ -88,11 +98,12 @@ jobs:
                   $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($decoded))
                   Add-Content -Path $Log -Value "AUTH $digest"
                   if ($Capture) { Set-Content -Path $Capture -Value $auth.Substring(6) -NoNewline }
-                  if ($requestLine -like 'GET /private *' -and $Secret -and $Marker -and
-                    [Text.Encoding]::UTF8.GetString($decoded) -ceq ('labuser:' + [IO.File]::ReadAllText($Secret))) {
+                  if ($requestLine -like 'GET /private *' -and $ExpectedDigest -and $Marker -and $digest -eq $ExpectedDigest) {
                     $body = [IO.File]::ReadAllText($Marker)
+                    Add-Content -Path $Log -Value 'PRIVATE 200'
                     $response = "HTTP/1.1 200 OK`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n$body"
                   } elseif ($requestLine -like 'GET /private *') {
+                    Add-Content -Path $Log -Value "PRIVATE 403 expected_digest_present=$([bool]$ExpectedDigest) marker_present=$([bool]$Marker) digest_match=$($digest -eq $ExpectedDigest)"
                     $response = "HTTP/1.1 403 Forbidden`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
                   } else {
                     $response = "HTTP/1.1 404 Not Found`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
@@ -125,12 +136,14 @@ jobs:
             & icacls $logB /grant "${lowName}:M" | Out-Null
 
             $writer = @'
-          param([string]$Config, [string]$Project, [string]$Secret, [int]$Port, [string]$Kind, [string]$Probe)
+          param([string]$Config, [string]$Project, [string]$Parent, [string]$Secret, [int]$Port, [string]$Kind, [string]$Probe)
           $readSecret = 'DENIED'
+          $readParent = 'DENIED'
           $writeProject = 'DENIED'
           try { Get-Content $Secret -ErrorAction Stop | Out-Null; $readSecret = 'ALLOWED' } catch {}
+          try { Get-Content $Parent -ErrorAction Stop | Out-Null; $readParent = 'ALLOWED' } catch {}
           try { Add-Content $Project '<!-- low mutation -->' -ErrorAction Stop; $writeProject = 'ALLOWED' } catch {}
-          Set-Content $Probe "secret=$readSecret project=$writeProject"
+          Set-Content $Probe "secret=$readSecret parent=$readParent project=$writeProject"
           if ($Kind -eq 'empty') { $xml = '<configuration />' }
           elseif ($Kind -eq 'same') { $xml = '<configuration><packageSources><add key="PrivateFeed" value="http://127.0.0.1:' + $Port + '/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>' }
           else { $xml = '<configuration><packageSources><add key="OtherFeed" value="http://127.0.0.1:' + $Port + '/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>' }
@@ -140,7 +153,7 @@ jobs:
             [IO.File]::WriteAllText($writerPath, $writer)
             & icacls $writerPath /grant "${lowName}:R" | Out-Null
             $pwsh = (Get-Command pwsh).Source
-            $highProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverA, '-Port', $portA, '-Log', $logA, '-Secret', $secretFile, '-Marker', $markerFile) -PassThru -WindowStyle Hidden
+            $highProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverA, '-Port', $portA, '-Log', $logA, '-ExpectedDigest', $expected, '-Marker', $markerFile) -PassThru -WindowStyle Hidden
             $lowProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverB, '-Port', $portB, '-Log', $logB, '-Capture', $captured) -Credential $lowCred -PassThru -LoadUserProfile -WindowStyle Hidden
             Start-Sleep -Seconds 4
             if ($highProcess.HasExited -or $lowProcess.HasExited) { throw 'A listener exited before testing' }
@@ -148,6 +161,7 @@ jobs:
             $env:NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT = '1'
             $env:NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS = '100'
             $env:DOTNET_NOLOGO = '1'
+            Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue
             Write-Host "DOTNET_SDK $(dotnet --version)"
             Push-Location $repo
             try {
@@ -158,22 +172,22 @@ jobs:
                 @{Name='different-alias'; Kind='other'; Secret=$true; A=$true; B=$false}
               )) {
                 $probe = Join-Path $attacker 'probe.txt'
-                $args = "-NoProfile -File `"$writerPath`" -Config `"$config`" -Project `"$project`" -Secret `"$secretFile`" -Port $portB -Kind $($case.Kind) -Probe `"$probe`""
+                $args = "-NoProfile -File `"$writerPath`" -Config `"$config`" -Project `"$project`" -Parent `"$parentPath`" -Secret `"$secretFile`" -Port $portB -Kind $($case.Kind) -Probe `"$probe`""
                 $writerProc = Start-Process $pwsh -ArgumentList $args -Credential $lowCred -PassThru -Wait -LoadUserProfile -WindowStyle Hidden
                 if ($writerProc.ExitCode -ne 0) { throw "Low-principal writer failed in $($case.Name): $($writerProc.ExitCode)" }
                 $probeResult = Get-Content $probe -Raw
-                if ($probeResult.Trim() -ne 'secret=DENIED project=DENIED') { throw "ACL boundary failed: $probeResult" }
+                if ($probeResult.Trim() -ne 'secret=DENIED parent=DENIED project=DENIED') { throw "ACL boundary failed: $probeResult" }
                 $countA = @(Get-Content $logA).Count
                 $countB = @(Get-Content $logB).Count
-                if ($case.Secret) { $env:NuGetPackageSourceCredentials_PrivateFeed = "Username=labuser;Password=$pw;ValidAuthenticationTypes=Basic" }
-                else { Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue }
+                if ($case.Secret) { $selectedParent = $parentCred } else { $selectedParent = $parentNoCred }
+                [IO.File]::WriteAllText($parentPath, [IO.File]::ReadAllText($selectedParent))
                 $restoreLog = Join-Path $trusted ($case.Name + '.restore.log')
                 & dotnet restore $project --force --no-cache --disable-parallel --ignore-failed-sources --verbosity quiet *> $restoreLog
                 $newA = @(Get-Content $logA | Select-Object -Skip $countA)
                 $newB = @(Get-Content $logB | Select-Object -Skip $countB)
                 $authA = @($newA | Where-Object { $_ -eq "AUTH $expected" }).Count -gt 0
                 $authB = @($newB | Where-Object { $_ -eq "AUTH $expected" }).Count -gt 0
-                Write-Host "CASE $($case.Name): legitimate_auth=$authA attacker_auth=$authB low_direct_access=DENIED"
+                Write-Host "CASE $($case.Name): legitimate_auth=$authA attacker_auth=$authB low_direct_access=DENIED encrypted_parent=$($case.Secret)"
                 if ($authA -ne $case.A -or $authB -ne $case.B) { throw "Unexpected credential recipient for $($case.Name)" }
               }
             } finally { Pop-Location }
@@ -197,7 +211,7 @@ jobs:
             $replayProc = Start-Process $pwsh -ArgumentList $replayArgs -Credential $lowCred -PassThru -Wait -LoadUserProfile -WindowStyle Hidden
             if ($replayProc.ExitCode -ne 0) { throw "Protected marker replay failed: $($replayProc.ExitCode)" }
             $replayResult = (Get-Content $replayOut -Raw).Trim()
-            if ($replayResult -ne "NOAUTH=401 AUTH=200 MARKERHASH=$expectedMarker DIRECT=DENIED") { throw "Protected marker mismatch: $replayResult" }
+            if ($replayResult -ne "NOAUTH=401 AUTH=200 MARKERHASH=$expectedMarker DIRECT=DENIED") { throw "Protected marker mismatch: $replayResult; high_server_tail=$(@(Get-Content $logA | Select-Object -Last 3) -join ',')" }
             Write-Host 'F033_PROTECTED_MARKER_REPLAY_PASS'
           } finally {
             Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue
