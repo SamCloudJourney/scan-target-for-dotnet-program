@@ -31,16 +31,14 @@ print("CHECKPOINT certificate generated", flush=True)
 DER = ROOT / "localhost-cert.cer"
 subprocess.run([openssl, "x509", "-in", str(CERT), "-outform", "der", "-out", str(DER)], check=True, capture_output=True, text=True, timeout=20)
 print("CHECKPOINT certificate converted", flush=True)
-trust_script = "$c=[System.Security.Cryptography.X509Certificates.X509Certificate2]::new('" + str(DER) + "'); $s=[System.Security.Cryptography.X509Certificates.X509Store]::new('Root',[System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser); $s.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite); $s.Add($c); $s.Close(); $c.Thumbprint"
-trust_cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", trust_script]
-print("CHECKPOINT trust begin", flush=True)
-trust = subprocess.run(trust_cmd, capture_output=True, text=True, timeout=20)
-print("CHECKPOINT trust end", trust.returncode, flush=True)
+print("CHECKPOINT machine root trust begin", flush=True)
+trust = subprocess.run(["certutil", "-f", "-silent", "-addstore", "Root", str(DER)], capture_output=True, text=True, timeout=20)
+print("CHECKPOINT machine root trust end", trust.returncode, flush=True)
 if trust.returncode != 0:
-    print("CERT_IMPORT_STDOUT", trust.stdout)
-    print("CERT_IMPORT_STDERR", trust.stderr)
+    print("CERT_IMPORT_STDOUT", trust.stdout, flush=True)
+    print("CERT_IMPORT_STDERR", trust.stderr, flush=True)
     raise RuntimeError("Test certificate import failed")
-print("TRUSTED_TEST_CERT_THUMBPRINT", trust.stdout.strip(), flush=True)
+print("TRUSTED_TEST_CERT_RESULT", trust.stdout.strip(), flush=True)
 
 print("CHECKPOINT sdk list begin", flush=True)
 sdk_text = subprocess.run(["dotnet", "--list-sdks"], check=True, capture_output=True, text=True, timeout=20).stdout
