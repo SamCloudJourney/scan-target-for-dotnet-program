@@ -40,6 +40,7 @@ jobs:
             "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/.github/scripts/$probe" \
             -o /tmp/f042-headless.sh
           bash -n /tmp/f042-headless.sh
+          sed -i 's/seq 1 240/seq 1 30/' /tmp/f042-headless.sh
       - name: Probe launch routing without a device
         shell: bash
         run: bash /tmp/f042-headless.sh
