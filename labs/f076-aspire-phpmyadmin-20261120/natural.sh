@@ -149,7 +149,7 @@ for iteration in 1 2; do
   echo "discovered_candidate=$discovered" | tee -a "$out/$label-permissions.txt"
   test "$discovered" = "$file"
   source_file="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
-    /usr/bin/find /tmp -maxdepth 3 -type f -name AppHost.cs -print 2>/dev/null | head -1)"
+    /usr/bin/find /tmp -maxdepth 3 -type f -name AppHost.cs -print 2>/dev/null | head -1 || true)"
   echo "source_candidate=$source_file" | tee -a "$out/$label-permissions.txt"
   test "$source_file" = "$case_dir/AppHost.cs"
   discovered_port="$(sudo -u nobody -H /usr/bin/env -i PATH=/usr/bin:/bin \
