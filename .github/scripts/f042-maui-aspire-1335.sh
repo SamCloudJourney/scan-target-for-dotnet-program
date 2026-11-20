@@ -29,6 +29,9 @@ cat > "$host/Host.csproj" <<EOF
     <PackageReference Include="Aspire.Hosting.AppHost" Version="13.3.5" />
     <PackageReference Include="Aspire.Hosting.Maui" Version="13.3.5-preview.1.26270.6" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Mobile/F042Mobile.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" SetTargetFramework="TargetFramework=net11.0-android" />
+  </ItemGroup>
 </Project>
 EOF
 cat > "$host/Program.cs" <<'EOF'
