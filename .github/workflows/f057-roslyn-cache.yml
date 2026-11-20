@@ -84,9 +84,66 @@ jobs:
           catch { $data.canaryError = $_.Exception.Message }
           $data | ConvertTo-Json -Compress | Set-Content -LiteralPath $Result
           '@ | Set-Content -LiteralPath $lowScript
-          $lowCommand = "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $lowScript -CacheAssembly $entry -PoisonDll $poisonDll -Canary $canary -Result $lowResult"
-          & runas.exe /trustlevel:0x20000 $lowCommand
-          Write-Host "RUNAS_EXIT=$LASTEXITCODE"
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Diagnostics;
+          using System.Runtime.InteropServices;
+          public static class MediumTokenLauncher {
+            const uint TOKEN_ALL_ACCESS = 0xF01FF;
+            const uint SE_GROUP_INTEGRITY = 0x20;
+            const uint CREATE_NO_WINDOW = 0x08000000;
+            [StructLayout(LayoutKind.Sequential)] struct SID_AND_ATTRIBUTES { public IntPtr Sid; public uint Attributes; }
+            [StructLayout(LayoutKind.Sequential)] struct TOKEN_MANDATORY_LABEL { public SID_AND_ATTRIBUTES Label; }
+            [StructLayout(LayoutKind.Sequential)] struct STARTUPINFO {
+              public uint cb; public IntPtr lpReserved, lpDesktop, lpTitle;
+              public uint dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+              public ushort wShowWindow, cbReserved2;
+              public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+            }
+            [StructLayout(LayoutKind.Sequential)] struct PROCESS_INFORMATION {
+              public IntPtr hProcess, hThread; public uint dwProcessId, dwThreadId;
+            }
+            [DllImport("advapi32.dll", SetLastError=true)] static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+            [DllImport("advapi32.dll", SetLastError=true)] static extern bool DuplicateTokenEx(IntPtr source, uint access, IntPtr attrs, int level, int type, out IntPtr token);
+            [DllImport("advapi32.dll", SetLastError=true)] static extern bool ConvertStringSidToSidW([MarshalAs(UnmanagedType.LPWStr)] string text, out IntPtr sid);
+            [DllImport("advapi32.dll", SetLastError=true)] static extern uint GetLengthSid(IntPtr sid);
+            [DllImport("advapi32.dll", SetLastError=true)] static extern bool CopySid(uint length, IntPtr dest, IntPtr source);
+            [DllImport("advapi32.dll", SetLastError=true)] static extern bool SetTokenInformation(IntPtr token, int infoClass, IntPtr info, int length);
+            [DllImport("advapi32.dll", EntryPoint="CreateProcessWithTokenW", CharSet=CharSet.Unicode, SetLastError=true)]
+            static extern bool CreateProcessWithToken(IntPtr token, uint logonFlags, string application, string command, uint flags, IntPtr environment, string cwd, ref STARTUPINFO startup, out PROCESS_INFORMATION process);
+            [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+            [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr handle);
+            public static uint Launch(string command) {
+              IntPtr original=IntPtr.Zero, lowered=IntPtr.Zero, sid=IntPtr.Zero, buffer=IntPtr.Zero;
+              try {
+                if(!OpenProcessToken(Process.GetCurrentProcess().Handle,TOKEN_ALL_ACCESS,out original)) throw new Exception("OpenProcessToken "+Marshal.GetLastWin32Error());
+                if(!DuplicateTokenEx(original,TOKEN_ALL_ACCESS,IntPtr.Zero,2,1,out lowered)) throw new Exception("DuplicateTokenEx "+Marshal.GetLastWin32Error());
+                if(!ConvertStringSidToSidW("S-1-16-8192",out sid)) throw new Exception("ConvertStringSid "+Marshal.GetLastWin32Error());
+                int labelSize=Marshal.SizeOf<TOKEN_MANDATORY_LABEL>();
+                int size=labelSize+(int)GetLengthSid(sid);
+                buffer=Marshal.AllocHGlobal(size);
+                IntPtr inlineSid=IntPtr.Add(buffer,labelSize);
+                if(!CopySid((uint)(size-labelSize),inlineSid,sid)) throw new Exception("CopySid "+Marshal.GetLastWin32Error());
+                var label=new TOKEN_MANDATORY_LABEL { Label=new SID_AND_ATTRIBUTES { Sid=inlineSid, Attributes=SE_GROUP_INTEGRITY } };
+                Marshal.StructureToPtr(label,buffer,false);
+                if(!SetTokenInformation(lowered,25,buffer,size)) throw new Exception("SetTokenInformation "+Marshal.GetLastWin32Error());
+                var si=new STARTUPINFO { cb=(uint)Marshal.SizeOf<STARTUPINFO>() };
+                PROCESS_INFORMATION pi;
+                if(!CreateProcessWithToken(lowered,0,null,command,CREATE_NO_WINDOW,IntPtr.Zero,null,ref si,out pi)) throw new Exception("CreateProcessWithTokenW "+Marshal.GetLastWin32Error());
+                try { return pi.dwProcessId; }
+                finally { CloseHandle(pi.hThread); CloseHandle(pi.hProcess); }
+              } finally {
+                if(buffer!=IntPtr.Zero) Marshal.FreeHGlobal(buffer);
+                if(sid!=IntPtr.Zero) LocalFree(sid);
+                if(lowered!=IntPtr.Zero) CloseHandle(lowered);
+                if(original!=IntPtr.Zero) CloseHandle(original);
+              }
+            }
+          }
+          '@
+          $lowCommand = '"' + $env:WINDIR + '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' + $lowScript + ' -CacheAssembly ' + $entry + ' -PoisonDll ' + $poisonDll + ' -Canary ' + $canary + ' -Result ' + $lowResult
+          try { $lowPid = [MediumTokenLauncher]::Launch($lowCommand); Write-Host "MEDIUM_LAUNCH_PID=$lowPid" }
+          catch { Write-Host "MEDIUM_LAUNCH_ERROR=$($_.Exception.Message)" }
           for ($i = 0; $i -lt 40 -and -not (Test-Path $lowResult); $i++) { Start-Sleep -Milliseconds 500 }
           $actor = 'high-fallback'
           if (Test-Path $lowResult) {
