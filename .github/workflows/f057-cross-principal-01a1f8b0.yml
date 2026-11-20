@@ -1,0 +1,104 @@
+name: F057 cross principal cache controls
+on:
+  push:
+    branches:
+      - research/f057-cross-principal-01a1f8b0
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-two-users:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Test SDK cache identity and artifact boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DOTNET_CLI_TELEMETRY_OPTOUT=1
+          root="$(mktemp -d /tmp/f057-cross-XXXXXX)"
+          chmod 755 "$root"
+          victim="$root/victim"
+          poison="$root/poison"
+          cache="$root/shared-cache"
+          low=f057low01
+          sudo useradd -m -s /bin/bash "$low"
+          dotnet new console --framework net11.0 -n Victim -o "$victim" --no-restore
+          dotnet new console --framework net11.0 -n Victim -o "$poison" --no-restore
+          printf '%s\n' 'Console.WriteLine("BASELINE");' > "$victim/Program.cs"
+          printf '%s\n' 'Console.WriteLine("POISON");' > "$poison/Program.cs"
+          echo "SDK=$(dotnet --version)"
+          echo "HIGH_USER=$(id -un):$(id -u)"
+          echo "LOW_USER=$(sudo -u "$low" id -un):$(sudo -u "$low" id -u)"
+          echo "ROOT=$root"
+
+          dotnet build "$victim" -c Release -p:Features=use-global-cache -p:UseSharedCompilation=true -v:n
+          default_cache="$(find "$HOME" -maxdepth 6 -type d -name roslyn-cache -print -quit)"
+          test -n "$default_cache"
+          echo "DEFAULT_CACHE=$default_cache"
+          echo "DEFAULT_MODE=$(stat -c '%a %U:%G' "$default_cache")"
+          if sudo -u "$low" test -r "$default_cache"; then echo 'DEFAULT_READ=unexpected-allow'; exit 1; fi
+          if sudo -u "$low" test -w "$default_cache"; then echo 'DEFAULT_WRITE=unexpected-allow'; exit 1; fi
+          echo 'DEFAULT_READ=denied'
+          echo 'DEFAULT_WRITE=denied'
+
+          dotnet build "$poison" -c Release -v:q
+          poison_dll="$poison/bin/Release/net11.0/Victim.dll"
+          chmod -R a+rX "$poison"
+          mkdir -m 700 "$cache"
+          dotnet clean "$victim" -c Release -v:q
+          ROSLYN_CACHE_PATH="$cache" dotnet build "$victim" -c Release -p:UseSharedCompilation=true -v:n
+          victim_dll="$victim/bin/Release/net11.0/Victim.dll"
+          cold="$(dotnet "$victim_dll")"
+          echo "EXPLICIT_COLD=$cold"
+          test "$cold" = BASELINE
+          entry="$(find "$cache/Victim.dll" -type f -name assembly -print -quit)"
+          test -n "$entry"
+          echo "EXACT_ENTRY=$entry"
+          echo "CACHE_MODE_BEFORE=$(stat -c '%a %U:%G' "$cache")"
+          chmod -R go-rwx "$victim"
+          if sudo -u "$low" test -w "$entry"; then echo 'CACHE_WRITE_BEFORE=unexpected-allow'; exit 1; fi
+          if sudo -u "$low" test -w "$victim/Program.cs"; then echo 'SOURCE_WRITE=unexpected-allow'; exit 1; fi
+          if sudo -u "$low" test -w "$victim_dll"; then echo 'OUTPUT_WRITE=unexpected-allow'; exit 1; fi
+          echo 'CACHE_WRITE_BEFORE=denied'
+          echo 'SOURCE_WRITE=denied'
+          echo 'OUTPUT_WRITE=denied'
+          chmod -R a+rwX "$cache"
+          echo "CACHE_MODE_AFTER=$(stat -c '%a %U:%G' "$cache")"
+          sudo -u "$low" cp "$poison_dll" "$entry"
+          echo 'CACHE_WRITE_AFTER=allowed'
+          sha256sum "$entry" "$poison_dll"
+
+          dotnet clean "$victim" -c Release -v:q
+          ROSLYN_CACHE_PATH="$cache" dotnet build "$victim" -c Release -p:UseSharedCompilation=true -v:n
+          first="$(dotnet "$victim_dll")"
+          echo "POISONED_BUILD_1=$first"
+          test "$first" = POISON
+          dotnet clean "$victim" -c Release -v:q
+          ROSLYN_CACHE_PATH="$cache" dotnet build "$victim" -c Release -p:UseSharedCompilation=true -v:n
+          second="$(dotnet "$victim_dll")"
+          echo "POISONED_BUILD_2=$second"
+          test "$second" = POISON
+          ROSLYN_CACHE_PATH="$cache" dotnet publish "$victim" -c Release -p:UseSharedCompilation=true -o "$root/published" -v:q
+          published="$(dotnet "$root/published/Victim.dll")"
+          echo "PUBLISHED_SYNTHETIC=$published"
+          test "$published" = POISON
+          sha256sum "$root/published/Victim.dll"
+
+          printf '%s\n' 'Console.WriteLine("WRONG_KEY_BASELINE");' > "$victim/Program.cs"
+          dotnet clean "$victim" -c Release -v:q
+          ROSLYN_CACHE_PATH="$cache" dotnet build "$victim" -c Release -p:UseSharedCompilation=true -v:q
+          wrong="$(dotnet "$victim_dll")"
+          echo "WRONG_KEY=$wrong"
+          test "$wrong" = WRONG_KEY_BASELINE
+          rm -rf "$(dirname "$entry")"
+          printf '%s\n' 'Console.WriteLine("BASELINE");' > "$victim/Program.cs"
+          dotnet clean "$victim" -c Release -v:q
+          ROSLYN_CACHE_PATH="$cache" dotnet build "$victim" -c Release -p:UseSharedCompilation=true -v:q
+          removed="$(dotnet "$victim_dll")"
+          echo "REMOVED_ENTRY=$removed"
+          test "$removed" = BASELINE
+          echo 'F057_TWO_USERS=PASS'
