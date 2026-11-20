@@ -169,6 +169,9 @@ jobs:
           Write-Host 'TOOL_MANIFEST_ONLY True'
             Push-Location $repo
             try {
+              $restoreSdk = dotnet --version
+              if ($restoreSdk -ne '10.0.404') { throw "Unexpected restore SDK: $restoreSdk" }
+              Write-Host "RESTORE_SDK $restoreSdk"
               foreach ($case in @(
                 @{Name='legitimate'; Kind='empty'; Secret=$true; A=$true; B=$false},
                 @{Name='denied'; Kind='same'; Secret=$false; A=$false; B=$false},
