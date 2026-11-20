@@ -25,7 +25,7 @@ jobs:
           [IO.File]::WriteAllText($project, '<Project><Target Name="Extract"><Unzip SourceFiles="$(ArchivePath)" DestinationFolder="$(Destination)" SkipUnchangedFiles="false" /></Target></Project>')
           $lowScript = Join-Path $root 'low.ps1'
           @'
-          param([string]$Root, [string]$Outside, [string]$Mode)
+          param([string]$Root, [string]$Outside, [string]$Trusted, [string]$Mode)
           $ErrorActionPreference = 'Stop'
           Write-Host "LOW_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
           if ($Mode -eq 'archives') {
@@ -52,6 +52,12 @@ jobs:
             } catch [UnauthorizedAccessException] {
               Write-Host 'LOW_DIRECT_DENIED'
             }
+            try {
+              [IO.File]::AppendAllText((Join-Path $Trusted 'trusted.proj'), 'LOW_PROJECT_EDIT')
+              throw 'LOW_PROJECT_EDIT_UNEXPECTEDLY_SUCCEEDED'
+            } catch [UnauthorizedAccessException] {
+              Write-Host 'LOW_TRUSTED_PROJECT_WRITE_DENIED'
+            }
             Write-Host "LOW_LINK=$link"
           } else { throw "Unknown mode $Mode" }
           '@ | Set-Content -LiteralPath $lowScript -Encoding utf8
@@ -64,14 +70,16 @@ jobs:
           try {
             & icacls $root /grant "$($lowAccount):(OI)(CI)M"
             if ($LASTEXITCODE -ne 0) { throw 'Failed to grant low user extraction-root access' }
-            & icacls $outside /inheritance:r /grant:r 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX"
+            & icacls $outside /inheritance:r /grant:r 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
             if ($LASTEXITCODE -ne 0) { throw 'Failed to protect outside directory' }
+            & icacls $trusted /inheritance:r /grant:r 'BUILTIN\Administrators:(OI)(CI)F' "$($lowAccount):(OI)(CI)RX" /T
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to protect trusted project' }
             Write-Host "HIGH_IDENTITY=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
             Write-Host "DOTNET=$(dotnet --version)"
             function Run-Low([string]$Mode) {
               $out = Join-Path $base "low-$Mode.stdout.txt"
               $err = Join-Path $base "low-$Mode.stderr.txt"
-              $args = "-NoProfile -NonInteractive -File `"$lowScript`" -Root `"$root`" -Outside `"$outside`" -Mode $Mode"
+              $args = "-NoProfile -NonInteractive -File `"$lowScript`" -Root `"$root`" -Outside `"$outside`" -Trusted `"$trusted`" -Mode $Mode"
               $proc = Start-Process -FilePath (Get-Command pwsh).Source -Credential $credential -ArgumentList $args -Wait -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
               Get-Content $out
               if (Test-Path $err) { Get-Content $err }
