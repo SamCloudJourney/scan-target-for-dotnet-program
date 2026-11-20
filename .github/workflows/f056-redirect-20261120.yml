@@ -1,0 +1,30 @@
+name: F-056 synthetic NuGet HTTPS redirect lab
+on:
+  push:
+    branches:
+      - research/f056-redirect-20261120
+    paths:
+      - research/f056-redirect-20261120/**
+      - .github/workflows/f056-redirect-20261120.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-redirect:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: research/f056-redirect-20261120
+          sparse-checkout-cone-mode: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run owned loopback redirect cases
+        run: python research/f056-redirect-20261120/f056_redirect_lab.py
