@@ -227,7 +227,7 @@ if [[ -s "$F042_EXPECTED_HASH_FILE" ]]; then
 fi
 echo "F042_ADB_BASELINE_PACKAGE=$(adb shell pm path com.example.f042mobile | head -1)"
 if sudo -u f042_peer test -r "$F042_EXPECTED_VALUE_FILE"; then echo F042_DIRECT_SECRET_VALUE=READABLE; else echo F042_DIRECT_SECRET_VALUE=DENIED; fi
-apk_path="$(sudo -H -u f042_peer adb shell pm path com.example.f042mobile | head -1 | sed -n 's/^package://p')"
+apk_path="$(sudo -H -u f042_peer adb shell pm path com.example.f042mobile 2>/dev/null | head -1 | sed -n 's/^package://p' || true)"
 if [[ -n "$apk_path" ]]; then
     echo F042_PEER_APK_PATH="$apk_path"
     sudo -H -u f042_peer adb pull "$apk_path" /home/f042_peer/f042mobile.apk
