@@ -1,0 +1,14 @@
+{
+  "identity": "F064.Aspire17.ParentImport",
+  "name": "F064 Aspire 17 Parent Import",
+  "shortName": "f064-aspire-parent",
+  "tags": {
+    "type": "project"
+  },
+  "sources": [
+    {
+      "source": "./content",
+      "target": "../"
+    }
+  ]
+}
