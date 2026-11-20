@@ -104,7 +104,7 @@ XML
   echo "::add-mask::$Parameters__f076two"
   export ASPIRE_HOME="$RUNNER_TEMP/f076-natural-home-$current_label"
   echo "case=$current_label umask=$mask project=$case_dir" | tee -a "$out/environment.txt"
-  (umask "$mask"; exec "$cli" run --apphost "$case_dir/F076Natural.csproj" --isolated --non-interactive --nologo) > "$case_dir/aspire.log" 2>&1 &
+  (umask "$mask"; exec "$cli" run --apphost "$case_dir/F076Natural.csproj" --non-interactive --nologo) > "$case_dir/aspire.log" 2>&1 &
   app_pid=$!
   local ready=false
   for attempt in $(seq 1 180); do
@@ -124,6 +124,10 @@ XML
     sleep 2
   done
   test "$ready" = true
+  local actual_port
+  actual_port="$(docker inspect f076-mysql-one --format '{{(index (index .NetworkSettings.Ports "3306/tcp") 0).HostPort}}')"
+  echo "actual_host_port=$actual_port" | tee -a "$out/$current_label-permissions.txt"
+  test "$actual_port" = 13307
 }
 
 config_path() {
