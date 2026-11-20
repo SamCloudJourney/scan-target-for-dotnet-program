@@ -133,7 +133,10 @@ def one(assembly, version, config, case):
             raise RuntimeError("server failed to become healthy")
         before = health_samples(3)
         attack = open_h2()
-        sent = send_attack(attack, case, config)
+        try:
+            sent = send_attack(attack, case, config)
+        except OSError as e:
+            sent = {"send_error": type(e).__name__ + ": " + str(e)}
         time.sleep(0.25)
         during = health_samples(5)
         signals = read_frames(attack, 0.5)
