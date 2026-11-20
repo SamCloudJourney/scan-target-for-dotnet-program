@@ -1,0 +1,105 @@
+name: F030 staged PMI join
+on:
+  push:
+    branches: [f030-stage-join-20261120-a1]
+permissions:
+  contents: read
+jobs:
+  staged-two-principal-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run pinned staging and PMI shell stage under split identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/f030_stage_join
+          src="$root/src"
+          core="$root/core"
+          inputDir="$root/intake"
+          nested="$inputDir/nested"
+          protected="$root/protected"
+          cache="$root/cache"
+          mkdir -p "$src" "$core" "$nested" "$protected" "$cache"
+          chmod 755 "$root"
+          chmod 777 "$inputDir" "$nested"
+          for file in superpmi.py superpmi_collect_setup.py coreclr_arguments.py jitutil.py; do
+            curl -fsSL "https://raw.githubusercontent.com/dotnet/runtime/v10.0.15/src/coreclr/scripts/$file" -o "$src/$file"
+            sha256sum "$src/$file"
+          done
+          cat > "$core/corerun" <<'STUB'
+          #!/bin/sh
+          printf 'F030_TOOL_ID=%s\n' "$(id -un)"
+          STUB
+          chmod 755 "$core/corerun"
+          cp "$core/corerun" "$core/superpmi"
+          cp "$core/corerun" "$core/mcs"
+          : > "$core/pmi.dll"
+          marker=F030_STAGE_SYNTHETIC_CANARY_20261120
+          printf '%s\n' "$marker" > "$protected/canary.txt"
+          chmod 700 "$protected"
+          chmod 600 "$protected/canary.txt"
+          export F030_CANARY_PATH="$protected/canary.txt"
+          sudo -u nobody env -u F030_CANARY_PATH python3 - "$root" <<'ACTOR'
+          import pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          try:
+              (root / 'protected' / 'canary.txt').read_text()
+              direct = 'ALLOWED'
+          except PermissionError:
+              direct = 'DENIED'
+          (root / 'intake' / 'direct.txt').write_text(direct)
+          (root / 'intake' / 'nested' / 'safe.dll').write_bytes(b'')
+          (root / 'intake' / 'nested' / 'seed; cat "$F030_CANARY_PATH" ; #.txt').write_bytes(b'')
+          ACTOR
+          printf 'ACTOR_DIRECT_READ=%s\n' "$(cat "$inputDir/direct.txt")"
+          test "$(cat "$inputDir/direct.txt")" = DENIED
+          run_case() {
+            caseName="$1"
+            stage="$root/stage_$caseName"
+            temp="$root/temp_$caseName"
+            mkdir -p "$temp"
+            printf 'STAGE_CLI=PYTHONPATH=%s python3 - %s %s [calls original superpmi_collect_setup.partition_files]\n' "$src" "$inputDir" "$stage"
+            PYTHONPATH="$src" python3 - "$inputDir" "$stage" <<'STAGE'
+          import sys
+          import superpmi_collect_setup as setup
+          setup.partition_files(sys.argv[1], sys.argv[2], 25000000)
+          STAGE
+            binaries="$stage/0/binaries"
+            test -d "$binaries"
+            printf 'CASE=%s STAGED_FILES:\n' "$caseName"
+            ls -1 "$binaries/nested"
+            printf 'CLI=python3 %s collect --pmi --skip_merge_step --skip_toc_step --skip_cleanup -core_root %s -pmi_location %s -assemblies %s -spmi_location %s -temp_dir %s -output_mch_path %s -log_level DEBUG\n' "$src/superpmi.py" "$core" "$core/pmi.dll" "$binaries" "$cache" "$temp" "$root/$caseName.mch"
+            set +e
+            python3 "$src/superpmi.py" collect --pmi --skip_merge_step --skip_toc_step --skip_cleanup -core_root "$core" -pmi_location "$core/pmi.dll" -assemblies "$binaries" -spmi_location "$cache" -temp_dir "$temp" -output_mch_path "$root/$caseName.mch" -log_level DEBUG > "$root/$caseName.log" 2>&1
+            exitCode=$?
+            set -e
+            printf 'CASE=%s CLI_EXIT=%s\n' "$caseName" "$exitCode"
+            grep -E 'Using assemblies:|safe.dll|seed;|Starting collection using PMI|Error|No assemblies' "$root/$caseName.log" | head -18 || true
+            cat "$temp"/*.stdout 2>/dev/null || true
+          }
+          safeOutput="$(run_case safe)"
+          printf '%s\n' "$safeOutput"
+          test ! -e "$root/stage_safe/0/binaries/nested/"'seed; cat "$F030_CANARY_PATH" ; #.txt'
+          if printf '%s' "$safeOutput" | grep -q "$marker"; then echo 'safe/TXT control read canary'; exit 1; fi
+          if ! printf '%s' "$safeOutput" | grep -q 'F030_TOOL_ID=runner'; then echo 'safe control did not reach corerun'; exit 1; fi
+          sudo -u nobody env -u F030_CANARY_PATH python3 - "$nested" <<'ACTOR'
+          import pathlib, sys
+          (pathlib.Path(sys.argv[1]) / 'seed; cat "$F030_CANARY_PATH" ; #.dll').write_bytes(b'')
+          ACTOR
+          firstOutput="$(run_case one_factor_1)"
+          printf '%s\n' "$firstOutput"
+          if ! printf '%s' "$firstOutput" | grep -q "$marker"; then echo 'first staged DLL did not read canary'; exit 1; fi
+          secondOutput="$(run_case one_factor_2)"
+          printf '%s\n' "$secondOutput"
+          if ! printf '%s' "$secondOutput" | grep -q "$marker"; then echo 'second staged DLL did not read canary'; exit 1; fi
+          payloadPath="$root/stage_one_factor_2/0/binaries/nested/"'seed; cat "$F030_CANARY_PATH" ; #.dll'
+          test -f "$payloadPath"
+          argvOutput="$(python3 - "$core/corerun" "$core/pmi.dll" "$payloadPath" <<'ARGV'
+          import subprocess, sys
+          print(subprocess.run([sys.argv[1], sys.argv[2], 'DRIVEALL', sys.argv[3]], capture_output=True, text=True).stdout, end='')
+          ARGV
+          )"
+          printf 'ARGV_CONTROL=%s\n' "$argvOutput"
+          if printf '%s' "$argvOutput" | grep -q "$marker"; then echo 'argv control read canary'; exit 1; fi
+          printf 'F030_RESULT=PINNED_FIRST_PARTY_PARTITION_TO_SHELL_STAGE_JOIN_CONFIRMED\n'
