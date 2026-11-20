@@ -162,6 +162,9 @@ tr -d '\000' < "$watch_log" | tail -80 || true
 cleanup_watch
 sleep 3
 
+export ASPNETCORE_URLS=http://127.0.0.1:15174
+export ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=http://127.0.0.1:19173
+export ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=http://127.0.0.1:20092
 echo F042_ATTACK_START
 : > "$F042_EXPECTED_HASH_FILE"
 : > "$F042_HOST_CREDENTIAL_FILE"
