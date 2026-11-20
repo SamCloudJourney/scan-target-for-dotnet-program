@@ -56,9 +56,6 @@ jobs:
               <ImplicitUsings>enable</ImplicitUsings>
             </PropertyGroup>
             <ItemGroup><ProjectCapability Include="HotReloadWebSockets" /></ItemGroup>
-            <Target Name="F042DelayChildLaunch" BeforeTargets="ComputeRunArguments">
-              <Exec Command="sleep 20" />
-            </Target>
           </Project>
           EOF
           cat > "$peripheral/Program.cs" <<'EOF'
