@@ -34,7 +34,7 @@ jobs:
           $uncUri = "file://$addr/$shareName/icon.bin"
           $missingUri = "file://$addr/$shareName/missing.bin"
           $feedIndex = @{ version='3.0.0'; resources=@(
-            @{ '@id'="http://127.0.0.1:$port/search"; '@type'='SearchQueryService' },
+            @{ '@id'="http://127.0.0.1:$port/search"; '@type'='SearchQueryService/3.4.0' },
             @{ '@id'="http://127.0.0.1:$port/flat/"; '@type'='PackageBaseAddress/3.0.0' },
             @{ '@id'="http://127.0.0.1:$port/registration/"; '@type'='RegistrationsBaseUrl/3.6.0' }
           ) } | ConvertTo-Json -Depth 8 -Compress
