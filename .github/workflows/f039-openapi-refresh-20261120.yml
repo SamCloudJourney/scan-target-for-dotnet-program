@@ -113,7 +113,7 @@ jobs:
               for ($round = 1; $round -le 2; $round++) {
                 [IO.File]::WriteAllText($canary, $original)
                 & $shim refresh --updateProject $project $url
-                if ($LASTEXITCODE -ne 0) { throw "Attack refresh failed in round $round: $LASTEXITCODE" }
+                if ($LASTEXITCODE -ne 0) { throw "Attack refresh failed in round ${round}: $LASTEXITCODE" }
                 $observed = [IO.File]::ReadAllText($canary)
                 Write-Host "ATTACK_ROUND_${round}_CANARY=$observed"
                 if ($observed -ne $payload) { throw "Protected overwrite absent in round $round" }
