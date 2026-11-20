@@ -29,6 +29,7 @@ jobs:
           $config = Join-Path $repo 'NuGet.Config'
           $project = Join-Path $repo 'Fixed.csproj'
           $secretFile = Join-Path $trusted 'secret.txt'
+          $markerFile = Join-Path $trusted 'private-marker.txt'
           $lowName = 'f033low'
           $portA = 55331
           $portB = 55332
@@ -48,6 +49,9 @@ jobs:
 
             $pw = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(20))
             [IO.File]::WriteAllText($secretFile, $pw)
+            $marker = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(16))
+            [IO.File]::WriteAllText($markerFile, $marker)
+            $expectedMarker = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($marker)))
             $expected = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("labuser:$pw")))
             $parentConfig = @"
           <configuration><packageSources><clear /><add key="PrivateFeed" value="http://127.0.0.1:$portA/v3/index.json" allowInsecureConnections="true" /></packageSources></configuration>
@@ -58,7 +62,7 @@ jobs:
             [IO.File]::WriteAllText($project, '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup><ItemGroup><PackageReference Include="F033.Nonexistent" Version="1.0.0" /></ItemGroup></Project>')
 
             $server = @'
-          param([int]$Port, [string]$Log)
+          param([int]$Port, [string]$Log, [string]$Secret, [string]$Marker, [string]$Capture)
           $ErrorActionPreference = 'Stop'
           $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $Port)
           $listener.Start()
@@ -83,7 +87,16 @@ jobs:
                   $decoded = [Convert]::FromBase64String($auth.Substring(6))
                   $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($decoded))
                   Add-Content -Path $Log -Value "AUTH $digest"
-                  $response = "HTTP/1.1 404 Not Found`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
+                  if ($Capture) { Set-Content -Path $Capture -Value $auth.Substring(6) -NoNewline }
+                  if ($requestLine -like 'GET /private *' -and $Secret -and $Marker -and
+                    [Text.Encoding]::UTF8.GetString($decoded) -ceq ('labuser:' + [IO.File]::ReadAllText($Secret))) {
+                    $body = [IO.File]::ReadAllText($Marker)
+                    $response = "HTTP/1.1 200 OK`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n$body"
+                  } elseif ($requestLine -like 'GET /private *') {
+                    $response = "HTTP/1.1 403 Forbidden`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
+                  } else {
+                    $response = "HTTP/1.1 404 Not Found`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
+                  }
                 } else {
                   Add-Content -Path $Log -Value 'NOAUTH'
                   $response = "HTTP/1.1 401 Unauthorized`r`nWWW-Authenticate: Basic realm=`"F033`"`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
@@ -105,6 +118,7 @@ jobs:
             [IO.File]::WriteAllText($serverB, $server)
             $logA = Join-Path $trusted 'requests.log'
             $logB = Join-Path $attacker 'requests.log'
+            $captured = Join-Path $attacker 'captured-basic.txt'
             [IO.File]::WriteAllText($logA, '')
             [IO.File]::WriteAllText($logB, '')
             & icacls $serverB /grant "${lowName}:R" | Out-Null
@@ -126,8 +140,8 @@ jobs:
             [IO.File]::WriteAllText($writerPath, $writer)
             & icacls $writerPath /grant "${lowName}:R" | Out-Null
             $pwsh = (Get-Command pwsh).Source
-            $highProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverA, '-Port', $portA, '-Log', $logA) -PassThru -WindowStyle Hidden
-            $lowProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverB, '-Port', $portB, '-Log', $logB) -Credential $lowCred -PassThru -LoadUserProfile -WindowStyle Hidden
+            $highProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverA, '-Port', $portA, '-Log', $logA, '-Secret', $secretFile, '-Marker', $markerFile) -PassThru -WindowStyle Hidden
+            $lowProcess = Start-Process $pwsh -ArgumentList @('-NoProfile', '-File', $serverB, '-Port', $portB, '-Log', $logB, '-Capture', $captured) -Credential $lowCred -PassThru -LoadUserProfile -WindowStyle Hidden
             Start-Sleep -Seconds 4
             if ($highProcess.HasExited -or $lowProcess.HasExited) { throw 'A listener exited before testing' }
             $env:NUGET_PACKAGES = Join-Path $trusted 'packages'
@@ -164,6 +178,27 @@ jobs:
               }
             } finally { Pop-Location }
             Write-Host 'F033_CONTROL_MATRIX_PASS'
+            $replay = @'
+          param([string]$Capture, [string]$Secret, [string]$Marker, [string]$Out, [int]$Port)
+          $direct = 'DENIED'
+          try { Get-Content $Secret -ErrorAction Stop | Out-Null; $direct = 'ALLOWED' } catch {}
+          try { Get-Content $Marker -ErrorAction Stop | Out-Null; $direct = 'ALLOWED' } catch {}
+          $noAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck
+          $token = Get-Content $Capture -Raw
+          $withAuth = Invoke-WebRequest "http://127.0.0.1:$Port/private" -NoProxy -SkipHttpErrorCheck -Headers @{Authorization="Basic $token"}
+          $digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($withAuth.Content)))
+          Set-Content $Out "NOAUTH=$([int]$noAuth.StatusCode) AUTH=$([int]$withAuth.StatusCode) MARKERHASH=$digest DIRECT=$direct"
+          '@
+            $replayPath = Join-Path $attacker 'replay.ps1'
+            $replayOut = Join-Path $attacker 'replay-result.txt'
+            [IO.File]::WriteAllText($replayPath, $replay)
+            & icacls $replayPath /grant "${lowName}:R" | Out-Null
+            $replayArgs = "-NoProfile -File `"$replayPath`" -Capture `"$captured`" -Secret `"$secretFile`" -Marker `"$markerFile`" -Out `"$replayOut`" -Port $portA"
+            $replayProc = Start-Process $pwsh -ArgumentList $replayArgs -Credential $lowCred -PassThru -Wait -LoadUserProfile -WindowStyle Hidden
+            if ($replayProc.ExitCode -ne 0) { throw "Protected marker replay failed: $($replayProc.ExitCode)" }
+            $replayResult = (Get-Content $replayOut -Raw).Trim()
+            if ($replayResult -ne "NOAUTH=401 AUTH=200 MARKERHASH=$expectedMarker DIRECT=DENIED") { throw "Protected marker mismatch: $replayResult" }
+            Write-Host 'F033_PROTECTED_MARKER_REPLAY_PASS'
           } finally {
             Remove-Item Env:NuGetPackageSourceCredentials_PrivateFeed -ErrorAction SilentlyContinue
             if ($lowProcess -and -not $lowProcess.HasExited) { Stop-Process -Id $lowProcess.Id -Force -ErrorAction SilentlyContinue }
