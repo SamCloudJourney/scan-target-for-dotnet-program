@@ -39,8 +39,14 @@ jobs:
             printf 'OUTSIDE_OLD\n' > "$protected/SKILL.md"
             printf 'DELETE_ME\n' > "$protected/stale.md"
             git -C "$repo" init -q
+            sudo chown -R f073low:f073low "$repo"
             sudo -u f073low ln -s ../../../protected "$repo/.agents/skills/playwright-cli"
-            git -C "$repo" add .agents/skills/playwright-cli
+            sudo -u f073low git -C "$repo" add .agents/skills/playwright-cli
+            sudo -u f073low git -C "$repo" -c user.name=f073low -c user.email=f073low@example.invalid commit -qm 'Add repository skill link'
+            git clone -q "$repo" "$case_dir/checkout"
+            repo="$case_dir/checkout"
+            test -L "$repo/.agents/skills/playwright-cli"
+            echo "COMMIT_ACTOR=$(git -C "$repo" log -1 --format='%an <%ae>')"
             echo "CASE=$kind"
             git -C "$repo" ls-files --stage .agents/skills/playwright-cli
             echo "link=$(readlink "$repo/.agents/skills/playwright-cli")"
@@ -73,16 +79,16 @@ jobs:
             echo "OUTSIDE_STALE_EXISTS=no"
           }
           new_case raw
-          ( cd "$base/raw/repo" && playwright-cli install --skills )
+          ( cd "$base/raw/checkout" && playwright-cli install --skills )
           unchanged "$base/raw/protected"
           echo "RAW_PLAYWRIGHT_CONTROL=UNCHANGED"
           new_case denied
-          aspire agent init --workspace-root "$base/denied/repo" --agents copilot --scope project --skills none
+          aspire agent init --workspace-root "$base/denied/checkout" --agents copilot --scope project --skills none
           unchanged "$base/denied/protected"
           echo "SKILL_NONE_CONTROL=UNCHANGED"
           for kind in positive1 positive2; do
             new_case "$kind"
-            aspire agent init --workspace-root "$base/$kind/repo" --agents copilot --scope project --skills playwright-cli
+            aspire agent init --workspace-root "$base/$kind/checkout" --agents copilot --scope project --skills playwright-cli
             changed "$base/$kind/protected"
             echo "ASPIRE_$kind=OUTSIDE_WRITE_AND_DELETE"
           done
@@ -127,9 +133,14 @@ jobs:
             $link = Join-Path $repo '.agents\skills\playwright-cli'
             New-Item -ItemType SymbolicLink -Path $link -Target $protected | Out-Null
             git -C $repo add .agents/skills/playwright-cli
+            git -C $repo -c user.name=f073lab -c user.email=f073lab@example.invalid commit -qm 'Add repository skill link'
+            $checkout = Join-Path $caseDir 'checkout'
+            git -c core.symlinks=true clone -q $repo $checkout
+            $repo = $checkout
+            if ((Get-Item (Join-Path $repo '.agents\skills\playwright-cli')).LinkType -ne 'SymbolicLink') { throw 'Checkout did not preserve symlink' }
             Write-Host "CASE=$kind"
             git -C $repo ls-files --stage .agents/skills/playwright-cli | ForEach-Object { Write-Host $_ }
-            Write-Host "LINK_TARGET=$((Get-Item $link).Target)"
+            Write-Host "LINK_TARGET=$((Get-Item (Join-Path $repo '.agents\skills\playwright-cli')).Target)"
             return @{ repo = $repo; protected = $protected }
           }
           function Assert-Unchanged($protected) {
