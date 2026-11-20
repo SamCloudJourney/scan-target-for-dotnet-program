@@ -31,7 +31,7 @@ jobs:
               <TargetFramework>net11.0</TargetFramework>
               <ImplicitUsings>enable</ImplicitUsings>
             </PropertyGroup>
-            <ItemGroup><ProjectCapability Include="HotReloadWebSockets" /></ItemGroup>
+            <ItemGroup><ProjectCapability Include="HotReloadWebSockets" /><ProjectCapability Include="Aspire" /></ItemGroup>
             <Target Name="F042DelayChildLaunch" BeforeTargets="ComputeRunArguments">
               <Exec Command="sleep 20" />
             </Target>
@@ -73,7 +73,7 @@ jobs:
                   {
                       socket.Options.AddSubProtocol("f042-invalid");
                   }
-                  using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                  using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                   try
                   {
                       await socket.ConnectAsync(new Uri(endpoint), cts.Token);
@@ -88,6 +88,23 @@ jobs:
                           {
                               var result = await socket.ReceiveAsync(incoming, cts.Token);
                               Console.WriteLine("F042_SERVER_FRAME_TYPE=" + (result.Count > 0 ? incoming[0] : -1) + " BYTES=" + result.Count);
+                              if (result.Count > 0 && incoming[0] == 1)
+                              {
+                                  using var stream = new MemoryStream(incoming, 0, result.Count);
+                                  using var reader = new BinaryReader(stream);
+                                  reader.ReadByte();
+                                  int count = reader.ReadInt32();
+                                  var names = new List<string>();
+                                  for (int i = 0; i < count; i++)
+                                  {
+                                      names.Add(reader.ReadString());
+                                      reader.ReadString();
+                                  }
+                                  Console.WriteLine("F042_RPC_ENV_COUNT=" + count + " NAMES=" + string.Join(",", names));
+                                  await socket.SendAsync(new byte[] { 2 }, WebSocketMessageType.Binary, true, cts.Token);
+                                  var next = await socket.ReceiveAsync(incoming, cts.Token);
+                                  Console.WriteLine("F042_NEXT_FRAME_TYPE=" + (next.Count > 0 ? incoming[0] : -1));
+                              }
                           }
                           catch (OperationCanceledException)
                           {
@@ -122,7 +139,7 @@ jobs:
                       continue
                   print('F042_PEER_UID=' + str(os.getuid()) + ' ARGV_VISIBLE=True KEY_LENGTH=' + str(len(key)) + ' ENDPOINT=' + endpoint.decode(), flush=True)
                   for mode in ('bad-origin', 'bad-key', 'valid'):
-                      result = subprocess.run([dotnet, dll, endpoint.decode(), key.decode(), mode], capture_output=True, text=True, timeout=8)
+                      result = subprocess.run([dotnet, dll, endpoint.decode(), key.decode(), mode], capture_output=True, text=True, timeout=15)
                       print(result.stdout.strip(), flush=True)
                       if result.stderr.strip():
                           print('F042_PEER_STDERR=' + result.stderr.strip()[:400], flush=True)
@@ -135,10 +152,11 @@ jobs:
           peer_result="$peer/result.log"
           sudo -u f042_peer python3 "$peer/query.py" "$(command -v dotnet)" "$peer/bin/Debug/net11.0/Peer.dll" > "$peer_result" 2>&1 &
           peerpid=$!
-          dotnet watch --project "$owned/Owned.csproj" run --no-restore > "$owned/watch.log" 2>&1 &
+          watch_log="$(mktemp /tmp/f042-watchlog.XXXXXX)"
+          dotnet watch --project "$owned/Owned.csproj" run --no-restore > "$watch_log" 2>&1 &
           watchpid=$!
           trap 'kill "$watchpid" 2>/dev/null || true' EXIT
           wait "$peerpid"
           cat "$peer_result"
           sleep 22
-          sed -E 's/DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=[A-Za-z0-9+/=]+/DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=<redacted>/g' "$owned/watch.log" | tail -60
+          sed -E 's/DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=[A-Za-z0-9+/=]+/DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=<redacted>/g' "$watch_log" | tail -60
