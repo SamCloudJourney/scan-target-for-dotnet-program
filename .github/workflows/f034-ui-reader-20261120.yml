@@ -1,6 +1,8 @@
 name: F034 Visual Studio reader UI probe
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - f034-publisher-ui-20261120
 permissions:
   contents: read
   packages: read
