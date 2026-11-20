@@ -123,23 +123,47 @@ jobs:
                   Write-Host "DTE_NUGET_OPEN_COMMAND_ERROR=$($_.Exception.Message)"
                 }
                 Start-Sleep -Seconds 8
-                [F034Mouse]::SetCursorPos(57,114) | Out-Null
-                [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-                Start-Sleep -Milliseconds 150
-                [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                function SaveF034Screen([string]$name) {
+                  $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+                  $im = New-Object System.Drawing.Bitmap($b.Width,$b.Height)
+                  $gr = [System.Drawing.Graphics]::FromImage($im)
+                  $gr.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size)
+                  $im.Save((Join-Path $dir $name),[System.Drawing.Imaging.ImageFormat]::Png)
+                  $gr.Dispose(); $im.Dispose()
+                  Write-Host "UI_STAGE_SCREENSHOT=$name"
+                }
+                function ClickF034([int]$x,[int]$y) {
+                  [F034Mouse]::SetCursorPos($x,$y) | Out-Null
+                  [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+                  Start-Sleep -Milliseconds 150
+                  [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                }
+                SaveF034Screen 'pre-browse.png'
+                ClickF034 813 47
+                Write-Host "UI_DISMISSED_SIGNIN_IF_PRESENT=True"
+                Start-Sleep -Seconds 2
+                ClickF034 150 82
+                Start-Sleep -Seconds 2
+                ClickF034 57 114
                 Write-Host "UI_CLICKED_BROWSE=True"
                 Start-Sleep -Seconds 15
+                SaveF034Screen 'after-browse.png'
                 Write-Host "SMB_SESSIONS_BEFORE_UI_SEARCH=$(@(Get-SmbSession).Count)"
+                ClickF034 813 47
+                Start-Sleep -Seconds 2
+                ClickF034 150 82
+                Start-Sleep -Seconds 2
+                ClickF034 57 114
+                Start-Sleep -Seconds 3
                 Set-Clipboard -Value $pkgId
-                [F034Mouse]::SetCursorPos(72,152) | Out-Null
-                [F034Mouse]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-                Start-Sleep -Milliseconds 150
-                [F034Mouse]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+                ClickF034 72 152
                 Start-Sleep -Milliseconds 300
                 [System.Windows.Forms.SendKeys]::SendWait('^v')
                 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
                 Write-Host "UI_SUBMITTED_PACKAGE_SEARCH=True"
-                Start-Sleep -Seconds 50
+                Start-Sleep -Seconds 12
+                SaveF034Screen 'after-search-12s.png'
+                Start-Sleep -Seconds 38
                 Write-Host "SMB_SESSIONS_AFTER_UI_SEARCH=$(@(Get-SmbSession).Count)"
                 Write-Host "SMB_OPEN_FILES_AFTER_UI_SEARCH=$(@(Get-SmbOpenFile).Count)"
               } else {
@@ -187,5 +211,8 @@ jobs:
           path: |
             ${{ runner.temp }}/f034-consumer/visual-studio.png
             ${{ runner.temp }}/f034-consumer/post-skip.png
+            ${{ runner.temp }}/f034-consumer/pre-browse.png
+            ${{ runner.temp }}/f034-consumer/after-browse.png
+            ${{ runner.temp }}/f034-consumer/after-search-12s.png
             ${{ runner.temp }}/f034-consumer/ActivityLog.xml
           if-no-files-found: ignore
