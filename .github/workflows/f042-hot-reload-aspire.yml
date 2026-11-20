@@ -1,0 +1,235 @@
+name: F042 owned Aspire launch-secret gate
+
+on:
+  push:
+    branches:
+      - research/f042-hot-reload-20261120
+    paths:
+      - .github/workflows/f042-hot-reload-aspire.yml
+
+jobs:
+  linux-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Install released SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Exercise released watch across local users
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --version
+          owned="$(mktemp -d /tmp/f042-host.XXXXXX)"
+          peripheral="$(mktemp -d /tmp/f042-peripheral.XXXXXX)"
+          peer="$(mktemp -d /tmp/f042-peer.XXXXXX)"
+          chmod 755 "$peer"
+          cat > "$owned/Host.csproj" <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net11.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectCapability Include="Aspire" />
+              <ProjectReference Include="$peripheral/Peripheral.csproj" />
+            </ItemGroup>
+          </Project>
+          EOF
+          cat > "$owned/Program.cs" <<'EOF'
+          var path = Environment.GetEnvironmentVariable("F042_HOST_CREDENTIAL_FILE")!;
+          File.WriteAllLines(path, new[] {
+              Environment.GetEnvironmentVariable("DEBUG_SESSION_PORT") ?? "",
+              Environment.GetEnvironmentVariable("DEBUG_SESSION_TOKEN") ?? "",
+              Environment.GetEnvironmentVariable("DEBUG_SESSION_SERVER_CERTIFICATE") ?? ""
+          });
+          Console.WriteLine("F042_HOST_READY");
+          await Task.Delay(TimeSpan.FromSeconds(90));
+          EOF
+          cat > "$peripheral/Peripheral.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net11.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup><ProjectCapability Include="HotReloadWebSockets" /></ItemGroup>
+            <Target Name="F042DelayChildLaunch" BeforeTargets="ComputeRunArguments">
+              <Exec Command="sleep 20" />
+            </Target>
+          </Project>
+          EOF
+          cat > "$peripheral/Program.cs" <<'EOF'
+          Console.WriteLine("F042_PERIPHERAL_STARTED");
+          await Task.Delay(TimeSpan.FromSeconds(60));
+          EOF
+          cat > "$peer/Peer.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net11.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+          </Project>
+          EOF
+          cat > "$peer/Program.cs" <<'EOF'
+          using System.Net;
+          using System.Net.WebSockets;
+          using System.Security.Cryptography;
+          internal static class Peer
+          {
+              public static async Task Main(string[] args)
+              {
+                  var (endpoint, key, mode) = (args[0], args[1], args[2]);
+                  using var socket = new ClientWebSocket();
+                  if (mode != "missing-origin")
+                      socket.Options.SetRequestHeader("Origin", mode == "bad-origin" ? "wss://wrong.example" : "wss://localhost");
+                  if (mode == "valid")
+                  {
+                      using var rsa = RSA.Create();
+                      rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(key), out _);
+                      var ciphertext = rsa.Encrypt(RandomNumberGenerator.GetBytes(32), RSAEncryptionPadding.OaepSHA256);
+                      socket.Options.AddSubProtocol(WebUtility.UrlEncode(Convert.ToBase64String(ciphertext)));
+                  }
+                  else if (mode == "bad-key")
+                  {
+                      socket.Options.AddSubProtocol("f042-invalid");
+                  }
+                  using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                  try
+                  {
+                      await socket.ConnectAsync(new Uri(endpoint), cts.Token);
+                      Console.WriteLine("F042_" + mode + "=ACCEPTED");
+                      if (mode == "valid")
+                      {
+                          byte[] init = { 1, 1, 0, 0, 0, 0, 1, (byte)'x' };
+                          await socket.SendAsync(init, WebSocketMessageType.Binary, true, cts.Token);
+                          Console.WriteLine("F042_INIT_SENT=True");
+                          byte[] incoming = new byte[4096];
+                          try
+                          {
+                              var result = await socket.ReceiveAsync(incoming, cts.Token);
+                              Console.WriteLine("F042_SERVER_FRAME_TYPE=" + (result.Count > 0 ? incoming[0] : -1) + " BYTES=" + result.Count);
+                              if (result.Count > 0 && incoming[0] == 1)
+                              {
+                                  using var stream = new MemoryStream(incoming, 0, result.Count);
+                                  using var reader = new BinaryReader(stream);
+                                  reader.ReadByte();
+                                  int count = reader.ReadInt32();
+                                  var names = new List<string>();
+                                  for (int i = 0; i < count; i++)
+                                  {
+                                      var name = reader.ReadString();
+                                      var value = reader.ReadString();
+                                      names.Add(name);
+                                      if (name == "F042_SYNTH_SECRET")
+                                          Console.WriteLine("F042_SYNTH_SECRET_SHA256=" + Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value))).ToLowerInvariant());
+                                  }
+                                  Console.WriteLine("F042_RPC_ENV_COUNT=" + count + " NAMES=" + string.Join(",", names));
+                                  await socket.SendAsync(new byte[] { 2 }, WebSocketMessageType.Binary, true, cts.Token);
+                                  var next = await socket.ReceiveAsync(incoming, cts.Token);
+                                  Console.WriteLine("F042_NEXT_FRAME_TYPE=" + (next.Count > 0 ? incoming[0] : -1));
+                              }
+                          }
+                          catch (OperationCanceledException)
+                          {
+                              Console.WriteLine("F042_SERVER_FRAME_TIMEOUT=True");
+                          }
+                      }
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.WriteLine("F042_" + mode + "=DENIED:" + ex.GetType().Name + ":" + ex.Message.Replace(Environment.NewLine, " "));
+                  }
+              }
+          }
+          EOF
+          dotnet build "$owned/Host.csproj" --nologo
+          dotnet build "$peer/Peer.csproj" --nologo
+          chmod -R a+rX "$peer"
+          sudo useradd -m -s /bin/bash f042_peer
+          cat > "$peer/query.py" <<'EOF'
+          import glob, os, subprocess, sys, time
+          dotnet, dll = sys.argv[1:3]
+          for _ in range(900):
+              for path in glob.glob('/proc/[0-9]*/cmdline'):
+                  try:
+                      raw = open(path, 'rb').read()
+                  except (OSError, PermissionError):
+                      continue
+                  args = raw.split(b'\0')
+                  key = next((x.split(b'=', 1)[1] for x in args if x.startswith(b'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_KEY=')), b'')
+                  endpoint = next((x.split(b'=', 1)[1] for x in args if x.startswith(b'DOTNET_WATCH_HOTRELOAD_WEBSOCKET_ENDPOINT=')), b'')
+                  if not (key and endpoint):
+                      continue
+                  print('F042_PEER_UID=' + str(os.getuid()) + ' ARGV_VISIBLE=True KEY_LENGTH=' + str(len(key)) + ' ENDPOINT=' + endpoint.decode(), flush=True)
+                  print('F042_SECRET_NAME_IN_ARGV=' + str(b'F042_SYNTH_SECRET=' in raw), flush=True)
+                  for mode in ('bad-origin', 'bad-key', 'valid'):
+                      result = subprocess.run([dotnet, dll, endpoint.decode(), key.decode(), mode], capture_output=True, text=True, timeout=15)
+                      print(result.stdout.strip(), flush=True)
+                      if result.stderr.strip():
+                          print('F042_PEER_STDERR=' + result.stderr.strip()[:400], flush=True)
+                  sys.exit(0)
+              time.sleep(0.1)
+          print('F042_ARGV_VISIBLE=False', flush=True)
+          sys.exit(2)
+          EOF
+          chmod a+r "$peer/query.py"
+          peer_result="$peer/result.log"
+          watch_log="$(mktemp /tmp/f042-watchlog.XXXXXX)"
+          export F042_HOST_CREDENTIAL_FILE="$owned/host-credentials"
+          : > "$F042_HOST_CREDENTIAL_FILE"
+          chmod 600 "$F042_HOST_CREDENTIAL_FILE"
+          export F042_PERIPHERAL="$peripheral/Peripheral.csproj"
+          export F042_SYNTH_SECRET="$(openssl rand -hex 24)"
+          printf '%s' "$F042_SYNTH_SECRET" | sha256sum | awk '{print "F042_EXPECTED_SECRET_SHA256=" $1}'
+          sudo -u f042_peer python3 "$peer/query.py" "$(command -v dotnet)" "$peer/bin/Debug/net11.0/Peer.dll" > "$peer_result" 2>&1 &
+          peerpid=$!
+          dotnet watch --project "$owned/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
+          watchpid=$!
+          trap 'kill "$watchpid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 240); do
+            if [ -s "$F042_HOST_CREDENTIAL_FILE" ] && [ "$(wc -l < "$F042_HOST_CREDENTIAL_FILE")" -ge 3 ]; then break; fi
+            sleep 0.25
+          done
+          if [ "$(wc -l < "$F042_HOST_CREDENTIAL_FILE")" -lt 3 ]; then
+            echo F042_HOST_CREDENTIALS_MISSING
+            tail -60 "$watch_log"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, ssl, urllib.request, urllib.error
+          port, token, cert = open(os.environ['F042_HOST_CREDENTIAL_FILE']).read().splitlines()
+          print('F042_HOST_TOKEN_NONEMPTY=' + str(bool(token)), flush=True)
+          base = 'https://' + port
+          context = ssl._create_unverified_context()
+          def call(path, method='GET', auth=None, data=None):
+              headers = {'Content-Type': 'application/json'}
+              if auth: headers['Authorization'] = 'Bearer ' + auth
+              request = urllib.request.Request(base + path, data=data, method=method, headers=headers)
+              try:
+                  with urllib.request.urlopen(request, context=context, timeout=50) as response:
+                      return response.status
+              except urllib.error.HTTPError as error:
+                  return error.code
+          print('F042_INFO_NO_TOKEN=' + str(call('/info')), flush=True)
+          print('F042_INFO_WITH_TOKEN=' + str(call('/info', auth=token)), flush=True)
+          payload = {
+              'launch_configurations': [{
+                  'type': 'project',
+                  'project_path': os.environ['F042_PERIPHERAL'],
+                  'mode': 'NoDebug',
+                  'disable_launch_profile': True
+              }],
+              'env': [{'name': 'F042_SYNTH_SECRET', 'value': os.environ['F042_SYNTH_SECRET']}],
+              'args': []
+          }
+          body = json.dumps(payload).encode()
+          print('F042_START_PERIPHERAL_STATUS=' + str(call('/run_session/?api-version=2024-04-23', 'PUT', token, body)), flush=True)
+          PY
+          wait "$peerpid"
+          cat "$peer_result"
+          sleep 2
+          grep -E 'F042_|[Ff]ail|[Ee]rror|[Ee]xception' "$watch_log" | tail -35 || true
