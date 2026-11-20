@@ -57,6 +57,7 @@ jobs:
             $searchOutput = & dotnet package search F034 --source "http://127.0.0.1:$port/index.json" --take 1 2>&1
             Write-Host "DOTNET_SEARCH_EXIT=$LASTEXITCODE"
             Write-Host "DOTNET_SEARCH_FOUND_OWNED=$([bool]($searchOutput -match 'F034.Owned.Icon'))"
+            $searchOutput | Select-Object -First 8 | ForEach-Object { Write-Host "DOTNET_SEARCH_LINE=$_" }
             $principal = "$env:COMPUTERNAME\$env:USERNAME"
             New-SmbShare -Name $shareName -Path $shareDir -FullAccess $principal | Out-Null
             $shareCreated = $true
@@ -66,6 +67,19 @@ jobs:
             if ($dll) {
               Write-Host "VS_NUGET_DLL_VERSION=$($dll.VersionInfo.FileVersion)"
               try {
+                $dllMap = @{}
+                Get-ChildItem -Path $vsRoot -Recurse -File -Filter '*.dll' -ErrorAction SilentlyContinue | ForEach-Object {
+                  if (-not $dllMap.ContainsKey($_.Name)) { $dllMap[$_.Name] = $_.FullName }
+                }
+                Write-Host "VS_DLL_MAP_COUNT=$($dllMap.Count)"
+                $resolveHandler = [ResolveEventHandler]{
+                  param($sender, $args)
+                  $depName = ([Reflection.AssemblyName]::new($args.Name)).Name + '.dll'
+                  $depPath = $dllMap[$depName]
+                  if ($depPath) { return [Reflection.Assembly]::LoadFrom($depPath) }
+                  return $null
+                }
+                [AppDomain]::CurrentDomain.add_AssemblyResolve($resolveHandler)
                 $assembly = [Reflection.Assembly]::LoadFrom($dll.FullName)
                 $type = $assembly.GetType('NuGet.PackageManagement.VisualStudio.NuGetPackageFileService', $true)
                 $instance = [Runtime.Serialization.FormatterServices]::GetUninitializedObject($type)
@@ -104,8 +118,14 @@ jobs:
             }
             $nativeExists = [IO.File]::Exists(([Uri]$uncUri).LocalPath)
             Write-Host "OS_UNC_FILE_EXISTS=$nativeExists"
+            $osSessions = @(Get-SmbSession)
+            $osCred = @($osSessions | Where-Object { $_.ClientUserName -and $_.ClientUserName -notmatch 'ANONYMOUS|GUEST' }).Count
+            Write-Host "OS_SMB_SESSIONS_AFTER=$($osSessions.Count)"
+            Write-Host "OS_SMB_CREDENTIALED_SESSION_COUNT=$osCred"
           } finally {
             if ($uncStream) { $uncStream.Dispose() }
             if ($shareCreated) { Remove-SmbShare -Name $shareName -Force -ErrorAction SilentlyContinue }
             if ($feedProc) { Stop-Process -Id $feedProc.Id -Force -ErrorAction SilentlyContinue }
           }
+
+          $global:LASTEXITCODE = 0
