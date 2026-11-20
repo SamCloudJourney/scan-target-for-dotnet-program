@@ -23,7 +23,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $root, $tools | Out-Null
           Set-Location $root
           dotnet --version
-          dotnet tool install Aspire.Cli --tool-path $tools --version 13.6.5
+          dotnet tool install Aspire.Cli --tool-path $tools --version 17.0.0
           if ($LASTEXITCODE -ne 0) { throw 'Aspire CLI install failed' }
           Get-ChildItem -Path $tools | ForEach-Object { Write-Host ('TOOL_FILE=' + $_.Name) }
           $env:PATH = "$tools;$env:PATH"
@@ -32,7 +32,7 @@ jobs:
           & $cli --version
           $project = Join-Path $root 'F082.AppHost.csproj'
           @'
-          <Project Sdk="Aspire.AppHost.Sdk/13.6.5">
+          <Project Sdk="Aspire.AppHost.Sdk/17.0.0">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
               <TargetFramework>net10.0</TargetFramework>
@@ -49,6 +49,7 @@ jobs:
           var secret = builder.AddParameter("password", "F082_SYNTHETIC_ONLY_4qZ9", secret: true);
           builder.AddExecutable("probe", "powershell.exe", ".", "-NoProfile", "-Command", "Start-Sleep -Seconds 300")
               .WithEnvironment("F082_DIRECT", secret)
+              .WithEnvironment("F082_PUBLIC", "F082_PUBLIC_SENTINEL")
               .WithEnvironment("F082_CONNECTION", ReferenceExpression.Create($"Host=example.invalid;Password={secret};"));
           builder.Build().Run();
           '@ | Set-Content -Path (Join-Path $root 'Program.cs') -Encoding utf8
@@ -66,12 +67,12 @@ jobs:
             if ($LASTEXITCODE -ne 0) { continue }
             try { $data = ($raw -join [Environment]::NewLine) | ConvertFrom-Json } catch { continue }
             $probe = $data.resources | Where-Object { $_.name -eq 'probe' } | Select-Object -First 1
-            if ($null -eq $probe -or $null -eq $probe.environment.F082_CONNECTION) { continue }
+            if ($null -eq $probe -or $probe.environment.F082_PUBLIC -ne "F082_PUBLIC_SENTINEL") { continue }
             Write-Host ('CLI_DIRECT=' + [string]$probe.environment.F082_DIRECT)
             Write-Host ('CLI_COMPOSITE=' + [string]$probe.environment.F082_CONNECTION)
             if ($null -ne $probe.environment.F082_DIRECT) { throw 'Direct secret was not redacted' }
-            if ($probe.environment.F082_CONNECTION -ne 'Host=example.invalid;Password=F082_SYNTHETIC_ONLY_4qZ9;') { throw 'Composite result unexpected' }
-            Write-Host 'F082_MECHANISM_PASS'
+            if ($null -ne $probe.environment.F082_CONNECTION) { throw 'Composite secret was not redacted' }
+            Write-Host 'F082_CURRENT_RELEASE_PASS'
             $found = $true
             break
           }
