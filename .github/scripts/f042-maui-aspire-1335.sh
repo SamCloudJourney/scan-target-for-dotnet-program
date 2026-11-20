@@ -148,7 +148,7 @@ trap cleanup_watch EXIT
 echo F042_BASELINE_START
 setsid dotnet watch --project "$host/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
 watchpid=$!
-for i in $(seq 1 240); do
+for i in $(seq 1 600); do
     if adb shell pidof com.example.f042mobile >/dev/null 2>&1; then
         echo F042_BASELINE_MOBILE_PROCESS=RUNNING
         break
@@ -218,6 +218,18 @@ peerpid=$!
 setsid dotnet watch --project "$host/Host.csproj" run --no-restore > "$watch_log" 2>&1 &
 watchpid=$!
 wait "$peerpid" || true
+for i in $(seq 1 150); do
+    if adb shell pidof com.example.f042mobile >/dev/null 2>&1; then
+        echo F042_ATTACK_MOBILE_PROCESS=RUNNING
+        break
+    fi
+    if adb shell pm path com.example.f042mobile 2>/dev/null | grep -q '^package:'; then
+        echo F042_ATTACK_PACKAGE=INSTALLED
+        break
+    fi
+    sleep 2
+done
+if ! adb shell pidof com.example.f042mobile >/dev/null 2>&1; then echo F042_ATTACK_MOBILE_PROCESS=MISSING; fi
 echo "F042_EXPECTED_HASH=$(cat "$F042_EXPECTED_HASH_FILE")"
 cat "$root/peer.log"
 if [[ -s "$F042_EXPECTED_HASH_FILE" ]]; then
