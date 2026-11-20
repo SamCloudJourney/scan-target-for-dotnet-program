@@ -1,0 +1,43 @@
+name: F042 Aspire MAUI headless launch routing
+
+on:
+  push:
+    branches:
+      - research/f042-maui-aspire-20261120
+    paths:
+      - .github/workflows/f042-maui-headless.yml
+
+jobs:
+  android-route:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [current, aspire-1335]
+    steps:
+      - name: Install released .NET 11 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.100
+      - name: Install Android workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet workload install android --skip-manifest-update
+          dotnet workload list
+      - name: Fetch owned probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          case '${{ matrix.variant }}' in
+            current) probe=f042-maui-aspire.sh ;;
+            aspire-1335) probe=f042-maui-aspire-1335.sh ;;
+          esac
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/.github/scripts/$probe" \
+            -o /tmp/f042-headless.sh
+          bash -n /tmp/f042-headless.sh
+      - name: Probe launch routing without a device
+        shell: bash
+        run: bash /tmp/f042-headless.sh
