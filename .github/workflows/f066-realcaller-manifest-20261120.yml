@@ -118,6 +118,10 @@ jobs:
               return $LASTEXITCODE
             }
             $destination = Join-Path $root 'extracted-manifests\F066.Manifest-1.Msi.x64.1'
+            $marker = Join-Path $trusted 'successor-executed.txt'
+            & dotnet msbuild $successor /t:Run /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
+            if ($LASTEXITCODE -ne 0 -or (Test-Path $marker)) { throw 'Trusted successor baseline failed' }
+            Write-Host 'SUCCESSOR_BASELINE=PASS'
             Run-Low 'archives'
             $exit = Run-RealUnzip 'inside'
             if ($exit -ne 0 -or [IO.File]::ReadAllText((Join-Path $destination 'inside.txt')) -ne 'INSIDE') { throw 'Inside baseline failed' }
@@ -140,6 +144,9 @@ jobs:
             $exit = Run-RealUnzip 'successor'
             if ($exit -ne 0 -or [IO.File]::ReadAllText($successor) -ne $baseline -or (Test-Path (Join-Path $trusted 'successor-executed.txt'))) { throw 'Successor no-link control failed' }
             Write-Host 'SUCCESSOR_NO_LINK_CONTROL=PASS'
+            & dotnet msbuild $successor /t:Run /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
+            if ($LASTEXITCODE -ne 0 -or (Test-Path $marker)) { throw 'No-link successor execution control failed' }
+            Write-Host 'SUCCESSOR_NO_LINK_EXECUTION=PASS'
             Remove-Item -LiteralPath (Join-Path $destination 'trustedpivot') -Recurse -Force
             Run-Low 'successorjunction'
             $exit = Run-RealUnzip 'successor'
@@ -147,7 +154,6 @@ jobs:
             Write-Host 'REAL_CALLER_SUCCESSOR_OVERWRITE=PASS'
             & dotnet msbuild $successor /t:Run /nologo /v:minimal 2>&1 | ForEach-Object { Write-Host $_ }
             $exit = $LASTEXITCODE
-            $marker = Join-Path $trusted 'successor-executed.txt'
             if ($exit -ne 0 -or !(Test-Path $marker) -or [IO.File]::ReadAllText($marker).Trim() -ne 'F066_REALCALLER_EXEC_MARKER') { throw 'Successor execution failed' }
             Write-Host "REAL_CALLER_SUCCESSOR_EXECUTION=PASS EXIT=$exit MARKER=$([IO.File]::ReadAllText($marker).Trim())"
           } finally {
