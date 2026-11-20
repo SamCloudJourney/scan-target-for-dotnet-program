@@ -53,6 +53,17 @@ jobs:
           (root / 'intake' / 'nested' / 'seed; cat "$F030_CANARY_PATH" ; #.txt').write_bytes(b'')
           ACTOR
           printf 'ACTOR_DIRECT_READ=%s\n' "$(cat "$inputDir/direct.txt")"
+          sudo -u nobody python3 - "$src/superpmi.py" "$core/corerun" <<'ACTOR_ACL'
+          import pathlib, sys
+          for label, raw in zip(('SCRIPT', 'TOOL'), sys.argv[1:]):
+              try:
+                  with pathlib.Path(raw).open('ab') as handle:
+                      handle.write(b'x')
+              except PermissionError:
+                  print('ACTOR_' + label + '_WRITE=DENIED')
+              else:
+                  raise SystemExit('actor could edit ' + label)
+          ACTOR_ACL
           test "$(cat "$inputDir/direct.txt")" = DENIED
           run_case() {
             caseName="$1"
@@ -81,6 +92,8 @@ jobs:
           safeOutput="$(run_case safe)"
           printf '%s\n' "$safeOutput"
           test ! -e "$root/stage_safe/0/binaries/nested/"'seed; cat "$F030_CANARY_PATH" ; #.txt'
+          if sudo -u nobody test -w "$root/stage_safe/0/binaries/nested"; then echo 'actor could edit staged work item'; exit 1; fi
+          printf 'ACTOR_STAGED_WORKITEM_WRITE=DENIED\n'
           if printf '%s' "$safeOutput" | grep -q "$marker"; then echo 'safe/TXT control read canary'; exit 1; fi
           if ! printf '%s' "$safeOutput" | grep -q 'F030_TOOL_ID=runner'; then echo 'safe control did not reach corerun'; exit 1; fi
           sudo -u nobody env -u F030_CANARY_PATH python3 - "$nested" <<'ACTOR'
