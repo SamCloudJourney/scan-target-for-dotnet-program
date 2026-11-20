@@ -57,6 +57,13 @@ class Recorder(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.server.seen.append({"path": self.path, "authorization": self.headers.get("Authorization")})
         if self.path == "/index.json" and hasattr(self.server, "resource_url"):
+            expected = "Basic " + base64.b64encode(MARKER.encode()).decode()
+            if self.headers.get("Authorization") != expected:
+                self.send_response(401)
+                self.send_header("WWW-Authenticate", 'Basic realm="f056-index"')
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             body = json.dumps({"version": "3.0.0", "resources": [{"@id": self.server.resource_url, "@type": "PackageBaseAddress/3.0.0"}]}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -166,11 +173,16 @@ def run_case(major, sdk, name, endpoint, include_credentials, allow_http, repeat
         captured = next((r["authorization"] for r in sink.seen if r["authorization"] and MARKER in decoded_auth([r])), None)
         denied_status = protected_status(source.server_port, None)
         replay_status = protected_status(source.server_port, captured) if captured else None
-        record = {"sdk": sdk, "case": name, "repeat": repeat, "command": command, "source_url": source_url, "resource_url": resource_url, "source_flat_requests": len(source_flat_auth), "source_flat_basic_decoded": source_flat_auth, "sink_requests": len(sink.seen), "sink_basic_decoded": sink_auth, "protected_denied_status": denied_status, "protected_replay_status": replay_status, "source_redirect_requests": sum(r["path"].startswith("/flat/") for r in source.seen), "exit": result.returncode, "timed_out": timed_out, "stdout_tail": result.stdout[-1400:], "stderr_tail": result.stderr[-1000:]}
+        authorized_index_requests = sum(r["path"] == "/index.json" and MARKER in decoded_auth([r]) for r in source.seen)
+        record = {"authorized_index_requests": authorized_index_requests, "sdk": sdk, "case": name, "repeat": repeat, "command": command, "source_url": source_url, "resource_url": resource_url, "source_flat_requests": len(source_flat_auth), "source_flat_basic_decoded": source_flat_auth, "sink_requests": len(sink.seen), "sink_basic_decoded": sink_auth, "protected_denied_status": denied_status, "protected_replay_status": replay_status, "source_redirect_requests": sum(r["path"].startswith("/flat/") for r in source.seen), "exit": result.returncode, "timed_out": timed_out, "stdout_tail": result.stdout[-1400:], "stderr_tail": result.stderr[-1000:]}
         print("F056_CASE", json.dumps(record, sort_keys=True), flush=True)
         assert denied_status == 401, "protected resource did not deny anonymous access"
         if captured:
             assert replay_status == 200, "captured credential did not unlock protected resource"
+        if include_credentials:
+            assert authorized_index_requests > 0, "configured credential did not authenticate index"
+        else:
+            assert authorized_index_requests == 0 and not sink.seen, "anonymous index reached advertised resource"
         if name == "same_origin":
             assert MARKER in source_flat_auth and not sink.seen, "same-origin credential baseline failed"
         elif name in ("cross_https", "cross_https_ip"):
