@@ -102,11 +102,17 @@ jobs:
             Write-Host "CLICKED_START_VISUAL_STUDIO=True"
             Start-Sleep -Seconds 55
             $dte = $null
-            for ($i=0; $i -lt 20; $i++) {
+            for ($i=0; $i -lt 90; $i++) {
               try { $dte = [Runtime.InteropServices.Marshal]::GetActiveObject('VisualStudio.DTE.17.0'); break } catch { Start-Sleep -Seconds 2 }
             }
+            @(Get-Process -Name devenv -ErrorAction SilentlyContinue) | ForEach-Object { Write-Host "DEVENV_PROCESS=$($_.Id)|$($_.MainWindowTitle)|$($_.MainWindowHandle)" }
             Write-Host "DTE_ATTACHED=$([bool]$dte)"
             if ($dte) {
+              Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class F034Window { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n); }'
+              $p.Refresh()
+              [F034Window]::ShowWindow($p.MainWindowHandle,9) | Out-Null
+              [F034Window]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
+              Write-Host "DEVENV_FOREGROUND_REQUESTED=True"
               $solutionPath = ''
               for ($i=0; $i -lt 48; $i++) {
                 try { $solutionPath = [string]$dte.Solution.FullName } catch {}
@@ -123,6 +129,8 @@ jobs:
                   Write-Host "DTE_NUGET_OPEN_COMMAND_ERROR=$($_.Exception.Message)"
                 }
                 Start-Sleep -Seconds 8
+                $p.Refresh()
+                [F034Window]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
                 function SaveF034Screen([string]$name) {
                   $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
                   $im = New-Object System.Drawing.Bitmap($b.Width,$b.Height)
