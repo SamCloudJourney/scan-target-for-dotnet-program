@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   static-boundary-triage:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 25
     steps:
       - name: Sparse checkout of pinned source subtrees only
