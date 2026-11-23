@@ -1,0 +1,56 @@
+name: dotnet-boundary-hunt-20261123
+
+on:
+  push:
+    branches:
+      - research/dotnet-boundary-hunt-20261123
+    paths:
+      - .github/workflows/dotnet-boundary-hunt.yml
+      - research/hunts/20261123/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-boundary-triage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Sparse checkout of pinned source subtrees only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            research/hunts/20261123/
+            scan-target-v11.0.100/src/sdk/src/TemplateEngine/
+            scan-target-v11.0.100/src/sdk/src/Containers/
+            scan-target-v11.0.100/src/nuget-client/src/NuGet.Core/NuGet.Packaging/
+            scan-target-v11.0.100/src/aspnetcore/src/Middleware/HttpOverrides/
+            scan-target-v11.0.100/src/aspnetcore/src/Servers/Kestrel/Core/
+            scan-target-v11.0.100/src/msbuild/src/Build/
+      - name: Confirm source commit and run static-only analysis
+        run: |
+          echo "Source snapshot: dotnet/dotnet v11.0.100 @ 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f"
+          python3 research/hunts/20261123/scan.py
+      - name: Publish a non-assertive review summary
+        if: always()
+        run: |
+          if [ -f research/hunts/20261123/results.md ]; then
+            sed -n '1,22p' research/hunts/20261123/results.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Static scan did not produce results; inspect logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload static review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-boundary-static-hunt-20261123
+          path: |
+            research/hunts/20261123/results.json
+            research/hunts/20261123/results.md
+          if-no-files-found: warn
+          retention-days: 14
